@@ -1,5 +1,5 @@
 "use client";
-import { useState, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -49,6 +49,24 @@ export function ThemePreview({
   scene?: string;
   compact?: boolean;
 }) {
+  const preview = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const element = preview.current;
+    const card = element?.parentElement;
+    if (!compact || !element || !card) return;
+    const fit = () => {
+      const padding = getComputedStyle(card);
+      const width =
+        card.clientWidth -
+        parseFloat(padding.paddingLeft) -
+        parseFloat(padding.paddingRight);
+      element.style.setProperty("--compact-scale", String(width / 580));
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [compact]);
   const c = resolve(theme, mode);
   const [checked, setChecked] = useState(true);
   const fontVariables: Record<string, string> = {
@@ -208,6 +226,7 @@ export function ThemePreview({
   );
   return (
     <div
+      ref={preview}
       className={`theme-scope ${mode === "dark" ? "dark" : ""} ${compact ? "compact-preview" : ""}`}
       style={style}
     >

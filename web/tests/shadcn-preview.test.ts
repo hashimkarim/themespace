@@ -65,7 +65,10 @@ test("shadcn previews run real controls and keep exported tokens across portals 
     });
   }
   Object.assign(w, { ResizeObserver: ResizeObserverStub, matchMedia });
-  w.HTMLElement.prototype.scrollIntoView = () => {};
+  let commandScrolls = 0;
+  w.HTMLElement.prototype.scrollIntoView = function () {
+    if (this.closest("[cmdk-root]")) commandScrolls++;
+  };
   w.HTMLElement.prototype.hasPointerCapture = () => false;
   w.HTMLElement.prototype.setPointerCapture = () => {};
   w.HTMLElement.prototype.releasePointerCapture = () => {};
@@ -123,6 +126,17 @@ test("shadcn previews run real controls and keep exported tokens across portals 
       shadcnExamples.length,
     );
     assert.equal(shadcnExamples.length, 31);
+    assert.equal(
+      commandScrolls,
+      0,
+      "Loading the command example must not scroll the gallery",
+    );
+    const commandInput = query('[aria-label="Search example commands"]');
+    await keyboard(commandInput, "ArrowDown");
+    assert.ok(
+      d.querySelector('[cmdk-item][aria-selected="true"]'),
+      "Keyboard navigation still selects a command",
+    );
     for (const slot of [
       "button",
       "input",

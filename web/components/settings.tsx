@@ -195,6 +195,7 @@ export function SettingsPage({
                   className={`site-theme-option ${settings.themeId === "custom" ? "selected" : ""}`}
                   onClick={() => update({ themeId: "custom" })}
                   aria-pressed={settings.themeId === "custom"}
+                  aria-label={`${settings.customTheme.name} saved snapshot`}
                 >
                   <span className="site-theme-swatches">
                     {baseRoles.slice(0, 3).map((role) => (
@@ -209,7 +210,10 @@ export function SettingsPage({
                       />
                     ))}
                   </span>
-                  <span>{settings.customTheme.name}</span>
+                  <span>
+                    {settings.customTheme.name}
+                    <small className="theme-option-note">Saved snapshot</small>
+                  </span>
                   {settings.themeId === "custom" && <Check size={14} />}
                 </button>
               )}

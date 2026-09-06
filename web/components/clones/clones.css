@@ -949,3 +949,46 @@
     width: 85px;
   }
 }
+
+@container appPreview (max-width: 420px) {
+  .spotify-navbar {
+    gap: 10px;
+  }
+  .spotify-demo {
+    display: none;
+  }
+  .spotify-playlist-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .spotify-playlist-header > .spotify-cover {
+    width: 72px;
+    height: 72px;
+  }
+  .spotify-playlist-header h2 {
+    font-size: 27px;
+    overflow-wrap: anywhere;
+  }
+  .spotify-playlist-header p {
+    font-size: 11px;
+  }
+  .discord-channel-info > label {
+    width: 72px;
+  }
+  .discord-channel-info > b {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .discord-channel-list {
+    scrollbar-width: thin;
+    overflow-y: hidden;
+  }
+  .discord-input-wrapper {
+    padding: 8px 10px 10px;
+  }
+  .discord-input-wrapper > div {
+    gap: 8px;
+    padding: 0 10px;
+  }
+}

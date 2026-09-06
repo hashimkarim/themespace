@@ -1,9 +1,10 @@
 "use client";
-import { useMemo, useState, useRef } from "react";
+import { useId, useLayoutEffect, useMemo, useState, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   Check,
   CheckCheck,
+  ChevronDown,
   ChevronRight,
   Code2,
   Copy,
@@ -40,7 +41,10 @@ export function ExportWorkspace({
   notify: (text: string) => void;
 }) {
   const returnFocus = useRef<HTMLElement | null>(null);
+  const inspector = useRef<HTMLDivElement | null>(null);
+  const destinationsId = useId();
   const { settings } = useSitePreferences(),
+    [destinationsExpanded, setDestinationsExpanded] = useState(false),
     [selected, setSelected] = useState(
       theme.targets.filter((id) => exportTargets.some((t) => t.id === id)),
     ),
@@ -55,6 +59,9 @@ export function ExportWorkspace({
     [filePath, setFilePath] = useState(""),
     [allFiles, setAllFiles] = useState(false),
     [error, setError] = useState("");
+  useLayoutEffect(() => {
+    inspector.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [active, tab]);
   const generated = useMemo(() => {
     try {
       return {
@@ -95,6 +102,8 @@ export function ExportWorkspace({
     setFilePath("");
     setAllFiles(false);
     setError("");
+    setDestinationsExpanded(false);
+    setQuery("");
   };
   const toggle = (id: string) =>
     setSelected((ids) =>
@@ -170,7 +179,22 @@ export function ExportWorkspace({
             </Dialog.Close>
           </header>
           <div className="export-workspace-body">
-            <aside className="export-destinations">
+            <button
+              className="export-destinations-toggle"
+              aria-expanded={destinationsExpanded}
+              aria-controls={destinationsId}
+              onClick={() => setDestinationsExpanded(!destinationsExpanded)}
+            >
+              <Package size={16} />
+              <span>
+                Choose integrations <small>{selected.length} selected</small>
+              </span>
+              <ChevronDown size={16} />
+            </button>
+            <aside
+              id={destinationsId}
+              className={`export-destinations ${destinationsExpanded ? "expanded" : ""}`}
+            >
               <div className="export-destination-heading">
                 <strong>Build your package</strong>
                 <span>{selected.length}</span>
@@ -290,7 +314,11 @@ export function ExportWorkspace({
                   </button>
                 ))}
               </div>
-              <div className="export-inspector-content" role="tabpanel">
+              <div
+                ref={inspector}
+                className="export-inspector-content"
+                role="tabpanel"
+              >
                 {tab === "preview" ? (
                   <>
                     {activeTarget ? (

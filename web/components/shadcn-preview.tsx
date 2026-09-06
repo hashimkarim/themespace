@@ -781,7 +781,7 @@ function ChartDemo() {
     <div className="grid gap-4">
       <ChartContainer
         config={chartConfig}
-        className="h-56 w-full"
+        className="aspect-auto h-56 min-w-0 w-full"
         role="img"
         aria-label="Example weekly activity: themes and remixes"
       >
@@ -1350,7 +1350,8 @@ function CommandDemo() {
   const [value, setValue] = useState("No command selected.");
   return (
     <div className="grid gap-3">
-      <Command className="rounded-lg border">
+      {/* A selection on mount makes cmdk scroll the entire gallery to this card. */}
+      <Command className="rounded-lg border" defaultValue="__unselected__">
         <CommandInput
           placeholder="Type a command or search…"
           aria-label="Search example commands"

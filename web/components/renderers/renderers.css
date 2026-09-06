@@ -47,7 +47,13 @@
 .editor-renderer-waiting {
   margin: 20px;
   font-size: 12px;
-  color: var(--app-muted);
+  color: inherit;
+}
+body:has(.editor-renderer-page) {
+  background: transparent;
+}
+.editor-renderer-host:not(:empty) ~ .editor-renderer-waiting {
+  display: none;
 }
 .editor-renderer-page .cm-editor {
   height: 100%;
@@ -166,6 +172,10 @@
 }
 .engine-terminal-canvas .xterm-screen {
   font-family: monospace;
+}
+.engine-terminal-canvas .xterm .xterm-viewport {
+  background: var(--native-terminal-bg);
+  scrollbar-width: none;
 }
 .engine-terminal-meta {
   display: flex;

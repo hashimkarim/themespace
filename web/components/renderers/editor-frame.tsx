@@ -218,7 +218,11 @@ export function EditorFrame() {
                   padding: "16px 0",
                   caretColor: c.cursor,
                 },
-                ".cm-scroller": { overflow: "auto" },
+                ".cm-scroller": {
+                  overflow: "auto",
+                  scrollbarWidth: "thin",
+                  scrollbarColor: `${c.muted} ${c.background}`,
+                },
                 ".cm-cursor, .cm-dropCursor": { borderLeftColor: c.cursor },
                 "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
                   { backgroundColor: c.selection },
@@ -330,14 +334,26 @@ export function EditorFrame() {
       element.replaceChildren();
     };
   }, [engine, isDiff]);
+  const palette = config
+    ? integrationTheme(config.theme, config.mode, config.target).roles
+    : null;
   return (
     <main
       className="editor-renderer-page"
       data-editor-engine={engine || "waiting"}
+      style={
+        palette
+          ? {
+              backgroundColor: palette.background,
+              color: palette.foreground,
+              colorScheme: config!.mode,
+            }
+          : undefined
+      }
     >
       <div ref={host} className="editor-renderer-host" />
       {error && <p role="alert">{error}</p>}
-      {!config && (
+      {!error && (
         <p className="editor-renderer-waiting">Loading editor preview…</p>
       )}
     </main>

@@ -98,5 +98,8 @@ text size. Workers, WASM and renderer scripts are served by the app, not a CDN.
 - Existing exporter, shadcn and preference tests remain in place; production
   build/type checking/lint and local HTTP route/asset checks cover bundling.
 
-Browser screenshots, real-browser engine interaction and native client
-installation checks were not performed in this task.
+The 2026-09-06 UI review exercised browser previews, including Monaco and
+CodeMirror rendering, terminal ANSI scenes, Spotify and Discord layouts,
+integration selection, and expanded/export dialogs. It covered desktop, tablet
+and phone widths with light, dark and Draft site appearances. Native client
+installation remains unverified. See [UI review](ui-review.md).

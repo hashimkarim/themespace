@@ -42,6 +42,7 @@ export function ComponentLibrary({
     [category, setCategory] = useState("All"),
     [chosenMode, setChosenMode] = useState<Appearance | undefined>(),
     [height, setHeight] = useState(900),
+    [loadedDocument, setLoadedDocument] = useState<string | null>(null),
     [fontCSS, setFontCSS] = useState("");
   const iframe = useRef<HTMLIFrameElement>(null),
     appearance = chosenMode && theme.modes[chosenMode] ? chosenMode : mode;
@@ -188,12 +189,19 @@ export function ComponentLibrary({
         ))}
       </div>
       {filtered.length ? (
-        <div className="fixture-frame-shell">
+        <div className="fixture-frame-shell" aria-busy={loadedDocument !== doc}>
+          {loadedDocument !== doc && (
+            <div className="fixture-loading" role="status">
+              <span className="live-dot" />
+              Preparing component examples…
+            </div>
+          )}
           <iframe
             ref={iframe}
             title={`${theme.name} interactive component examples`}
             srcDoc={doc}
             sandbox="allow-scripts"
+            onLoad={() => setLoadedDocument(doc)}
             style={{ height }}
           />
         </div>

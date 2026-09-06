@@ -657,6 +657,7 @@ export function ThemeSpace({
               key={item}
               href={item === "studio" ? "/" : `/${item}`}
               className={view === item ? "active" : ""}
+              aria-current={view === item ? "page" : undefined}
               onClick={(e) => {
                 if (!e.metaKey && !e.ctrlKey) {
                   e.preventDefault();
@@ -814,8 +815,13 @@ export function ThemeSpace({
                 </button>
               </div>
             </div>
+            <nav className="studio-mobile-nav" aria-label="Studio sections">
+              <a href="#theme-controls">Edit theme</a>
+              <a href="#theme-preview">Live preview</a>
+              <a href="#theme-export">Export</a>
+            </nav>
             <div className="studio-grid" inert={!loaded}>
-              <aside className="panel controls-panel">
+              <aside className="panel controls-panel" id="theme-controls">
                 <div
                   className="control-tabs"
                   role="tablist"
@@ -1117,7 +1123,7 @@ export function ThemeSpace({
                   </div>
                 )}
               </aside>
-              <section className="preview-column">
+              <section className="preview-column" id="theme-preview">
                 <div className="preview-toolbar">
                   <span className="eyebrow">THE BIG PICTURE</span>
                   <div
@@ -1181,7 +1187,7 @@ export function ThemeSpace({
                   </button>
                 </div>
               </section>
-              <aside className="panel export-panel">
+              <aside className="panel export-panel" id="theme-export">
                 <div className="panel-heading">
                   <h2>Take it everywhere</h2>
                   <span className="count-pill">{selectedCount}</span>

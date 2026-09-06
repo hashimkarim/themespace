@@ -1,5 +1,13 @@
 "use client";
-import { useState, type CSSProperties, type FormEvent } from "react";
+import { useState, type CSSProperties } from "react";
+import ReactMarkdown from "react-markdown";
+import { CodeSurface } from "./renderers/code-surface";
+import { TerminalSurface } from "./renderers/terminal-surface";
+import { SpotifyPreview } from "./clones/spotify-preview";
+import { DiscordPreview } from "./clones/discord-preview";
+import { integrationTheme, terminalEngine } from "@/lib/integration-theme";
+import { previewFidelity } from "@/lib/preview-fidelity";
+import { exampleCode } from "@/lib/editor-preview";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,39 +22,20 @@ import {
   Folder,
   GitBranch,
   Globe,
-  Hash,
-  Headphones,
-  Heart,
-  Home,
   LayoutGrid,
   Lock,
-  MessageSquare,
-  Mic,
   Minus,
   MoreHorizontal,
-  Music2,
-  Pause,
-  Play,
   Plus,
   Search,
-  Send,
   Settings,
-  Shuffle,
-  SkipBack,
-  SkipForward,
   Square,
   Terminal,
-  Users,
-  Volume2,
   X,
 } from "lucide-react";
-import { type Theme, type Appearance, resolve } from "@/lib/theme";
+import { type Theme, type Appearance } from "@/lib/theme";
 import { getTarget } from "@/lib/targets";
-import {
-  previewProfiles,
-  previewStyle,
-  nativePreviewColors,
-} from "@/lib/preview-targets";
+import { previewProfiles, previewStyle } from "@/lib/preview-targets";
 import { ComponentLibrary } from "./component-library";
 import { ShadcnPreviewLoader } from "./shadcn-preview-loader";
 import { ThemedSelect } from "./ui/select";
@@ -57,190 +46,6 @@ const Dots = () => (
     <i />
   </span>
 );
-function TerminalBody({
-  theme,
-  mode,
-  windows = false,
-  blocks = false,
-}: {
-  theme: Theme;
-  mode: Appearance;
-  windows?: boolean;
-  blocks?: boolean;
-}) {
-  const c = resolve(theme, mode),
-    [input, setInput] = useState(""),
-    [history, setHistory] = useState<string[]>([]);
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    const v = input.trim();
-    if (!v) return;
-    if (v === "clear" || v === "cls") setHistory([]);
-    else
-      setHistory((old) =>
-        [
-          ...old,
-          `${windows ? "PS>" : "❯"} ${v}`,
-          v.startsWith("echo ")
-            ? v.slice(5)
-            : v === "pwd"
-              ? windows
-                ? "C:\\Users\\You\\themes"
-                : "/home/you/themes"
-              : v === "help"
-                ? "Preview commands: echo <text>, pwd, clear."
-                : "This is a terminal preview. Try echo hello.",
-        ].slice(-30),
-      );
-    setInput("");
-  }
-  return (
-    <div
-      className={`native-terminal-body ${blocks ? "terminal-command-blocks" : ""}`}
-    >
-      <div className="terminal-welcome">
-        <span className="native-accent">
-          {windows ? "PowerShell 7" : "you@workspace"}
-        </span>
-        <span className="native-muted">
-          {windows ? "Your personal command line." : "  ~/themes on main"}
-        </span>
-      </div>
-      <div className="terminal-command">
-        <p>
-          <span className="native-accent">
-            {windows ? "PS C:\\Users\\You>" : "❯"}
-          </span>{" "}
-          npm run build
-        </p>
-        <p className="native-muted">Generating {theme.name.toLowerCase()}…</p>
-        <p className="native-success">✓ Theme bundle ready</p>
-        <p>26 tools. One familiar palette.</p>
-      </div>
-      <div className="native-ansi" aria-label="16 ANSI terminal colors">
-        {Array.from({ length: 16 }, (_, i) => (
-          <i
-            key={i}
-            title={`ANSI ${i}: ${c[`ansi${i}`]}`}
-            style={{ background: `var(--ts-ansi${i})` }}
-          />
-        ))}
-      </div>
-      <div className="native-terminal-history" aria-live="polite">
-        {history.map((line, i) => (
-          <p key={i}>{line}</p>
-        ))}
-      </div>
-      <form onSubmit={submit}>
-        <label>
-          <span className="native-accent">{windows ? "PS>" : "❯"}</span>
-          <input
-            aria-label="Preview terminal command"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Try echo hello"
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <button aria-label="Run example command" type="submit">
-            <ChevronRight size={14} />
-          </button>
-        </label>
-      </form>
-    </div>
-  );
-}
-function CodePane({ theme, file }: { theme: Theme; file: string }) {
-  const lines =
-    file === "README.md"
-      ? [
-          <span key="1" className="native-accent">
-            # {theme.name}
-          </span>,
-          <span key="2">A shared palette for your everyday tools.</span>,
-          <span key="3" />,
-          <span key="4" className="native-accent">
-            ## Getting started
-          </span>,
-          <span key="5">1. Find your colors.</span>,
-          <span key="6">2. Make yourself at home.</span>,
-          <span key="7">3. Export your world.</span>,
-        ]
-      : file === "tokens.css"
-        ? [
-            <span key="1" className="syntax-comment">
-              {"/* Your foundations, everywhere. */"}
-            </span>,
-            <span key="2">
-              <b className="syntax-keyword">:root</b> {"{"}
-            </span>,
-            <span key="3">
-              {" "}
-              <b className="syntax-function">--background</b>:{" "}
-              <b className="syntax-string">var(--ts-background)</b>;
-            </span>,
-            <span key="4">
-              {" "}
-              <b className="syntax-function">--accent</b>:{" "}
-              <b className="syntax-string">var(--ts-accent)</b>;
-            </span>,
-            <span key="5">
-              {" "}
-              <b className="syntax-function">--radius</b>:{" "}
-              <b className="syntax-number">{theme.style.radius}px</b>;
-            </span>,
-            <span key="6">{"}"}</span>,
-          ]
-        : [
-            <span key="1" className="syntax-comment">
-              {"// Your theme, your point of view."}
-            </span>,
-            <span key="2">
-              <b className="syntax-keyword">import</b> {"{ palette }"}{" "}
-              <b className="syntax-keyword">from</b>{" "}
-              <b className="syntax-string">&apos;./tokens&apos;</b>;
-            </span>,
-            <span key="3" />,
-            <span key="4">
-              <b className="syntax-keyword">type</b>{" "}
-              <b className="syntax-type">Theme</b> = {"{"} name:{" "}
-              <b className="syntax-type">string</b> {"}"};
-            </span>,
-            <span key="5" />,
-            <span key="6">
-              <b className="syntax-keyword">export const</b> yourTheme:{" "}
-              <b className="syntax-type">Theme</b> = {"{"}
-            </span>,
-            <span key="7">
-              {" "}
-              name:{" "}
-              <b className="syntax-string">{JSON.stringify(theme.name)}</b>,
-            </span>,
-            <span key="8">
-              {" "}
-              radius: <b className="syntax-number">{theme.style.radius}</b>,
-            </span>,
-            <span key="9">
-              {" "}
-              colors: <b className="syntax-function">makePalette</b>(palette),
-            </span>,
-            <span key="10">{"};"}</span>,
-            <span key="11" />,
-            <span key="12" className="syntax-comment">
-              {"// A little more you, everywhere."}
-            </span>,
-          ];
-  return (
-    <div className="native-code" aria-label={`${file} example code`}>
-      {lines.map((line, i) => (
-        <div key={i}>
-          <span className="native-line-number">{i + 1}</span>
-          <code>{line}</code>
-        </div>
-      ))}
-    </div>
-  );
-}
 function Editor({
   theme,
   mode,
@@ -254,13 +59,14 @@ function Editor({
     [file, setFile] = useState("theme.ts"),
     [pane, setPane] = useState("files"),
     [folder, setFolder] = useState(true),
-    [terminal, setTerminal] = useState(true),
+    [terminal, setTerminal] = useState(false),
+    [edits, setEdits] = useState<Record<string, string>>({}),
     [search, setSearch] = useState("");
   const files = ["theme.ts", "tokens.css", "README.md"],
     modal = profile.variant === "modal";
   return (
     <div
-      className={`native-window native-editor ${modal ? "modal-editor" : ""}`}
+      className={`native-window native-editor editor-${target} ${modal ? "modal-editor" : ""}`}
     >
       <div className="native-titlebar">
         <Dots />
@@ -281,7 +87,7 @@ function Editor({
         <MoreHorizontal size={15} />
       </div>
       <div className="native-editor-body">
-        {!modal && (
+        {target === "vscode" && (
           <aside className="native-activity" aria-label="Editor tools">
             {[
               { id: "files", Icon: Files },
@@ -306,7 +112,7 @@ function Editor({
             </button>
           </aside>
         )}
-        {(!modal || target === "neovim") && (
+        {!modal && (
           <aside className="native-filetree">
             <div className="native-section-label">
               {pane === "search"
@@ -402,8 +208,18 @@ function Editor({
             {file} <ChevronRight size={11} />
             {file === "theme.ts" ? "yourTheme" : "preview"}
           </div>
-          <CodePane theme={theme} file={file} />
-          {terminal && (
+          <CodeSurface
+            theme={theme}
+            mode={mode}
+            target={target}
+            file={file}
+            value={edits[file]}
+            diff={target === "vscode" && pane === "git" && file === "theme.ts"}
+            onChange={(value) =>
+              setEdits((previous) => ({ ...previous, [file]: value }))
+            }
+          />
+          {terminal && ["vscode", "zed"].includes(target) && (
             <div className="native-integrated-terminal">
               <div className="native-panel-tabs">
                 <button
@@ -419,7 +235,12 @@ function Editor({
                 <Plus size={11} />
                 <X size={11} onClick={() => setTerminal(false)} />
               </div>
-              <TerminalBody theme={theme} mode={mode} />
+              <TerminalSurface
+                theme={theme}
+                mode={mode}
+                target={target}
+                compact
+              />
             </div>
           )}
         </section>
@@ -430,10 +251,16 @@ function Editor({
           main*
         </span>
         <span>⊗ 0 △ 0</span>
-        <button onClick={() => setTerminal(!terminal)}>
-          {modal ? "NORMAL" : "Terminal"}
-        </button>
-        <span>Ln 8, Col 4</span>
+        {["vscode", "zed"].includes(target) ? (
+          <button
+            onClick={() => setTerminal(!terminal)}
+            aria-pressed={terminal}
+          >
+            Terminal
+          </button>
+        ) : (
+          <span>{modal ? "EDIT · browser keymap" : "Editing"}</span>
+        )}
         <span>UTF-8</span>
         <span>
           {file === "tokens.css"
@@ -456,388 +283,121 @@ function TerminalWindow({
   mode: Appearance;
   target: string;
 }) {
-  const profile = previewProfiles[target],
-    windows = profile.variant === "windows",
-    [tab, setTab] = useState(windows ? "PowerShell" : "zsh"),
+  const profile = previewProfiles[target];
+  const windows = target === "windows-terminal",
+    mobile = target === "termux";
+  const tabs = [
+    "ghostty",
+    "kitty",
+    "wezterm",
+    "windows-terminal",
+    "iterm2",
+    "warp",
+  ].includes(target);
+  const canSplit = tabs && target !== "warp";
+  const [tab, setTab] = useState(0),
     [split, setSplit] = useState(false);
+  const shell =
+    windows && tab === 0 ? "PowerShell" : target === "termux" ? "bash" : "zsh";
   return (
     <div
-      className={`native-window native-terminal-window ${profile.variant === "mobile" ? "native-phone-terminal" : ""}`}
+      className={`native-window native-terminal-window terminal-${target} ${mobile ? "native-phone-terminal" : ""}`}
     >
-      <div className={`native-titlebar ${windows ? "windows-titlebar" : ""}`}>
-        {!windows && <Dots />}
-        <div
-          className="native-terminal-tabs"
-          role="tablist"
-          aria-label="Terminal profiles"
-        >
-          {(windows ? ["PowerShell", "Ubuntu"] : ["zsh", "bash"]).map((t) => (
-            <button
-              role="tab"
-              aria-selected={tab === t}
-              onClick={() => setTab(t)}
-              key={t}
-            >
-              <Terminal size={13} />
-              {t}
-              <X size={10} />
-            </button>
-          ))}
+      {mobile ? (
+        <div className="termux-status">
+          <span>12:34</span>
+          <span>Termux · ▰ 100%</span>
         </div>
-        <button
-          className="native-icon"
-          aria-label="Toggle split pane"
-          aria-pressed={split}
-          title="Toggle split pane"
-          onClick={() => setSplit(!split)}
-        >
-          <Plus size={15} />
-        </button>
-        <span className="native-window-label">{profile.label}</span>
-        {windows && (
-          <span className="native-window-controls">
-            <Minus size={12} />
-            <Square size={10} />
-            <X size={12} />
-          </span>
-        )}
-      </div>
-      <div className={`native-terminal-panes ${split ? "split" : ""}`}>
-        <TerminalBody
-          key={tab}
-          theme={theme}
-          mode={mode}
-          windows={tab === "PowerShell"}
-          blocks={profile.variant === "blocks"}
-        />
-        {split && <TerminalBody theme={theme} mode={mode} />}
-      </div>
-      {profile.variant === "mobile" && (
-        <div className="termux-keys">
-          {["ESC", "CTRL", "ALT", "TAB", "←", "↓", "↑", "→"].map((t) => (
-            <span key={t}>{t}</span>
-          ))}
-        </div>
-      )}
-      <div className="native-terminal-footer">
-        <span>
-          {theme.name} · {mode}
-        </span>
-        <span>80 × 24 · {tab}</span>
-      </div>
-    </div>
-  );
-}
-function Music({ theme }: { theme: Theme }) {
-  const [playing, setPlaying] = useState(false),
-    [track, setTrack] = useState(0),
-    [liked, setLiked] = useState(false),
-    [tab, setTab] = useState("Made for you"),
-    [volume, setVolume] = useState(65);
-  const tracks = [
-    ["A little more you", "Sunday Company", "3:42"],
-    ["Slow mornings", "The Soft Hours", "4:08"],
-    ["Somewhere familiar", "Paper Planes", "2:56"],
-    ["Room to breathe", "Late Bloomer", "3:18"],
-  ];
-  return (
-    <div className="native-window native-music">
-      <div className="native-music-layout">
-        <aside>
-          <div className="native-music-brand">
-            <Music2 size={21} />
-            Your music
-          </div>
-          {["Made for you", "Search", "Your library"].map((t, i) => (
-            <button
-              key={t}
-              className={tab === t ? "selected" : ""}
-              onClick={() => setTab(t)}
+      ) : (
+        <div className={`native-titlebar ${windows ? "windows-titlebar" : ""}`}>
+          {!windows && <Dots />}
+          {tabs ? (
+            <div
+              className="native-terminal-tabs"
+              role="tablist"
+              aria-label="Terminal sample sessions"
             >
-              {i === 0 ? (
-                <Home size={16} />
-              ) : i === 1 ? (
-                <Search size={16} />
-              ) : (
-                <LayoutGrid size={16} />
-              )}{" "}
-              {t}
-            </button>
-          ))}
-          <hr />
-          <small>YOUR PLAYLISTS</small>
-          <button onClick={() => setTab("Made for you")}>
-            Everyday favorites
-          </button>
-          <button onClick={() => setTab("Quiet focus")}>Quiet focus</button>
-          <button onClick={() => setTab("Late nights")}>Late nights</button>
-        </aside>
-        <article>
-          <div className="native-music-toolbar">
-            <ArrowLeft size={17} />
-            <ArrowRight size={17} />
-            <span>Spicetify</span>
-            <span className="native-user-avatar">YO</span>
-          </div>
-          {tab === "Search" ? (
-            <label className="native-search-field">
-              <Search size={14} />
-              <input
-                placeholder="Search this example…"
-                onChange={(e) => {
-                  const index = tracks.findIndex((t) =>
-                    t[0].toLowerCase().includes(e.target.value.toLowerCase()),
-                  );
-                  if (index >= 0) setTrack(index);
-                }}
-              />
-            </label>
-          ) : null}
-          <div className="native-playlist-hero">
-            <div className="native-album-art">
-              <i />
-              <i />
-              <i />
-              <span>{theme.name}</span>
+              {[
+                windows ? "PowerShell" : "~/themes",
+                windows ? "Ubuntu" : "~/projects",
+              ].map((label, index) => (
+                <button
+                  key={label}
+                  role="tab"
+                  aria-selected={tab === index}
+                  onClick={() => setTab(index)}
+                >
+                  <Terminal size={13} />
+                  {label}
+                </button>
+              ))}
             </div>
-            <div>
-              <small>YOUR DAILY MIX</small>
-              <h2>{tab === "Made for you" ? "Feels like home." : tab}</h2>
-              <p>Your colors. Your kind of soundtrack.</p>
-              <span>Made for you · 4 songs, 14 min</span>
-            </div>
-          </div>
-          <div className="native-playlist-actions">
-            <button
-              className="native-round-play"
-              onClick={() => setPlaying(!playing)}
-              aria-label={
-                playing ? "Pause demo playback" : "Play demo playback"
-              }
-            >
-              {playing ? <Pause size={22} /> : <Play size={22} />}
-            </button>
+          ) : (
+            <span>{profile.label} — ~/themes</span>
+          )}
+          {canSplit && (
             <button
               className="native-icon"
-              aria-label="Like playlist"
-              aria-pressed={liked}
-              onClick={() => setLiked(!liked)}
+              aria-label="Toggle split pane"
+              aria-pressed={split}
+              onClick={() => setSplit(!split)}
             >
-              <Heart fill={liked ? "currentColor" : "none"} size={21} />
+              <Plus size={15} />
             </button>
-            <MoreHorizontal size={22} />
-            <span className="native-muted">Offline preview</span>
-          </div>
-          <div className="native-track-list">
-            {tracks.map(([title, artist, time], i) => (
-              <button
-                key={title}
-                className={track === i ? "selected" : ""}
-                onClick={() => {
-                  setTrack(i);
-                  setPlaying(true);
-                }}
-              >
-                <span>{track === i && playing ? "♫" : i + 1}</span>
-                <div>
-                  <b>{title}</b>
-                  <small>{artist}</small>
-                </div>
-                <span>{time}</span>
-              </button>
-            ))}
-          </div>
-        </article>
-      </div>
-      <div className="native-player">
-        <span className="native-mini-album">✳</span>
-        <div>
-          <b>{tracks[track][0]}</b>
-          <small>{tracks[track][1]}</small>
-        </div>
-        <div className="native-player-center">
-          <div>
-            <Shuffle size={13} />
-            <button
-              onClick={() => setTrack((track + 3) % 4)}
-              aria-label="Previous demo track"
-            >
-              <SkipBack size={16} />
-            </button>
-            <button
-              className="native-play-small"
-              onClick={() => setPlaying(!playing)}
-              aria-label={playing ? "Pause demo track" : "Play demo track"}
-            >
-              {playing ? <Pause size={17} /> : <Play size={17} />}
-            </button>
-            <button
-              onClick={() => setTrack((track + 1) % 4)}
-              aria-label="Next demo track"
-            >
-              <SkipForward size={16} />
-            </button>
-          </div>
-          <div className="native-track-progress">
-            <small>1:24</small>
-            <span>
-              <i />
+          )}
+          <span className="native-window-label">{profile.label}</span>
+          {windows && (
+            <span className="native-window-controls" aria-hidden="true">
+              <Minus size={12} />
+              <Square size={10} />
+              <X size={12} />
             </span>
-            <small>{tracks[track][2]}</small>
-          </div>
+          )}
         </div>
-        <label className="native-volume">
-          <Volume2 size={14} />
-          <input
-            aria-label="Example playback volume"
-            type="range"
-            min="0"
-            max="100"
-            value={volume}
-            onChange={(e) => setVolume(+e.target.value)}
+      )}
+      {target === "warp" && (
+        <div className="warp-block-label">
+          <ChevronRight size={13} /> Command block <span>~/themes · main</span>
+        </div>
+      )}
+      <div className={`native-terminal-panes ${split ? "split" : ""}`}>
+        <TerminalSurface
+          key={`${target}:${tab}`}
+          theme={theme}
+          mode={mode}
+          target={target}
+          windows={shell === "PowerShell"}
+        />
+        {split && (
+          <TerminalSurface
+            key={`${target}:split`}
+            theme={theme}
+            mode={mode}
+            target={target}
           />
-        </label>
+        )}
       </div>
-    </div>
-  );
-}
-function Chat({ target }: { target: string }) {
-  const [channel, setChannel] = useState("general"),
-    [message, setMessage] = useState(""),
-    [messages, setMessages] = useState<Record<string, string[]>>({}),
-    [muted, setMuted] = useState(false);
-  return (
-    <div className="native-window native-discord">
-      <aside className="native-servers">
-        <button aria-label="Home server" className="selected">
-          <MessageSquare size={20} />
-        </button>
-        <hr />
-        <span>✳</span>
-        <span>TS</span>
-        <span>＋</span>
-      </aside>
-      <aside className="native-channels">
-        <div className="native-server-title">
-          Your kind of place <ChevronDown size={12} />
-        </div>
-        <span className="native-section-label">TEXT CHANNELS</span>
-        {["welcome", "general", "show-and-tell", "inspiration"].map((t) => (
-          <button
-            key={t}
-            className={channel === t ? "selected" : ""}
-            onClick={() => setChannel(t)}
-          >
-            <Hash size={15} />
-            {t}
-          </button>
-        ))}
-        <span className="native-section-label">VOICE CHANNELS</span>
-        <span className="native-voice-channel">
-          <Volume2 size={15} />
-          The lounge
-        </span>
-        <div className="native-chat-user">
-          <span className="native-user-avatar">YO</span>
-          <span>
-            You<small>Online</small>
-          </span>
-          <button
-            aria-label="Toggle demo microphone"
-            aria-pressed={muted}
-            onClick={() => setMuted(!muted)}
-          >
-            <Mic size={14} className={muted ? "native-error" : ""} />
-          </button>
-          <Headphones size={14} />
-        </div>
-      </aside>
-      <section className="native-conversation">
-        <header>
-          <Hash size={19} />
-          <b>{channel}</b>
-          <span>Your people, your colors.</span>
-          <Users size={17} />
-        </header>
-        <div className="native-messages">
-          <div className="native-channel-welcome">
-            <span>
-              <Hash size={29} />
-            </span>
-            <h2>Welcome to #{channel}!</h2>
-            <p className="native-muted">
-              This is the beginning of your little corner.
-            </p>
-          </div>
-          <div className="native-date-divider">TODAY</div>
-          {[
-            ["JK", "Jamie", "Okay, this feels like home."],
-            ["AL", "Alex", "A little color goes a long way."],
-            ...(messages[channel] || []).map((text) => ["YO", "You", text]),
-          ].map(([avatar, name, text], i) => (
-            <div className="native-message" key={i}>
-              <span className={`native-user-avatar avatar-${i % 3}`}>
-                {avatar}
-              </span>
-              <div>
-                <b>
-                  {name}
-                  <small>Today at 10:24</small>
-                </b>
-                <p>{text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (message.trim()) {
-              setMessages((old) => ({
-                ...old,
-                [channel]: [...(old[channel] || []).slice(-19), message.trim()],
-              }));
-              setMessage("");
-            }
-          }}
-        >
-          <label className="native-message-input">
-            <Plus size={17} />
-            <input
-              aria-label={`Message ${channel} in preview`}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={`Message #${channel}`}
-              maxLength={500}
-            />
-            <button aria-label="Send demo message">
-              <Send size={16} />
-            </button>
-          </label>
-          <small className="native-muted">
-            {previewProfiles[target].label} · messages stay in this preview
-          </small>
-        </form>
-      </section>
     </div>
   );
 }
 function Browser({ theme, target }: { theme: Theme; target: string }) {
   const [tab, setTab] = useState(0),
-    [url, setUrl] = useState("start.example"),
+    [url, setUrl] = useState("New Tab"),
     [search, setSearch] = useState(""),
-    [result, setResult] = useState("");
+    [result, setResult] = useState(""),
+    [menu, setMenu] = useState(false),
+    [sidebar, setSidebar] = useState(false);
   return (
     <div className={`native-window native-browser ${target}`}>
       <div className="native-browser-tabs">
         <Dots />
-        {["A familiar start", "Your workspace"].map((t, i) => (
+        {["New Tab", "Example website"].map((t, i) => (
           <button
             className={tab === i ? "selected" : ""}
             key={t}
             onClick={() => {
               setTab(i);
-              setUrl(i ? "workspace.example" : "start.example");
+              setUrl(i ? "workspace.example" : "New Tab");
             }}
           >
             <Globe size={12} />
@@ -858,22 +418,83 @@ function Browser({ theme, target }: { theme: Theme; target: string }) {
         <label>
           <Lock size={12} />
           <input
-            aria-label="Illustrative address bar"
+            aria-label="Preview address bar"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
           />
         </label>
-        <MoreHorizontal size={17} />
+        <button
+          aria-label="Browser preview menu"
+          aria-expanded={menu}
+          onClick={() => setMenu(!menu)}
+        >
+          <MoreHorizontal size={17} />
+        </button>
+        {menu && (
+          <div className="native-browser-menu">
+            <b>Browser menu</b>
+            {["New tab", "History", "Downloads"].map((label) => (
+              <button
+                key={label}
+                onClick={() => {
+                  setResult(`${label} selected locally.`);
+                  setMenu(false);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+            {target === "firefox" && (
+              <button
+                onClick={() => {
+                  setSidebar(!sidebar);
+                  setMenu(false);
+                }}
+              >
+                Bookmarks sidebar
+              </button>
+            )}
+            <small>Preview menu</small>
+          </div>
+        )}
       </div>
       <div className="native-bookmarks">
         <span>◇ Your projects</span>
         <span>◇ Reading list</span>
         <span>◇ Design inspiration</span>
       </div>
-      <div className="native-browser-page">
-        <small>EXAMPLE WEBSITE</small>
+      {sidebar && target === "firefox" && (
+        <aside className="native-browser-sidebar">
+          <b>Bookmarks</b>
+          {["Your projects", "Reading list", "Design inspiration"].map(
+            (name) => (
+              <button
+                key={name}
+                onClick={() => setResult(`${name} selected locally.`)}
+              >
+                {name}
+              </button>
+            ),
+          )}
+          <button onClick={() => setSidebar(false)}>Close sidebar</button>
+        </aside>
+      )}
+      <div
+        className={`native-browser-page ${tab === 0 ? "native-new-tab" : ""}`}
+      >
+        <small>
+          {tab === 0
+            ? target === "firefox"
+              ? "FIREFOX"
+              : "CHROMIUM"
+            : "EXAMPLE WEBSITE"}
+        </small>
         <h2>{tab ? "A place to create." : "A fresh perspective."}</h2>
-        <p>The browser wears {theme.name}. Websites keep their own styles.</p>
+        <p>
+          {tab === 0
+            ? `A new tab in ${theme.name}.`
+            : `The browser wears ${theme.name}. Websites keep their own styles.`}
+        </p>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -914,12 +535,13 @@ function Browser({ theme, target }: { theme: Theme; target: string }) {
     </div>
   );
 }
-function Notes({ theme }: { theme: Theme }) {
+function Notes({ theme, mode }: { theme: Theme; mode: Appearance }) {
   const [note, setNote] = useState("Welcome home"),
-    [editing, setEditing] = useState(false),
-    [text, setText] = useState(
-      "A familiar place for your thoughts.\n\n- Find your colors\n- Connect your ideas\n- Make something good",
-    );
+    [editing, setEditing] = useState(true),
+    [notes, setNotes] = useState<Record<string, string>>({});
+  const text = notes[note] ?? exampleCode({ ...theme, name: note }, "note.md");
+  const setText = (value: string) =>
+    setNotes((previous) => ({ ...previous, [note]: value }));
   return (
     <div className="native-window native-notes">
       <div className="native-titlebar">
@@ -970,35 +592,18 @@ function Notes({ theme }: { theme: Theme }) {
             <small className="native-muted">PERSONAL / NOTES</small>
             <h2>{note}</h2>
             {editing ? (
-              <textarea
-                aria-label="Example markdown note"
+              <CodeSurface
+                theme={theme}
+                mode={mode}
+                target="obsidian"
+                file={`${note}.md`}
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={setText}
               />
             ) : (
-              <>
-                <p>{text.split("\n")[0]}</p>
-                <blockquote>
-                  There is a little comfort in the things you make your own.
-                </blockquote>
-                <h3>A few things to explore</h3>
-                <ul>
-                  {text
-                    .split("\n")
-                    .filter((t) => t.startsWith("- "))
-                    .map((t) => (
-                      <li key={t}>{t.slice(2)}</li>
-                    ))}
-                </ul>
-                <p>
-                  Connected to{" "}
-                  <span className="native-wikilink">[[Your next idea]]</span>
-                </p>
-                <div className="native-note-callout">
-                  <b>✳ A gentle reminder</b>
-                  <p>Good ideas need a little room to grow.</p>
-                </div>
-              </>
+              <div className="obsidian-reading-view">
+                <ReactMarkdown>{text}</ReactMarkdown>
+              </div>
             )}
           </div>
         </article>
@@ -1047,14 +652,14 @@ function Notes({ theme }: { theme: Theme }) {
       </div>
       <div className="native-statusbar">
         <span>3 backlinks</span>
-        <span>42 words</span>
-        <span>All changes saved</span>
+        <span>{text.trim().split(/\s+/).length} words</span>
+        <span>Local preview</span>
       </div>
     </div>
   );
 }
 function Tokens({ theme, mode }: { theme: Theme; mode: Appearance }) {
-  const c = resolve(theme, mode),
+  const c = integrationTheme(theme, mode, "tokens").variables,
     [search, setSearch] = useState("");
   return (
     <div className="native-token-inspector">
@@ -1115,9 +720,29 @@ export function IntegrationPreview({
         <ComponentLibrary theme={theme} mode={mode} compact />
       </div>
     );
-  const c = nativePreviewColors(theme, mode, target),
+  const contract = integrationTheme(theme, mode, target),
+    c = contract.roles,
+    fidelity =
+      target === "ghostty" &&
+      terminalEngine(target, contract.terminal) === "xterm.js"
+        ? {
+            ...previewFidelity[target],
+            renderer: "xterm.js · Ghostty color preview",
+          }
+        : previewFidelity[target],
     style = {
       ...previewStyle(theme, mode),
+      ...Object.fromEntries(
+        Object.entries(contract.variables).filter(([key]) =>
+          key.startsWith("--"),
+        ),
+      ),
+      ...Object.fromEntries(
+        Object.entries(c).map(([key, value]) => [
+          `--ts-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`,
+          value,
+        ]),
+      ),
       "--ts-background": c.background,
       "--ts-foreground": c.foreground,
       "--ts-selection": c.selection,
@@ -1135,26 +760,44 @@ export function IntegrationPreview({
       ),
     } as CSSProperties;
   return (
-    <div
-      className="native-preview theme-scope"
-      data-preview-target={target}
-      style={style}
-    >
-      {profile.kind === "editor" ? (
-        <Editor theme={theme} mode={mode} target={target} />
-      ) : profile.kind === "terminal" ? (
-        <TerminalWindow theme={theme} mode={mode} target={target} />
-      ) : profile.kind === "music" ? (
-        <Music theme={theme} />
-      ) : profile.kind === "chat" ? (
-        <Chat target={target} />
-      ) : profile.kind === "browser" ? (
-        <Browser theme={theme} target={target} />
-      ) : profile.kind === "notes" ? (
-        <Notes theme={theme} />
-      ) : (
-        <Tokens theme={theme} mode={mode} />
-      )}
+    <div className="integration-renderer">
+      <div
+        className={`native-preview theme-scope theme-${mode}`}
+        data-preview-target={target}
+        style={style}
+      >
+        {profile.kind === "editor" ? (
+          <Editor theme={theme} mode={mode} target={target} />
+        ) : profile.kind === "terminal" ? (
+          <TerminalWindow theme={theme} mode={mode} target={target} />
+        ) : profile.kind === "music" ? (
+          <SpotifyPreview theme={theme} />
+        ) : profile.kind === "chat" ? (
+          <DiscordPreview mode={mode} />
+        ) : profile.kind === "browser" ? (
+          <Browser theme={theme} target={target} />
+        ) : profile.kind === "notes" ? (
+          <Notes theme={theme} mode={mode} />
+        ) : (
+          <Tokens theme={theme} mode={mode} />
+        )}
+      </div>
+      <details className="preview-fidelity">
+        <summary>
+          <span>{fidelity.renderer}</span>
+          <span>About this preview</span>
+        </summary>
+        <p>{fidelity.coverage}</p>
+        <p>{fidelity.limitations}</p>
+        <div className="preview-source-files">
+          {contract.sourceFiles.map((file) => (
+            <code key={file}>{file}</code>
+          ))}
+        </div>
+        <a href={fidelity.url} target="_blank" rel="noreferrer">
+          Renderer / format reference ↗
+        </a>
+      </details>
     </div>
   );
 }

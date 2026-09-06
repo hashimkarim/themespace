@@ -1,0 +1,511 @@
+.integration-renderer .native-preview {
+  font-family: "Segoe UI", Arial, system-ui, sans-serif;
+}
+.integration-renderer .native-window {
+  border-radius: 9px;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 12%);
+}
+.integration-renderer .native-dots i {
+  background: #ff5f57;
+}
+.integration-renderer .native-dots i:nth-child(2) {
+  background: #febc2e;
+}
+.integration-renderer .native-dots i:nth-child(3) {
+  background: #28c840;
+}
+.integration-renderer .native-editor .native-editor-main {
+  min-width: 0;
+}
+.integration-renderer .native-editor .native-editor-body {
+  min-height: 410px;
+}
+.engine-code-frame {
+  display: block;
+  border: 0;
+  width: 100%;
+  height: 400px;
+  background: var(--ts-background);
+}
+.preview-fullscreen .engine-code-frame {
+  height: 490px;
+}
+.native-integrated-terminal .engine-terminal {
+  border-top: 1px solid var(--ts-border);
+}
+.editor-renderer-page {
+  position: fixed;
+  inset: 0;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+}
+.editor-renderer-host {
+  position: absolute;
+  inset: 0;
+}
+.editor-renderer-waiting {
+  margin: 20px;
+  font-size: 12px;
+  color: var(--app-muted);
+}
+.editor-renderer-page .cm-editor {
+  height: 100%;
+}
+.editor-renderer-page .cm-content {
+  min-height: 100%;
+}
+.editor-renderer-page .cm-line {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+.editor-renderer-page > p[role="alert"] {
+  position: relative;
+  margin: 20px;
+}
+.integration-renderer .editor-zed .native-titlebar,
+.integration-renderer .editor-sublime .native-titlebar {
+  min-height: 30px;
+}
+.integration-renderer .editor-zed .native-filetree,
+.integration-renderer .editor-sublime .native-filetree {
+  width: 155px;
+}
+.integration-renderer .editor-neovim,
+.integration-renderer .editor-helix {
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+.integration-renderer .editor-neovim .native-titlebar,
+.integration-renderer .editor-helix .native-titlebar {
+  background: #282828;
+  color: #ddd;
+}
+.integration-renderer .editor-neovim .native-breadcrumb,
+.integration-renderer .editor-helix .native-breadcrumb,
+.integration-renderer .modal-editor .native-command-search {
+  display: none;
+}
+.integration-renderer .modal-editor .native-editor-tabs {
+  min-height: 28px;
+}
+.integration-renderer .modal-editor .native-editor-tabs button {
+  font-family: inherit;
+}
+.integration-renderer .editor-sublime .native-statusbar {
+  color: var(--native-status-text);
+}
+
+.integration-renderer .native-terminal-window {
+  min-height: 0;
+  margin: 0;
+}
+.integration-renderer .native-terminal-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.integration-renderer .native-terminal-panes.split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.integration-renderer
+  .native-terminal-panes.split
+  > .engine-terminal
+  + .engine-terminal {
+  border-left: 1px solid var(--ts-border);
+}
+.engine-terminal {
+  position: relative;
+  min-width: 0;
+  color: var(--ts-foreground);
+  background: var(--native-terminal-bg);
+}
+.engine-scenes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 9px 10px;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--ts-foreground) 12%, transparent);
+}
+.native-preview .engine-scenes button {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font:
+    10px/1.4 "Segoe UI",
+    Arial,
+    sans-serif;
+  color: inherit;
+  opacity: 0.7;
+}
+.native-preview .engine-scenes button[aria-pressed="true"] {
+  opacity: 1;
+  color: inherit;
+  background: color-mix(in srgb, var(--ts-foreground) 14%, transparent);
+}
+.native-preview .engine-scenes button:hover {
+  color: inherit;
+  background: color-mix(in srgb, var(--ts-foreground) 10%, transparent);
+}
+.engine-terminal-canvas {
+  height: 370px;
+  padding: 10px 12px 0;
+  overflow: hidden;
+}
+.engine-terminal-host,
+.engine-terminal-canvas .xterm {
+  height: 100%;
+}
+.engine-terminal.compact .engine-terminal-canvas {
+  height: 185px;
+}
+.engine-terminal-canvas .xterm .xterm-helper-textarea {
+  padding: 0;
+  margin: 0;
+  font-family: monospace;
+  outline: none;
+  border: none;
+}
+.engine-terminal-canvas .xterm-screen {
+  font-family: monospace;
+}
+.engine-terminal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  font:
+    9px/1.5 "Segoe UI",
+    Arial,
+    sans-serif;
+  opacity: 0.65;
+}
+.engine-terminal-fallback {
+  position: absolute;
+  inset: 55px 14px 36px;
+  pointer-events: none;
+}
+.engine-terminal-fallback pre {
+  font: 12px/1.7 monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.engine-terminal-fallback p {
+  font-size: 11px;
+  margin-top: 20px;
+  opacity: 0.7;
+}
+.preview-fullscreen .engine-terminal:not(.compact) .engine-terminal-canvas {
+  height: 510px;
+}
+.integration-renderer .native-phone-terminal {
+  max-width: 420px;
+  margin: 0 auto;
+  border: 6px solid #242424;
+  border-radius: 22px;
+}
+.termux-status {
+  display: flex;
+  justify-content: space-between;
+  background: #161616;
+  color: #eee;
+  font:
+    10px/1.5 Arial,
+    sans-serif;
+  padding: 9px 14px;
+}
+.native-preview .engine-termux-keys {
+  display: flex;
+  justify-content: space-around;
+  border-top: 1px solid
+    color-mix(in srgb, var(--ts-foreground) 20%, transparent);
+  padding: 8px 4px;
+  gap: 2px;
+}
+.native-preview .engine-termux-keys button {
+  padding: 5px;
+  font: 10px/1.5 monospace;
+}
+.integration-renderer .terminal-windows-terminal .native-titlebar {
+  background: #202020;
+  color: #ededed;
+  border-color: #333;
+}
+.integration-renderer .terminal-windows-terminal .native-terminal-tabs button {
+  color: #ccc;
+  background: #202020;
+}
+.integration-renderer
+  .terminal-windows-terminal
+  .native-terminal-tabs
+  button[aria-selected="true"] {
+  background: #303030;
+  color: #fff;
+}
+.integration-renderer .terminal-alacritty .native-titlebar,
+.integration-renderer .terminal-foot .native-titlebar,
+.integration-renderer .terminal-xresources .native-titlebar {
+  background: #303030;
+  color: #ddd;
+}
+.warp-block-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-left: 3px solid var(--ts-accent);
+  color: var(--ts-foreground);
+  padding: 12px;
+  font-size: 11px;
+}
+.warp-block-label span {
+  margin-left: auto;
+  color: var(--ts-muted);
+}
+.preview-fidelity {
+  margin-top: 15px;
+  font-size: 11px;
+  color: var(--app-muted);
+  line-height: 1.65;
+}
+.preview-fidelity summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  cursor: pointer;
+  list-style: none;
+}
+.preview-fidelity summary > span:first-child {
+  color: var(--app-fg);
+  font-weight: 500;
+}
+.preview-fidelity summary > span:last-child::after {
+  content: " +";
+}
+.preview-fidelity[open] summary > span:last-child::after {
+  content: " −";
+}
+.preview-fidelity p {
+  margin: 12px 0;
+  max-width: 85ch;
+}
+.preview-fidelity a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.preview-source-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+.preview-source-files code {
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--app-board);
+  overflow-wrap: anywhere;
+}
+
+/* Browser theme manifests apply to browser chrome, independently of page CSS. */
+.integration-renderer .native-browser-tabs {
+  background: var(--browser-frame);
+  color: var(--browser-tab-background-text, var(--browser-tab-text));
+}
+.integration-renderer .native-browser-tabs > button {
+  color: inherit;
+}
+.integration-renderer .native-browser-tabs > button.selected {
+  background: var(--browser-tab-selected, var(--browser-toolbar));
+  color: var(--browser-tab-text);
+  border-radius: 8px 8px 0 0;
+  box-shadow: inset 0 2px var(--browser-tab-line, transparent);
+}
+.integration-renderer .native-browser-toolbar {
+  background: var(--browser-toolbar);
+  color: var(--browser-toolbar-text, var(--browser-bookmark-text));
+  border-color: var(--browser-toolbar-bottom-separator, transparent);
+}
+.integration-renderer .native-browser-toolbar > label {
+  background: var(--browser-toolbar-field, #fff);
+  color: var(--browser-toolbar-field-text, #202124);
+  border: 1px solid var(--browser-toolbar-field-border, transparent);
+  border-radius: 22px;
+}
+.integration-renderer .native-browser-toolbar > label:focus-within {
+  background: var(--browser-toolbar-field-focus, #fff);
+  color: var(--browser-toolbar-field-text-focus, #202124);
+  border-color: var(--browser-toolbar-field-border-focus, #8ab4f8);
+}
+.integration-renderer .native-browser-toolbar input {
+  color: inherit;
+}
+.integration-renderer .native-browser {
+  position: relative;
+}
+.integration-renderer .native-browser-toolbar {
+  position: relative;
+}
+.integration-renderer .firefox .native-browser-toolbar button:hover {
+  background: var(--browser-button-background-hover);
+}
+.integration-renderer .firefox .native-browser-toolbar button:active {
+  background: var(--browser-button-background-active);
+}
+.native-browser-menu {
+  position: absolute;
+  top: 100%;
+  right: 10px;
+  z-index: 2;
+  width: 200px;
+  padding: 10px;
+  background: var(--browser-popup, #fff);
+  color: var(--browser-popup-text, #202124);
+  border: 1px solid var(--browser-popup-border, #ddd);
+  border-radius: 8px;
+  box-shadow: 0 5px 20px rgb(0 0 0 / 20%);
+}
+.native-preview .native-browser-menu button {
+  display: flex;
+  padding: 8px;
+  width: 100%;
+  border-radius: 4px;
+}
+.native-preview .native-browser-menu button:hover {
+  background: var(--browser-popup-highlight, #e8f0fe);
+  color: var(--browser-popup-highlight-text, #202124);
+}
+.native-browser-menu > b,
+.native-browser-menu > small {
+  display: block;
+  padding: 8px;
+}
+.native-browser-menu > small {
+  opacity: 0.6;
+}
+.native-browser-sidebar {
+  position: absolute;
+  left: 0;
+  top: 115px;
+  bottom: 0;
+  width: 185px;
+  z-index: 1;
+  background: var(--browser-sidebar);
+  color: var(--browser-sidebar-text);
+  padding: 16px;
+  border-right: 1px solid var(--browser-sidebar-border);
+}
+.native-preview .native-browser-sidebar button {
+  display: block;
+  width: 100%;
+  font-size: 11px;
+  padding: 10px 4px;
+  text-align: left;
+}
+.native-preview .native-browser-sidebar button:hover {
+  background: var(--browser-sidebar-highlight);
+  color: var(--browser-sidebar-highlight-text);
+}
+.integration-renderer .native-browser-toolbar input::selection {
+  background: var(--browser-toolbar-field-highlight, #8ab4f8);
+  color: var(--browser-toolbar-field-highlight-text, #202124);
+}
+.integration-renderer .native-bookmarks {
+  background: var(--browser-toolbar);
+  color: var(--browser-bookmark-text, var(--browser-toolbar-text));
+  border-color: var(--browser-toolbar-bottom-separator, transparent);
+}
+.integration-renderer .firefox .native-browser-tabs > button.selected {
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+  margin: 4px;
+}
+.integration-renderer .firefox .native-browser-toolbar > label {
+  border-radius: 5px;
+}
+.integration-renderer .native-browser-page.native-new-tab {
+  color: var(
+    --browser-ntp-text,
+    var(--browser-sidebar-text, var(--ts-foreground))
+  );
+  background: var(
+    --browser-ntp-background,
+    var(--browser-sidebar, var(--ts-background))
+  );
+}
+.integration-renderer .native-new-tab h2,
+.integration-renderer .native-new-tab > p,
+.integration-renderer .native-new-tab > small {
+  color: inherit;
+}
+.integration-renderer .native-new-tab form > label {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  border-color: color-mix(in srgb, currentColor 15%, transparent);
+  color: inherit;
+}
+.integration-renderer .native-new-tab .native-browser-shortcuts button {
+  color: inherit;
+}
+.integration-renderer .native-new-tab .native-browser-shortcuts button > span {
+  color: inherit;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+.integration-renderer .native-notes {
+  font-family: var(--ts-font-sans);
+}
+.integration-renderer .native-note-content:has(.markdown-engine) {
+  padding: 18px 10px;
+}
+.integration-renderer .native-note-content:has(.markdown-engine) > h2 {
+  margin-left: 15px;
+  font-size: 24px;
+}
+.integration-renderer .native-note-content:has(.markdown-engine) > small {
+  margin-left: 15px;
+}
+.native-notes .markdown-engine {
+  height: 365px;
+}
+.obsidian-reading-view {
+  font-family: var(--ts-font-sans);
+}
+.obsidian-reading-view code {
+  font-family: var(--ts-font-mono);
+  color: var(--code-normal);
+  background: var(--code-background);
+  border-radius: var(--radius-s);
+  padding: 2px 4px;
+}
+.obsidian-reading-view pre {
+  padding: 12px;
+  background: var(--code-background);
+  border-radius: var(--radius-m);
+  overflow: auto;
+}
+.obsidian-reading-view a {
+  color: var(--text-accent);
+}
+.obsidian-reading-view h1 {
+  font-size: 25px;
+  margin-bottom: 20px;
+}
+.obsidian-reading-view blockquote {
+  border-left-color: var(--interactive-accent);
+}
+@container appPreview (max-width: 640px) {
+  .integration-renderer .native-editor .native-filetree {
+    width: 115px;
+    font-size: 10px;
+  }
+  .integration-renderer .native-editor .native-command-search {
+    display: none;
+  }
+  .integration-renderer .native-terminal-panes.split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .integration-renderer
+    .native-terminal-panes.split
+    > .engine-terminal
+    + .engine-terminal {
+    border-left: 0;
+    border-top: 1px solid var(--ts-border);
+  }
+}

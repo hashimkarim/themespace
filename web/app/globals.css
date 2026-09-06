@@ -1,5 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@xterm/xterm/css/xterm.css";
+@import "@bf-go/discord-message-kit/style.css";
+@import "../components/clones/clones.css";
+@import "../components/renderers/renderers.css";
 @custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
 @theme inline {
   --font-sans: var(--ts-font-sans, var(--font-geist-sans));

@@ -1683,7 +1683,7 @@ export function ThemeSpace({
           if (!open) setIntegrationPreview(null);
         }}
         title={`${targets.find((t) => t.id === integrationPreview)?.name || "App"} preview`}
-        description="An interactive illustration of your exported palette. Native app layouts and supported settings vary."
+        description="Explore your theme in app layouts and interactive components. Each preview includes its coverage details."
         wide
       >
         {integrationPreview && (

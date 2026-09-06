@@ -5,10 +5,13 @@ Design a theme once, preview it across your apps, and take the whole theme home.
 ThemeSpace now has a working first version in [`web/`](web/). The Studio edits
 light and dark palettes, typography, corners, spacing, shadows, semantic roles,
 syntax, charts, and all 16 ANSI colors. Every one of the 26 working integrations
-has a live palette preview, including recognizable VS Code, Windows Terminal,
-Spotify/Spicetify, Discord, browser, and Obsidian layouts. These are interactive
-illustrations; VS Code and Windows Terminal read their color mappings from the
-actual generated files.
+has a live preview. Native preview adapters read the actual generated theme files:
+Monaco for VS Code, Ghostty's WebAssembly terminal core, xterm.js for the other
+nine terminals, and CodeMirror for the remaining editors and Obsidian. Spotify
+and Discord use adapted MIT-licensed community frontends with local interactions.
+Browser chrome is reconstructed from the generated manifests. Each native preview
+lists its renderer, source files and limits under **About this preview**. See the
+[renderer research and coverage](docs/preview-renderers.md).
 
 Explore includes six starter palettes plus actual published snapshots. Themes
 can be searched, filtered, opened, and remixed. Guest drafts persist in browser
@@ -43,8 +46,8 @@ Radix-based New York registry. Forms, keyboard controls, dialogs, menus, tables,
 calendars, command search, and charts are interactive. The same gallery appears
 in shadcn integration previews and the export dialog. Its colors use the exported
 shadcn tokens; menus and dialogs retain the draft theme even outside the preview
-container. Native app previews remain interactive illustrations, not running
-copies of those applications.
+container. The native previews combine real browser editing/terminal engines with
+reconstructed application shells; they do not run complete desktop applications.
 
 ## Exports
 
@@ -111,9 +114,11 @@ storage; it checks authentication, origin restrictions, size/format validation,
 saved drafts, concurrent publication, immutable versions, and social metadata.
 Unit tests also exercise preference storage/reload/failure handling, live Draft
 updates to the application root, exported component interactions, and rendering
-all integration previews in both appearances. These DOM tests do not replace
-real-browser interaction, screenshot, or native app installation checks; those
-have not been run.
+all integration previews in both appearances. Additional tests verify every
+terminal palette, native file-to-preview mappings, Ghostty WebAssembly and xterm
+ANSI rendering, local command editing, and Spotify/Discord interactions across
+theme changes. These DOM and engine tests do not replace real-browser interaction,
+screenshot, or native app installation checks; those have not been run.
 
 ## Architecture and deployment
 

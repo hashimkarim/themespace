@@ -92,7 +92,7 @@ export function PreviewWorkspace({
       <p className="preview-caption">
         <span className="live-dot" />
         {tab === "integrations" && active.category !== "Web frameworks"
-          ? "Interactive app illustration. Native layouts, fonts, and supported settings vary."
+          ? "Try the preview controls. Open ‘About this preview’ for renderer and export coverage."
           : "Live theme values. Explore the details and try the controls."}
       </p>
       {tab === "integrations" && active.limitation && (

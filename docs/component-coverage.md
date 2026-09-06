@@ -96,14 +96,19 @@ unavailable for export and preview.
 | Web       | CSS, Sass, Tailwind CSS                                                                      | Shared interactive HTML component fixture using exported tokens                         |
 | shadcn/ui | shadcn/ui with Tailwind v4                                                                   | Actual shadcn React components, Radix interactions, React DayPicker, cmdk, and Recharts |
 | Tokens    | DTCG design tokens                                                                           | Searchable role/value palette                                                           |
-| Editors   | VS Code, Zed, Neovim, Helix, Sublime                                                         | File tree, editor tabs, code, integrated terminal, status                               |
-| Terminals | Ghostty, kitty, Alacritty, WezTerm, Windows Terminal, iTerm2, Warp, foot, Termux, Xresources | Tabs, prompt, ANSI palette, split panes; Windows, Warp-block, Termux variants           |
-| Music     | Spicetify                                                                                    | Library, playlist, tracks, silent playback controls                                     |
-| Chat      | BetterDiscord, Vencord                                                                       | Servers, channels, local example messages                                               |
-| Browsers  | Firefox, Chromium                                                                            | Themeable browser chrome around a fixed-style example website                           |
-| Notes     | Obsidian                                                                                     | Vault, note, editor/reader, callout, links, graph                                       |
+| Editors   | VS Code, Zed, Neovim, Helix, Sublime                                                         | Editable Monaco (VS Code) or CodeMirror; native theme adapters; optional xterm for VS Code/Zed |
+| Terminals | Ghostty, kitty, Alacritty, WezTerm, Windows Terminal, iTerm2, Warp, foot, Termux, Xresources | Ghostty VT WebAssembly or xterm.js; real ANSI, selection, input, Unicode; target-specific window capabilities |
+| Music     | Spicetify                                                                                    | MIT Spotify frontend adaptation: library, playlist, search, queue, silent player       |
+| Chat      | BetterDiscord, Vencord                                                                       | MIT Discord frontend adaptation with Discord Message Kit; channels, embeds, mentions, local composer |
+| Browsers  | Firefox, Chromium                                                                            | Manifest-driven tab strip, toolbar and new-tab page; menu/sidebar samples; fixed-style website |
+| Notes     | Obsidian                                                                                     | CodeMirror Markdown editing, rendered reading mode, multiple local notes, vault/graph shell |
 
-VS Code and Windows Terminal read colors from their actual generated JSON.
-Other scenes illustrate the shared palette with each application's component
-family. Native formats control different subsets of colors, fonts, and surfaces;
-these scenes are not embedded native applications or proof of native loading.
+All native adapters read generated files. This includes JSON, TOML, INI,
+properties, Xresources, YAML, iTerm plist, generated Lua highlight declarations
+(without evaluating Lua), Spicetify `color.ini`, and Discord/Obsidian CSS variables.
+The DTCG inspector reads the generated color token document. Missing native
+settings are not invented for terminal engines; they use renderer defaults.
+
+Native formats control different subsets of colors, fonts and surfaces. Browser
+and desktop shells remain reconstructions; native application loading has not
+been verified. See [sources, versions, licenses and limits](preview-renderers.md).

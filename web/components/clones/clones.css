@@ -1,0 +1,951 @@
+/* MIT adaptations, source revisions and licenses: ./README.md. */
+.native-preview {
+  container: appPreview / inline-size;
+}
+.spotify-clone,
+.discord-clone {
+  font-family: Arial, "Helvetica Neue", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: left;
+}
+.native-preview .spotify-clone button,
+.native-preview .discord-clone button {
+  cursor: pointer;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.native-preview .spotify-clone b,
+.native-preview .discord-clone b {
+  font-weight: 650;
+}
+.spotify-clone small,
+.discord-clone small {
+  display: block;
+  font-size: 11px;
+}
+.spotify-clone h2,
+.spotify-clone h3,
+.discord-clone h2,
+.discord-clone h3 {
+  margin: 0;
+  line-height: 1.2;
+  font-weight: 750;
+}
+.native-preview .spotify-clone input,
+.native-preview .discord-clone input {
+  width: 100%;
+  min-width: 0;
+}
+.native-preview .spotify-clone button:focus-visible {
+  outline-color: var(--spice-text);
+}
+.native-preview .discord-clone button:focus-visible {
+  outline-color: var(--brand-500);
+}
+
+/* The upstream resizable AppLayout expressed as a container-sized grid. */
+.spotify-clone {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  grid-template-rows: 56px minmax(360px, 1fr) 80px 22px;
+  grid-template-areas: "nav nav" "library center" "player player" "note note";
+  height: 585px;
+  gap: 8px;
+  padding: 0 8px;
+  color: var(--spice-text);
+  background: var(--spice-sidebar);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.spotify-clone.queue-open {
+  grid-template-columns: 170px minmax(0, 1fr) 190px;
+  grid-template-areas: "nav nav nav" "library center queue" "player player player" "note note note";
+}
+.spotify-clone.library-collapsed {
+  grid-template-columns: 65px minmax(0, 1fr);
+}
+.spotify-clone.library-collapsed.queue-open {
+  grid-template-columns: 65px minmax(0, 1fr) 190px;
+}
+.spotify-navbar {
+  grid-area: nav;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 6px;
+}
+.native-preview .spotify-home {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--spice-main-elevated);
+}
+.spotify-search {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: var(--spice-main-elevated);
+  color: var(--spice-subtext);
+  border-radius: 24px;
+  padding: 10px 14px;
+  width: min(100%, 400px);
+}
+.spotify-search input {
+  color: var(--spice-text);
+  font-size: 13px;
+}
+.spotify-search:focus-within {
+  outline: 2px solid var(--spice-text);
+}
+.spotify-demo {
+  color: var(--spice-subtext);
+  margin-left: auto;
+  font-size: 11px;
+}
+.spotify-user {
+  display: grid;
+  place-items: center;
+  border: 5px solid var(--spice-main-elevated);
+  border-radius: 50%;
+  background: var(--spice-button);
+  color: var(--spice-main);
+  width: 38px;
+  height: 38px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.spotify-library {
+  grid-area: library;
+  background: var(--spice-sidebar);
+  padding: 12px 6px;
+  min-width: 0;
+  overflow: auto;
+}
+.spotify-library-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 22px;
+  padding: 0 6px;
+}
+.native-preview .spotify-library-title button {
+  justify-content: flex-start;
+  color: var(--spice-subtext);
+  gap: 14px;
+}
+.spotify-filters {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 17px;
+}
+.native-preview .spotify-clone .chip {
+  padding: 6px 11px;
+  border-radius: var(--button-radius, 999px);
+  background: var(--spice-main-elevated);
+  color: var(--spice-text);
+  font-size: 11px;
+}
+.native-preview .spotify-clone .chip.active {
+  background: var(--spice-text);
+  color: var(--spice-main);
+}
+.native-preview .spotify-library-item {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  gap: 11px;
+  padding: 8px 6px;
+  border-radius: var(--border-radius, 6px);
+  text-align: left;
+}
+.native-preview .spotify-library-item.active {
+  background: var(--spice-highlight-elevated);
+}
+.spotify-library-item span:last-child {
+  min-width: 0;
+}
+.spotify-library-item b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.spotify-library-item small {
+  color: var(--spice-subtext);
+  margin-top: 5px;
+  white-space: nowrap;
+}
+.spotify-cover {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: var(--cover-art-radius, 5px);
+  background: #b38d60;
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+}
+.spotify-cover.sun {
+  background:
+    radial-gradient(circle at 65% 32%, #ebca8c 0 24%, transparent 25%),
+    linear-gradient(15deg, #48554b 25%, #819484 26% 48%, #c5b495 49%);
+}
+.spotify-cover.wave {
+  background: repeating-radial-gradient(
+    ellipse at 110% 110%,
+    #285b61 0 15px,
+    #7b9a92 16px 30px,
+    #d4c3a4 31px 45px
+  );
+}
+.spotify-cover.leaf {
+  background: linear-gradient(
+    135deg,
+    #294d40 40%,
+    #859376 40% 50%,
+    #d1cba8 50%
+  );
+}
+.spotify-cover.night {
+  background:
+    radial-gradient(circle at 30% 30%, #c2b5d9 0 15%, transparent 16%),
+    linear-gradient(25deg, #252944 55%, #545877 56%);
+}
+.spotify-cover.liked {
+  background: linear-gradient(135deg, #4835b0, #bab9d5);
+}
+.spotify-cover.large {
+  width: 145px;
+  height: 145px;
+  box-shadow: 0 4px 60px rgb(0 0 0 / 30%);
+}
+.spotify-cover svg {
+  opacity: 0.7;
+}
+.spotify-center {
+  grid-area: center;
+  border-radius: var(--border-radius, 8px);
+  background: var(--spice-main);
+  overflow: auto;
+  min-width: 0;
+}
+.spotify-playlist-header {
+  display: flex;
+  gap: 20px;
+  padding: 30px 22px 22px;
+  align-items: flex-end;
+  background: linear-gradient(rgb(var(--spice-rgb-button), 0.28), transparent);
+}
+.spotify-playlist-header > div {
+  min-width: 0;
+}
+.spotify-playlist-header h2 {
+  font-size: clamp(26px, 4.5cqw, 55px);
+  line-height: 1;
+  margin: 14px 0;
+  overflow-wrap: anywhere;
+  letter-spacing: -0.05em;
+}
+.spotify-playlist-header p {
+  color: var(--spice-subtext);
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+.spotify-playlist-header b,
+.spotify-playlist-header span {
+  font-size: 11px;
+}
+.spotify-playlist-list {
+  padding: 10px 18px 20px;
+}
+.spotify-list-actions {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  padding: 8px 0 24px;
+}
+.spotify-list-actions > span {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-left: auto;
+  color: var(--spice-subtext);
+  font-size: 11px;
+}
+.native-preview .spotify-clone .circle-play {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--spice-button);
+  color: var(--spice-main);
+}
+.spotify-song-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  table-layout: fixed;
+}
+.spotify-song-table th {
+  font-weight: 400;
+  color: var(--spice-subtext);
+  padding: 0 6px 9px;
+  text-align: left;
+  border-bottom: 1px solid var(--spice-misc);
+}
+.spotify-song-table th:first-child {
+  width: 25px;
+}
+.spotify-song-table th:nth-child(2) {
+  width: 48%;
+}
+.spotify-song-table th:last-child {
+  width: 40px;
+}
+.spotify-song-table td {
+  padding: 8px 6px;
+  color: var(--spice-subtext);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.native-preview .spotify-song-table button {
+  justify-content: flex-start;
+  gap: 10px;
+  text-align: left;
+  width: 100%;
+}
+.spotify-song-table button > span:last-child {
+  overflow: hidden;
+}
+.spotify-song-table b {
+  display: block;
+  font-size: 12px;
+  color: var(--spice-text);
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.spotify-song-table .active b,
+.spotify-clone button[aria-pressed="true"] {
+  color: var(--spice-button);
+}
+.spotify-song-table tbody tr:hover,
+.native-preview .spotify-clone button:hover {
+  background-color: var(--spice-highlight);
+}
+.spotify-home-content {
+  padding: 20px;
+}
+.spotify-home-content h2 {
+  font-size: 22px;
+  margin: 20px 0 12px;
+}
+.spotify-albums {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+.native-preview .spotify-albums button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 10px;
+  gap: 10px;
+  background: var(--spice-card);
+  border-radius: var(--border-radius);
+}
+.spotify-albums .spotify-cover {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.spotify-albums small {
+  color: var(--spice-subtext);
+}
+.spotify-queue {
+  grid-area: queue;
+  border-radius: var(--border-radius);
+  background: var(--spice-main);
+  padding: 16px;
+  overflow: auto;
+}
+.spotify-queue > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+.spotify-queue > small {
+  margin-bottom: 15px;
+}
+.spotify-queue > h3 {
+  font-size: 19px;
+  margin: 20px 0 5px;
+}
+.spotify-queue > p {
+  color: var(--spice-subtext);
+  margin-bottom: 22px;
+}
+.native-preview .spotify-queue > button {
+  justify-content: flex-start;
+  gap: 9px;
+  width: 100%;
+  margin-top: 15px;
+  text-align: left;
+  font-size: 12px;
+}
+.spotify-queue small {
+  color: var(--spice-subtext);
+}
+.spotify-playing-bar {
+  grid-area: player;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  min-width: 0;
+  background: var(--spice-player);
+  padding: 0 8px;
+}
+.spotify-song-details {
+  width: 30%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.spotify-song-details > span:nth-child(2) {
+  min-width: 0;
+}
+.spotify-song-details b {
+  display: block;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.spotify-song-details small {
+  color: var(--spice-subtext);
+  font-size: 10px;
+}
+.spotify-play-controls {
+  width: 40%;
+}
+.spotify-play-controls > div {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 8px;
+}
+/* Upstream PlayingBar.scss player-pause-button dimensions and shape. */
+.native-preview .spotify-clone .player-pause-button {
+  background: var(--spice-text);
+  border: none;
+  border-radius: 20px;
+  color: var(--spice-main);
+  display: flex;
+  height: 32px;
+  min-width: 32px;
+  width: 32px;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+}
+.native-preview .spotify-clone .player-pause-button:hover {
+  transform: scale(1.1);
+}
+.spotify-progress {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: var(--spice-subtext);
+}
+.native-preview .spotify-clone input[type="range"] {
+  height: 4px;
+  border-radius: 4px;
+  accent-color: var(--spice-text);
+  cursor: pointer;
+  padding: 0;
+}
+.native-preview .spotify-clone input[type="range"]:hover {
+  accent-color: var(--spice-button);
+}
+.spotify-extra-controls {
+  width: 30%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.spotify-extra-controls input {
+  max-width: 75px;
+}
+.spotify-silent {
+  grid-area: note;
+  justify-self: end;
+  color: var(--spice-subtext);
+  font-size: 10px;
+  padding-right: 10px;
+}
+.spotify-clone.library-collapsed .spotify-library-title b,
+.spotify-clone.library-collapsed .spotify-filters,
+.spotify-clone.library-collapsed .spotify-library-item > span:last-child {
+  display: none;
+}
+.spotify-empty {
+  padding: 20px 0;
+  color: var(--spice-subtext);
+}
+
+/* Leonardo Ronne's named grid areas, adapted from viewport to preview container. */
+.discord-clone {
+  display: grid;
+  height: 585px;
+  grid-template-columns: 71px 190px minmax(0, 1fr);
+  grid-template-rows: 48px minmax(0, 1fr) 52px;
+  grid-template-areas: "SL SN CI" "SL CL CD" "SL UI CD";
+  color: var(--text-normal);
+  background: var(--background-primary);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.discord-clone.with-members {
+  grid-template-columns: 71px 190px minmax(0, 1fr) 170px;
+  grid-template-areas: "SL SN CI CI" "SL CL CD UL" "SL UI CD UL";
+}
+.discord-server-list {
+  grid-area: SL;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  gap: 12px;
+  background: var(--background-tertiary);
+}
+.discord-server-list hr {
+  width: 32px;
+  margin: 0;
+  border-color: var(--background-modifier-hover);
+}
+.native-preview .discord-clone .discord-server-button {
+  width: 48px;
+  height: 48px;
+  position: relative;
+  border-radius: 50%;
+  background: var(--background-primary);
+  font-size: 18px;
+  font-weight: 600;
+  transition:
+    border-radius 0.2s,
+    background 0.2s;
+}
+.native-preview .discord-clone .discord-server-button:hover,
+.native-preview .discord-clone .discord-server-button.active {
+  border-radius: 16px;
+  background: var(--brand-500);
+  color: #fff;
+}
+.discord-server-button.active::before {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 34px;
+  background: var(--text-normal);
+  left: -11px;
+  border-radius: 0 4px 4px 0;
+}
+.discord-server-name {
+  grid-area: SN;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--background-secondary);
+  padding: 0 15px;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 20%);
+  z-index: 1;
+}
+.discord-channel-info {
+  grid-area: CI;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 17px;
+  background: var(--background-primary);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 20%);
+  z-index: 1;
+  min-width: 0;
+}
+.discord-channel-info > svg {
+  color: var(--channels-default);
+  flex-shrink: 0;
+}
+.discord-channel-info > b {
+  white-space: nowrap;
+  font-size: 14px;
+}
+.discord-topic {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-left: 12px;
+  border-left: 1px solid var(--background-modifier-hover);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.discord-channel-info > button {
+  margin-left: auto;
+  color: var(--interactive-normal);
+}
+.discord-channel-info > label {
+  width: 115px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--background-tertiary);
+  color: var(--text-muted);
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.discord-channel-info input {
+  font-size: 11px;
+}
+.discord-channel-list {
+  grid-area: CL;
+  padding: 14px 8px;
+  background: var(--background-secondary);
+  overflow: auto;
+  position: relative;
+}
+.discord-channel-category {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--channels-default);
+  margin: 12px 0 5px;
+}
+.native-preview .discord-clone .discord-channel-button {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  padding: 6px 8px;
+  margin: 2px 0;
+  color: var(--channels-default);
+  border-radius: 4px;
+  font-size: 13px;
+  gap: 6px;
+}
+.native-preview .discord-clone .discord-channel-button.active {
+  color: var(--interactive-active);
+  background: var(--background-modifier-selected);
+}
+.native-preview .discord-clone button:hover {
+  background: var(--background-modifier-hover);
+  color: var(--interactive-hover);
+}
+.discord-display-option {
+  margin-top: 35px;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 6px;
+}
+.discord-voice-status {
+  color: var(--status-positive);
+  font-size: 11px;
+  padding: 8px;
+}
+.discord-user-info {
+  grid-area: UI;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--background-secondary-alt);
+}
+.discord-user-info > span:nth-child(2) {
+  flex: 1;
+  font-size: 12px;
+}
+.discord-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: #5865f2;
+  font-size: 14px;
+  font-weight: 600;
+}
+.discord-avatar i {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 12px;
+  height: 12px;
+  border: 3px solid var(--background-secondary);
+  border-radius: 50%;
+  background: var(--status-positive);
+}
+.discord-user-info small,
+.discord-user-list small {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+.discord-user-info button[aria-pressed="true"] {
+  color: var(--status-danger);
+}
+.discord-channel-data {
+  grid-area: CD;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--background-primary);
+}
+.discord-messages {
+  flex: 1;
+  overflow: auto;
+  scrollbar-color: var(--scrollbar-auto-thumb) var(--scrollbar-auto-track);
+  padding-bottom: 8px;
+}
+.discord-welcome {
+  padding: 18px 16px 12px;
+}
+.discord-welcome > span {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--background-secondary);
+  margin-bottom: 14px;
+}
+.discord-welcome h2 {
+  font-size: 23px;
+}
+.discord-welcome p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 8px 0;
+}
+.discord-input-wrapper {
+  padding: 8px 16px 10px;
+}
+.discord-input-wrapper > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 13px;
+  border-radius: 7px;
+  background: var(--channeltextarea-background);
+}
+.discord-input-wrapper input {
+  color: var(--text-normal);
+  font-size: 13px;
+}
+.discord-input-wrapper button {
+  color: var(--interactive-normal);
+}
+.discord-input-wrapper small {
+  color: var(--text-muted);
+  font-size: 9px;
+  margin-top: 6px;
+}
+.discord-user-list {
+  grid-area: UL;
+  background: var(--background-secondary);
+  padding: 22px 10px;
+  overflow: auto;
+}
+.discord-user-list h3 {
+  font-size: 10px;
+  color: var(--channels-default);
+  margin: 0 0 15px 5px;
+}
+.discord-user-list > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.discord-user-list h3:not(:first-child) {
+  margin-top: 27px;
+}
+.discord-user-list .offline {
+  opacity: 0.45;
+}
+.discord-no-results {
+  padding: 20px;
+  color: var(--text-muted);
+}
+/* Use actual exported Discord variables for the external message renderer. */
+.discord-clone .dmk-messages {
+  --dmk-panel: var(--background-primary);
+  --dmk-panel-border: var(--background-secondary-alt);
+  --dmk-row-hover: var(--background-modifier-hover);
+  --dmk-text: var(--text-normal);
+  --dmk-muted: var(--text-muted);
+  --dmk-strong: var(--header-primary);
+  --dmk-link: var(--text-link);
+  --dmk-accent: var(--brand-500);
+  --dmk-warning: var(--status-warning);
+  --dmk-embed-surface: var(--background-secondary);
+  --dmk-embed-border: var(--background-tertiary);
+  --dmk-embed-accent: var(--brand-500);
+  --dmk-message-font: Arial, sans-serif;
+  border: 0;
+  border-radius: 0;
+}
+.discord-clone .dmk-messages.dmk-light-theme {
+  --dmk-panel: var(--background-primary);
+  --dmk-panel-border: var(--background-secondary-alt);
+  --dmk-row-hover: var(--background-modifier-hover);
+  --dmk-text: var(--text-normal);
+  --dmk-muted: var(--text-muted);
+  --dmk-strong: var(--header-primary);
+  --dmk-link: var(--text-link);
+  --dmk-embed-surface: var(--background-secondary);
+  --dmk-embed-border: var(--background-tertiary);
+  --dmk-embed-accent: var(--brand-500);
+}
+.discord-clone .dmk-mention {
+  --dmk-mention-fill: color-mix(in srgb, var(--brand-500) 18%, transparent);
+  --dmk-mention-fill-hover: color-mix(
+    in srgb,
+    var(--brand-500) 35%,
+    transparent
+  );
+}
+.discord-clone .dmk-message {
+  font-size: 13px;
+}
+.discord-clone .dmk-message-content {
+  overflow-wrap: anywhere;
+}
+.native-preview .discord-reactions button {
+  border: 1px solid var(--background-modifier-selected);
+  background: var(--background-secondary);
+  padding: 3px 7px;
+  border-radius: 7px;
+  font-size: 12px;
+  margin-top: 7px;
+}
+.native-preview .discord-reactions button[aria-pressed="true"] {
+  border-color: var(--brand-500);
+  background: var(--background-modifier-selected);
+}
+@container appPreview (max-width: 850px) {
+  .spotify-clone .date-column {
+    display: none;
+  }
+  .discord-clone.with-members {
+    grid-template-columns: 65px 170px minmax(0, 1fr);
+    grid-template-areas: "SL SN CI" "SL CL CD" "SL UI CD";
+  }
+  .discord-user-list {
+    display: none;
+  }
+  .discord-topic {
+    display: none;
+  }
+}
+@container appPreview (max-width: 640px) {
+  .spotify-clone,
+  .spotify-clone.queue-open {
+    grid-template-columns: 65px minmax(0, 1fr);
+    grid-template-areas: "nav nav" "library center" "player player" "note note";
+  }
+  .spotify-library-title b,
+  .spotify-library .spotify-filters,
+  .spotify-library-item > span:last-child {
+    display: none;
+  }
+  .spotify-clone.queue-open .spotify-center {
+    display: none;
+  }
+  .spotify-clone.queue-open .spotify-queue {
+    grid-area: center;
+  }
+  .spotify-clone .album-column {
+    display: none;
+  }
+  .spotify-song-table th:nth-child(2) {
+    width: auto;
+  }
+  .spotify-playlist-header {
+    padding: 20px 15px;
+    gap: 14px;
+  }
+  .spotify-playlist-header > .spotify-cover {
+    width: 90px;
+    height: 90px;
+  }
+  .spotify-play-controls {
+    width: 65%;
+  }
+  .spotify-extra-controls {
+    width: auto;
+  }
+  .spotify-extra-controls > input,
+  .spotify-extra-controls > svg {
+    display: none;
+  }
+  .spotify-song-details {
+    width: 30%;
+  }
+  .spotify-song-details > .spotify-cover,
+  .spotify-song-details > button {
+    display: none;
+  }
+  .spotify-play-controls > div {
+    gap: 12px;
+  }
+  .discord-clone,
+  .discord-clone.with-members {
+    grid-template-columns: 58px minmax(0, 1fr);
+    grid-template-rows: 48px 42px minmax(0, 1fr);
+    grid-template-areas: "SL CI" "SL CL" "SL CD";
+  }
+  .discord-server-name,
+  .discord-user-info,
+  .discord-channel-category,
+  .discord-channel-list > .discord-display-option,
+  .discord-channel-list > .discord-voice-status,
+  .discord-channel-list > .discord-channel-button:last-of-type {
+    display: none;
+  }
+  .discord-channel-list {
+    display: flex;
+    padding: 4px;
+    gap: 4px;
+    overflow: auto;
+  }
+  .native-preview .discord-clone .discord-channel-button {
+    width: auto;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .discord-server-list {
+    padding-top: 10px;
+  }
+  .native-preview .discord-clone .discord-server-button {
+    width: 40px;
+    height: 40px;
+  }
+  .discord-channel-info {
+    gap: 7px;
+    padding: 0 12px;
+  }
+  .discord-channel-info > label {
+    width: 85px;
+  }
+}

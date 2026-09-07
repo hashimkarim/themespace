@@ -91,7 +91,7 @@ export function semanticVariables(theme: Theme, mode: Appearance) {
     "card-foreground": c.foreground,
     popover: c.elevated,
     "popover-foreground": c.foreground,
-    primary: c.accent,
+    primary: c.accentFill,
     "primary-foreground": c.accentForeground,
     secondary: c.surface,
     "secondary-foreground": c.foreground,
@@ -99,6 +99,10 @@ export function semanticVariables(theme: Theme, mode: Appearance) {
     "muted-foreground": c.muted,
     accent: c.hover,
     "accent-foreground": c.foreground,
+    "accent-2": c.accent2,
+    "accent-2-foreground": c.accent2Foreground,
+    "accent-3": c.accent3,
+    "accent-3-foreground": c.accent3Foreground,
     destructive: c.error,
     "destructive-foreground": contrastForeground(c.error),
     border: c.border,
@@ -106,7 +110,7 @@ export function semanticVariables(theme: Theme, mode: Appearance) {
     ring: c.focus,
     sidebar: c.surface,
     "sidebar-foreground": c.foreground,
-    "sidebar-primary": c.accent,
+    "sidebar-primary": c.accentFill,
     "sidebar-primary-foreground": c.accentForeground,
     "sidebar-accent": c.selection,
     "sidebar-accent-foreground": c.selectionForeground,
@@ -252,11 +256,10 @@ function vscodeColors(c: Resolved) {
       "focusBorder",
       "textLink.foreground",
       "progressBar.background",
-      "button.background",
-      "activityBarBadge.background",
       "editorCursor.foreground",
       "editorLink.activeForeground",
     ],
+    accentFill: ["button.background", "activityBarBadge.background"],
     accentForeground: ["button.foreground", "activityBarBadge.foreground"],
     input: ["input.background"],
     border: [
@@ -510,8 +513,8 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
             card: c.elevated,
             shadow: "#000000",
             "selected-row": c.foreground,
-            button: c.accent,
-            "button-active": c.accent,
+            button: c.accentFill,
+            "button-active": c.accentFill,
             "button-disabled": c.muted,
             tab: c.accent,
             notification: c.elevated,
@@ -563,8 +566,8 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               "--text-faint": c.muted,
               "--text-accent": c.accent,
               "--text-on-accent": c.accentForeground,
-              "--interactive-accent": c.accent,
-              "--interactive-accent-hover": c.accent,
+              "--interactive-accent": c.accentFill,
+              "--interactive-accent-hover": c.accentFill,
               "--text-selection": c.selection,
               "--text-error": c.error,
               "--text-success": c.success,
@@ -595,13 +598,13 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
           add(
             file,
             ansi.map((color, i) => `palette = ${i}=${color}`).join("\n") +
-              `\n\nbackground = ${c.background}\nforeground = ${c.foreground}\ncursor-color = ${c.accent}\ncursor-text = ${c.accentForeground}\nselection-background = ${c.selection}\nselection-foreground = ${c.selectionForeground}\n`,
+              `\n\nbackground = ${c.background}\nforeground = ${c.foreground}\ncursor-color = ${c.accentFill}\ncursor-text = ${c.accentForeground}\nselection-background = ${c.selection}\nselection-foreground = ${c.selectionForeground}\n`,
           );
           break;
         case "kitty":
           add(
             `${file}.conf`,
-            `background ${c.background}\nforeground ${c.foreground}\ncursor ${c.accent}\ncursor_text_color ${c.accentForeground}\nselection_background ${c.selection}\nselection_foreground ${c.selectionForeground}\n` +
+            `background ${c.background}\nforeground ${c.foreground}\ncursor ${c.accentFill}\ncursor_text_color ${c.accentForeground}\nselection_background ${c.selection}\nselection_foreground ${c.selectionForeground}\n` +
               ansi.map((color, i) => `color${i} ${color}`).join("\n") +
               "\n",
           );
@@ -609,7 +612,7 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
         case "alacritty":
           add(
             `${file}.toml`,
-            `[colors.primary]\nbackground = "${c.background}"\nforeground = "${c.foreground}"\n\n[colors.cursor]\ntext = "${c.accentForeground}"\ncursor = "${c.accent}"\n\n[colors.selection]\ntext = "${c.selectionForeground}"\nbackground = "${c.selection}"\n\n` +
+            `[colors.primary]\nbackground = "${c.background}"\nforeground = "${c.foreground}"\n\n[colors.cursor]\ntext = "${c.accentForeground}"\ncursor = "${c.accentFill}"\n\n[colors.selection]\ntext = "${c.selectionForeground}"\nbackground = "${c.selection}"\n\n` +
               ["normal", "bright"]
                 .map(
                   (part, n) =>
@@ -625,7 +628,7 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
         case "wezterm":
           add(
             `${file}.toml`,
-            `[metadata]\nname = ${JSON.stringify(name)}\nauthor = ${JSON.stringify(theme.author)}\n\n[colors]\nforeground = "${c.foreground}"\nbackground = "${c.background}"\ncursor_bg = "${c.accent}"\ncursor_fg = "${c.accentForeground}"\ncursor_border = "${c.accent}"\nselection_bg = "${c.selection}"\nselection_fg = "${c.selectionForeground}"\nansi = ${JSON.stringify(ansi.slice(0, 8))}\nbrights = ${JSON.stringify(ansi.slice(8))}\n`,
+            `[metadata]\nname = ${JSON.stringify(name)}\nauthor = ${JSON.stringify(theme.author)}\n\n[colors]\nforeground = "${c.foreground}"\nbackground = "${c.background}"\ncursor_bg = "${c.accentFill}"\ncursor_fg = "${c.accentForeground}"\ncursor_border = "${c.accentFill}"\nselection_bg = "${c.selection}"\nselection_fg = "${c.selectionForeground}"\nansi = ${JSON.stringify(ansi.slice(0, 8))}\nbrights = ${JSON.stringify(ansi.slice(8))}\n`,
           );
           break;
         case "windows-terminal":
@@ -635,7 +638,7 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               name,
               background: c.background,
               foreground: c.foreground,
-              cursorColor: c.accent,
+              cursorColor: c.accentFill,
               selectionBackground: c.selection,
               ...Object.fromEntries(
                 ansi.map((color, i) => [
@@ -657,7 +660,7 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
             ),
             "Background Color": c.background,
             "Foreground Color": c.foreground,
-            "Cursor Color": c.accent,
+            "Cursor Color": c.accentFill,
             "Cursor Text Color": c.accentForeground,
             "Selection Color": c.selection,
             "Selected Text Color": c.selectionForeground,
@@ -716,7 +719,7 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
         case "termux":
           add(
             `${mode}/colors.properties`,
-            `background=${c.background}\nforeground=${c.foreground}\ncursor=${c.accent}\n` +
+            `background=${c.background}\nforeground=${c.foreground}\ncursor=${c.accentFill}\n` +
               ansi.map((color, i) => `color${i}=${color}`).join("\n") +
               "\n",
           );
@@ -724,7 +727,7 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
         case "xresources":
           add(
             `${file}.Xresources`,
-            `*.background: ${c.background}\n*.foreground: ${c.foreground}\n*.cursorColor: ${c.accent}\n` +
+            `*.background: ${c.background}\n*.foreground: ${c.foreground}\n*.cursorColor: ${c.accentFill}\n` +
               ansi.map((color, i) => `*.color${i}: ${color}`).join("\n") +
               "\n",
           );
@@ -809,7 +812,7 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
             CursorLineNr: { fg: c.accent },
             CursorLine: { bg: c.hover },
             Visual: { bg: c.selection, fg: c.selectionForeground },
-            Search: { bg: c.accent, fg: c.accentForeground },
+            Search: { bg: c.accentFill, fg: c.accentForeground },
             StatusLine: { bg: c.surface, fg: c.foreground },
             Pmenu: { bg: c.elevated, fg: c.foreground },
             PmenuSel: { bg: c.selection, fg: c.selectionForeground },
@@ -859,7 +862,7 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
             Object.entries({
               "ui.background": { bg: c.background },
               "ui.text": { fg: c.foreground },
-              "ui.cursor": { fg: c.accentForeground, bg: c.accent },
+              "ui.cursor": { fg: c.accentForeground, bg: c.accentFill },
               "ui.selection": { bg: c.selection },
               "ui.linenr": { fg: c.muted },
               "ui.statusline": { fg: c.foreground, bg: c.surface },

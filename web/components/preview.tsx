@@ -188,11 +188,15 @@ export function ThemePreview({
               <small>YOUR PALETTE</small>
               <strong>Perfectly personal</strong>
               <div className="mock-swatches">
-                {["background", "surface", "accent", "success", "warning"].map(
-                  (key) => (
-                    <i key={key} style={{ background: c[key] }} />
-                  ),
-                )}
+                {[
+                  "background",
+                  "surface",
+                  "accentFill",
+                  "accent2",
+                  "accent3",
+                ].map((key) => (
+                  <i key={key} style={{ background: c[key] }} />
+                ))}
               </div>
             </div>
             <div>
@@ -322,7 +326,7 @@ export function ThemePreview({
                   <div key={label}>
                     <span
                       style={{
-                        background: [c.accent, c.success, c.warning][i],
+                        background: [c.accentFill, c.accent2, c.accent3][i],
                       }}
                     />
                     <b>{label}</b>

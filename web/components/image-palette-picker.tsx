@@ -6,6 +6,7 @@ import {
   ImagePlus,
   LoaderCircle,
   Moon,
+  RotateCcw,
   Sun,
   Upload,
 } from "lucide-react";
@@ -15,11 +16,19 @@ import {
   type ImagePalette,
 } from "@/lib/image-palette";
 import {
-  palettesFromColors,
-  suggestedAccent,
+  palettesFromImage,
+  suggestImageRoles,
   type GeneratedPalettes,
+  type ImageColorRoles,
 } from "@/lib/palette-tools";
 import { readableOn, type Appearance } from "@/lib/theme";
+
+const colorRoles = [
+  { id: "surface", label: "Surfaces" },
+  { id: "primary", label: "Buttons" },
+  { id: "secondary", label: "Accent 2" },
+  { id: "tertiary", label: "Accent 3" },
+] as const;
 
 export function ImagePalettePicker({
   appearance,
@@ -37,7 +46,9 @@ export function ImagePalettePicker({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(false);
-  const [accent, setAccent] = useState(0);
+  const [roles, setRoles] = useState<ImageColorRoles | null>(null);
+  const [editingRole, setEditingRole] =
+    useState<keyof ImageColorRoles>("primary");
   const [previewMode, setPreviewMode] = useState(appearance);
   const [both, setBoth] = useState(true);
   useEffect(
@@ -56,7 +67,7 @@ export function ImagePalettePicker({
     try {
       const result = await extractImagePalette(file);
       if (current !== request.current) return;
-      setAccent(suggestedAccent(result.colors));
+      setRoles(suggestImageRoles(result.colors));
       setImage(result);
     } catch (cause) {
       if (current === request.current)
@@ -69,12 +80,8 @@ export function ImagePalettePicker({
       if (current === request.current) setBusy(false);
     }
   };
-  const palettes = image
-    ? palettesFromColors(
-        image.colors.map((c) => c.hex),
-        accent,
-      )
-    : null;
+  const palettes =
+    image && roles ? palettesFromImage(image.colors, roles) : null;
   const palette = palettes?.[previewMode];
 
   return (
@@ -138,7 +145,7 @@ export function ImagePalettePicker({
           </strong>
           <span>
             {image
-              ? "Try another image, or choose an accent below."
+              ? "A foundation and accents, drawn from your image."
               : "Drop an image here. PNG, JPG, WebP, AVIF or GIF · up to 12 MB"}
           </span>
           <button
@@ -156,7 +163,7 @@ export function ImagePalettePicker({
         {busy
           ? "Extracting colors from your image."
           : image
-            ? `${image.colors.length} colors found. Choose your accent and preview the palette.`
+            ? `${image.colors.length} colors found. Surface and accent colors have been suggested. Preview or change their assignments.`
             : ""}
       </div>
       {error && (
@@ -164,113 +171,181 @@ export function ImagePalettePicker({
           {error}
         </p>
       )}
-      {image && palettes && palette && (
-        <>
-          <div className="image-palette-section-heading">
-            <h3>Pick your accent</h3>
-            <span>
-              {image.colors.length}{" "}
-              {image.colors.length === 1 ? "color" : "colors"} found
-            </span>
-          </div>
-          <div
-            className="image-palette-swatches"
-            role="group"
-            aria-label="Extracted colors"
-          >
-            {image.colors.map((color, i) => (
+      {image && roles && palettes && palette && (
+        <div className="image-palette-result">
+          <div>
+            <div className="image-palette-section-heading">
+              <h3>Your color story</h3>
               <button
-                key={color.hex}
                 type="button"
-                aria-label={`Use ${color.hex} as accent`}
-                aria-pressed={accent === i}
-                onClick={() => setAccent(i)}
+                className="text-button"
+                onClick={() => setRoles(suggestImageRoles(image.colors))}
               >
-                <span
-                  style={{
-                    background: color.hex,
-                    color: readableOn(color.hex),
-                  }}
-                >
-                  {accent === i && <Check size={18} />}
-                </span>
-                <code>{color.hex}</code>
+                <RotateCcw size={12} />
+                Auto assign
               </button>
-            ))}
-          </div>
-          <div className="image-palette-section-heading">
-            <h3>A little preview</h3>
+            </div>
             <div
-              className="image-palette-modes"
+              className="image-palette-roles"
               role="group"
-              aria-label="Image palette preview appearance"
+              aria-label="Image color roles"
             >
-              {(["light", "dark"] as const).map((mode) => (
+              {colorRoles.map((role) => (
                 <button
                   type="button"
-                  key={mode}
-                  aria-label={`Preview ${mode} palette`}
-                  aria-pressed={previewMode === mode}
-                  onClick={() => setPreviewMode(mode)}
+                  key={role.id}
+                  aria-label={`Choose ${role.label.toLowerCase()} color`}
+                  aria-pressed={editingRole === role.id}
+                  onClick={() => setEditingRole(role.id)}
                 >
-                  {mode === "light" ? <Sun size={13} /> : <Moon size={13} />}
-                  {mode}
+                  <i style={{ background: image.colors[roles[role.id]].hex }} />
+                  <span>
+                    <b>{role.label}</b>
+                    <code>{image.colors[roles[role.id]].hex}</code>
+                  </span>
                 </button>
               ))}
             </div>
-          </div>
-          <div
-            className="image-palette-preview"
-            style={{
-              background: palette.background,
-              color: palette.foreground,
-            }}
-          >
+            <p className="image-palette-assignment">
+              Choose a color for{" "}
+              <strong>
+                {colorRoles.find((role) => role.id === editingRole)!.label}
+              </strong>
+            </p>
             <div
-              className="image-palette-preview-card"
-              style={{ background: palette.surface }}
+              className="image-palette-swatches"
+              role="group"
+              aria-label="Extracted colors"
             >
-              <span
-                className="image-palette-preview-eyebrow"
-                style={{ color: palette.accent }}
-              >
-                Made from your world
-              </span>
-              <strong>A space of your own.</strong>
-              <p style={{ color: palette.muted }}>
-                Familiar colors. A fresh start.
-              </p>
-              <span
-                className="image-palette-preview-accent"
-                style={{
-                  background: palette.accent,
-                  color: readableOn(palette.accent),
-                }}
-              >
-                Your accent <Check size={13} />
-              </span>
+              {image.colors.map((color, i) => (
+                <button
+                  key={color.hex}
+                  type="button"
+                  aria-label={`Use ${color.hex} for ${colorRoles.find((role) => role.id === editingRole)!.label.toLowerCase()}`}
+                  aria-pressed={roles[editingRole] === i}
+                  onClick={() => setRoles({ ...roles, [editingRole]: i })}
+                >
+                  <span
+                    style={{
+                      background: color.hex,
+                      color: readableOn(color.hex),
+                    }}
+                  >
+                    {roles[editingRole] === i && <Check size={18} />}
+                  </span>
+                  <code>{color.hex}</code>
+                </button>
+              ))}
             </div>
+            <p className="image-palette-hint">
+              The dominant color shapes the surfaces. Contrasting colors become
+              buttons and supporting accents for charts, highlights, and code.
+            </p>
           </div>
-          <p className="image-palette-hint">
-            Colors are adapted for readable text in light and dark themes. You
-            can fine-tune every color in the Studio.
-          </p>
-          <label className="image-palette-both">
-            <input
-              type="checkbox"
-              checked={both}
-              onChange={(e) => setBoth(e.target.checked)}
-            />
-            <span>
-              Update light and dark
-              <small>
-                {both
-                  ? "Replaces both palettes. You can undo after applying."
-                  : `Only replaces your ${appearance} palette. You can undo after applying.`}
-              </small>
-            </span>
-          </label>
-        </>
+          <div>
+            <div className="image-palette-section-heading">
+              <h3>A little preview</h3>
+              <div
+                className="image-palette-modes"
+                role="group"
+                aria-label="Image palette preview appearance"
+              >
+                {(["light", "dark"] as const).map((mode) => (
+                  <button
+                    type="button"
+                    key={mode}
+                    aria-label={`Preview ${mode} palette`}
+                    aria-pressed={previewMode === mode}
+                    onClick={() => setPreviewMode(mode)}
+                  >
+                    {mode === "light" ? <Sun size={13} /> : <Moon size={13} />}
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div
+              className="image-palette-preview"
+              style={{
+                background: palette.background,
+                color: palette.foreground,
+              }}
+            >
+              <div
+                className="image-palette-preview-card"
+                style={{ background: palette.surface }}
+              >
+                <span
+                  className="image-palette-preview-eyebrow"
+                  style={{ color: palette.accent }}
+                >
+                  Made from your world
+                </span>
+                <strong>A space of your own.</strong>
+                <p style={{ color: palette.muted }}>
+                  Familiar colors. A fresh start.
+                </p>
+                <span
+                  className="image-palette-preview-accent"
+                  style={{
+                    background: palette.overrides.accentFill,
+                    color: palette.overrides.accentForeground,
+                  }}
+                >
+                  Start creating <Check size={13} />
+                </span>
+                <div className="image-palette-preview-supporting">
+                  <span style={{ color: palette.overrides.accent2 }}>
+                    ● Accent 2
+                  </span>
+                  <span style={{ color: palette.overrides.accent3 }}>
+                    ● Accent 3
+                  </span>
+                </div>
+                <div
+                  className="image-palette-preview-chart"
+                  aria-label="Accent colors in a sample chart"
+                >
+                  {[
+                    palette.overrides.chart1,
+                    palette.overrides.accent2,
+                    palette.overrides.accent3,
+                    palette.overrides.accent2,
+                    palette.overrides.chart1,
+                    palette.overrides.accent3,
+                  ].map((color, i) => (
+                    <i
+                      key={i}
+                      style={{
+                        background: color,
+                        height: `${[60, 85, 45, 70, 95, 65][i]}%`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <p className="image-palette-hint">
+              Button fills keep the image color. Text and supporting accents
+              adapt for readability in each appearance.
+            </p>
+            <label className="image-palette-both">
+              <input
+                type="checkbox"
+                checked={both}
+                onChange={(e) => setBoth(e.target.checked)}
+              />
+              <span>
+                Update light and dark
+                <small>
+                  {both
+                    ? "Replaces both palettes. You can undo after applying."
+                    : `Only replaces your ${appearance} palette. You can undo after applying.`}
+                </small>
+              </span>
+            </label>
+          </div>
+        </div>
       )}
       <div className="image-palette-actions">
         <button type="button" className="secondary-button" onClick={onCancel}>

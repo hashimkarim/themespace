@@ -630,6 +630,7 @@ export function ThemeSpace({
       overrides = { ...p.overrides };
     if (value) overrides[role] = value;
     else delete overrides[role];
+    if (role === "accentFill") delete overrides.accentForeground;
     change({
       ...theme,
       modes: { ...theme.modes, [appearance]: { ...p, overrides } },
@@ -1037,6 +1038,23 @@ export function ThemeSpace({
                             onChange={(v) => updateColor(role, v)}
                           />
                         ))}
+                        <div className="palette-accent-fields">
+                          <span className="small muted">
+                            Buttons & supporting accents
+                          </span>
+                          {[
+                            { role: "accentFill", label: "Button fill" },
+                            { role: "accent2", label: "Accent 2" },
+                            { role: "accent3", label: "Accent 3" },
+                          ].map(({ role, label }) => (
+                            <ColorField
+                              key={`${appearance}-${role}`}
+                              label={label}
+                              value={c[role]}
+                              onChange={(value) => setOverride(role, value)}
+                            />
+                          ))}
+                        </div>
                         <button
                           className="advanced-toggle"
                           onClick={() => setAdvanced(!advanced)}
@@ -1050,26 +1068,35 @@ export function ThemeSpace({
                         </button>
                         {advanced && (
                           <div className="advanced-colors">
-                            {extraRoles.map((role) => (
-                              <div key={role} className="override-row">
-                                <ColorField
-                                  key={`${appearance}-${role}`}
-                                  label={roleLabel(role)}
-                                  value={c[role]}
-                                  onChange={(v) => setOverride(role, v)}
-                                />
-                                {theme.modes[appearance]?.overrides[role] && (
-                                  <button
-                                    className="reset-override"
-                                    aria-label={`Reset ${roleLabel(role)}`}
-                                    title="Return to derived color"
-                                    onClick={() => setOverride(role)}
-                                  >
-                                    <RotateCcw size={10} />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
+                            {extraRoles
+                              .filter(
+                                (role) =>
+                                  ![
+                                    "accentFill",
+                                    "accent2",
+                                    "accent3",
+                                  ].includes(role),
+                              )
+                              .map((role) => (
+                                <div key={role} className="override-row">
+                                  <ColorField
+                                    key={`${appearance}-${role}`}
+                                    label={roleLabel(role)}
+                                    value={c[role]}
+                                    onChange={(v) => setOverride(role, v)}
+                                  />
+                                  {theme.modes[appearance]?.overrides[role] && (
+                                    <button
+                                      className="reset-override"
+                                      aria-label={`Reset ${roleLabel(role)}`}
+                                      title="Return to derived color"
+                                      onClick={() => setOverride(role)}
+                                    >
+                                      <RotateCcw size={10} />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
                           </div>
                         )}
                         <div className="contrast-summary">

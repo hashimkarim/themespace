@@ -7,7 +7,7 @@ import {
   IMAGE_PALETTE_MAX_BYTES,
 } from "../lib/image-palette";
 import {
-  palettesFromColors,
+  palettesFromImage,
   type GeneratedPalettes,
 } from "../lib/palette-tools";
 
@@ -141,7 +141,49 @@ test("image picker previews before applying, handles replacement uploads and err
     await act(async () =>
       container
         .querySelector<HTMLButtonElement>(
-          '[aria-label="Use #3366cc as accent"]',
+          '[aria-label="Use #ffaa33 for buttons"]',
+        )!
+        .click(),
+    );
+    const originalBackground = container.querySelector<HTMLElement>(
+      ".image-palette-preview",
+    )!.style.background;
+    await act(async () =>
+      container
+        .querySelector<HTMLButtonElement>(
+          '[aria-label="Choose surfaces color"]',
+        )!
+        .click(),
+    );
+    await act(async () =>
+      container
+        .querySelector<HTMLButtonElement>(
+          '[aria-label="Use #3366cc for surfaces"]',
+        )!
+        .click(),
+    );
+    assert.notEqual(
+      container.querySelector<HTMLElement>(".image-palette-preview")!.style
+        .background,
+      originalBackground,
+    );
+    assert.equal(
+      container.querySelector<HTMLElement>(".image-palette-preview-accent")!
+        .style.background,
+      "rgb(255, 170, 51)",
+      "Changing the foundation must leave the button color alone",
+    );
+    await act(async () =>
+      container
+        .querySelector<HTMLButtonElement>(
+          '[aria-label="Choose accent 2 color"]',
+        )!
+        .click(),
+    );
+    await act(async () =>
+      container
+        .querySelector<HTMLButtonElement>(
+          '[aria-label="Use #3366cc for accent 2"]',
         )!
         .click(),
     );
@@ -152,7 +194,13 @@ test("image picker previews before applying, handles replacement uploads and err
         )!
         .click(),
     );
-    const expected = palettesFromColors(["#ffaa33", "#3366cc"], 1);
+    const expected = palettesFromImage(
+      [
+        { hex: "#ffaa33", share: 0.5 },
+        { hex: "#3366cc", share: 0.5 },
+      ],
+      { surface: 1, primary: 0, secondary: 1, tertiary: 0 },
+    );
     assert.equal(
       container.querySelector<HTMLElement>(".image-palette-preview")!.style
         .background,

@@ -56,6 +56,7 @@ export async function extractImagePalette(file: File): Promise<ImagePalette> {
     context.drawImage(source, 0, 0, canvas.width, canvas.height);
     const colors = extractColors(
       context.getImageData(0, 0, canvas.width, canvas.height).data,
+      10,
     );
     return {
       name: file.name,

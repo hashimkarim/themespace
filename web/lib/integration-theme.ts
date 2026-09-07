@@ -167,6 +167,8 @@ export function integrationThemeFromFiles(
       selection: colors["editor.selectionBackground"],
       border: colors["editorGroup.border"],
       muted: colors["descriptionForeground"],
+      accentFill: colors["button.background"],
+      accentForeground: colors["button.foreground"],
     });
     Object.assign(terminal, {
       background: colors["terminal.background"],
@@ -476,6 +478,7 @@ export function integrationThemeFromFiles(
       surface: hex(p.player),
       elevated: hex(p.card),
       accent: hex(p.button),
+      accentFill: hex(p.button),
       hover: hex(p.highlight),
       selection: hex(p["highlight-elevated"]),
       border: hex(p.misc),
@@ -501,6 +504,8 @@ export function integrationThemeFromFiles(
       elevated: v["--background-floating"] || v["--background-secondary-alt"],
       input: v["--channeltextarea-background"],
       accent: v["--brand-500"] || v["--interactive-accent"],
+      accentFill: v["--brand-500"] || v["--interactive-accent"],
+      accentForeground: v["--text-on-accent"],
       selection: v["--background-modifier-selected"] || v["--text-selection"],
       hover: v["--background-modifier-hover"],
       border: v["--background-modifier-border"],

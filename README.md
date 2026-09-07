@@ -25,11 +25,18 @@ enables a private saved draft and publishing to the
 instance's collection. Published versions remain immutable.
 
 In Studio's **Palette** tab, **Randomize** creates a coordinated light and dark
-palette. **From image** extracts up to six colors from a PNG, JPG, WebP, AVIF,
-or GIF (up to 12 MB). Choose an accent, preview both appearances, then apply it
-to one or both palettes. Images are processed on your device and are never
+palette. **From image** extracts up to ten colors from a PNG, JPG, WebP, AVIF,
+or GIF (up to 12 MB). It suggests a dominant surface color, contrasting buttons,
+and two supporting accents. A blue-and-yellow image produces blue surfaces and
+yellow buttons, with other image colors carried into charts and syntax.
+Change any assignment, preview both appearances, then apply it to one or both
+palettes. Button fills keep their source color while text adapts for contrast.
+Images are processed on your device and are never
 uploaded or saved with your draft. Colors are adapted for readable text; both
 tools support Undo and update the existing previews and exports.
+The design system also exports `accentFill`, `accent2`, `accent3`, and their
+paired foregrounds. CSS/Sass tokens and Tailwind/shadcn utilities expose the
+supporting accents; older theme files receive defaults automatically.
 
 ## Settings and component gallery
 

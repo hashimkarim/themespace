@@ -168,6 +168,9 @@ test("Tailwind v4 and shadcn exports compile real utility candidates", async () 
     const css = compiler.build([
       "bg-primary",
       "text-primary-foreground",
+      "bg-accent-2",
+      "text-accent-2-foreground",
+      "bg-accent-3",
       "hover:bg-accent",
       "focus-visible:ring-ring",
       "border-input",
@@ -181,6 +184,9 @@ test("Tailwind v4 and shadcn exports compile real utility candidates", async () 
     ]);
     assert.match(css, /background-color: var\(--primary\)/);
     assert.match(css, /color: var\(--primary-foreground\)/);
+    assert.match(css, /background-color: var\(--accent-2\)/);
+    assert.match(css, /color: var\(--accent-2-foreground\)/);
+    assert.match(css, /background-color: var\(--accent-3\)/);
     assert.match(css, /border-radius: var\(--ts-radius\)/);
     assert.match(css, /font-family: var\(--ts-font-sans\)/);
     assert.match(css, /--primary: #123abc/);

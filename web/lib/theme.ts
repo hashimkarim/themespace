@@ -46,7 +46,12 @@ export const extraRoles = [
   "input",
   "border",
   "focus",
+  "accentFill",
   "accentForeground",
+  "accent2",
+  "accent2Foreground",
+  "accent3",
+  "accent3Foreground",
   "selection",
   "selectionForeground",
   "hover",
@@ -103,13 +108,21 @@ export function resolve(theme: Theme, appearance: Appearance): Resolved {
   const p = theme.modes[appearance];
   if (!p) throw new Error(`This theme has no ${appearance} appearance.`);
   const { overrides, ...base } = p;
+  const accentFill = overrides.accentFill ?? p.accent;
+  const accent2 = overrides.accent2 ?? p.success;
+  const accent3 = overrides.accent3 ?? p.warning;
   const c: Resolved = {
     ...base,
     elevated: mix(p.background, p.foreground, 0.07),
     input: mix(p.surface, p.foreground, 0.04),
     border: mix(p.background, p.foreground, 0.15),
     focus: p.accent,
-    accentForeground: readableOn(p.accent),
+    accentFill,
+    accentForeground: readableOn(accentFill),
+    accent2,
+    accent2Foreground: readableOn(accent2),
+    accent3,
+    accent3Foreground: readableOn(accent3),
     selection: mix(p.background, p.accent, 0.26),
     selectionForeground: p.foreground,
     hover: mix(p.background, p.foreground, 0.11),
@@ -121,8 +134,8 @@ export function resolve(theme: Theme, appearance: Appearance): Resolved {
     syntaxType: mix(p.success, p.accent, 0.45),
     syntaxComment: p.muted,
     chart1: p.accent,
-    chart2: p.success,
-    chart3: p.warning,
+    chart2: accent2,
+    chart3: accent3,
     chart4: p.error,
     chart5: mix(p.accent, "#d38ed7", 0.65),
   };

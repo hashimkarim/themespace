@@ -4,7 +4,7 @@
 @import "@bf-go/discord-message-kit/style.css";
 @import "../components/clones/clones.css";
 @import "../components/renderers/renderers.css";
-@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *, [data-site-mode="dark"] .account-ui, [data-site-mode="dark"] .account-ui *));
 @theme inline {
   --font-sans: var(--ts-font-sans, var(--font-geist-sans));
   --font-mono: var(--ts-font-mono, var(--font-geist-mono));
@@ -7088,4 +7088,598 @@ body {
   .site-header nav {
     gap: 8px;
   }
+}
+
+/* Account screens use the site's current appearance and live Draft tokens. */
+.account-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  align-items: center;
+  gap: clamp(32px, 7vw, 110px);
+  max-width: 1040px;
+  margin: 36px auto 72px;
+}
+.account-intro h1 {
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.12;
+  letter-spacing: -1.5px;
+  margin: 18px 0;
+  color: var(--app-fg);
+}
+.account-intro .subheading {
+  line-height: 1.8;
+  max-width: 440px;
+}
+.account-benefits {
+  list-style: none;
+  padding: 0;
+  margin: 30px 0;
+  display: grid;
+  gap: 16px;
+}
+.account-benefits li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.account-benefits svg {
+  color: var(--app-primary);
+  flex-shrink: 0;
+}
+.account-intro > .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+.account-card {
+  padding: clamp(22px, 3vw, 34px);
+  min-width: 0;
+}
+.account-card h2,
+.draft-choice h2 {
+  color: var(--app-fg);
+  font-size: 20px;
+  line-height: 1.4;
+  margin: 0;
+}
+.account-sign-out p,
+.draft-choice p {
+  color: var(--app-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 7px 0 0;
+}
+.account-footnote {
+  color: var(--app-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 18px 0 0;
+  text-align: center;
+}
+.account-feedback {
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  overflow-wrap: anywhere;
+}
+.account-email {
+  overflow-wrap: anywhere;
+}
+.account-ui {
+  --background: var(--app-input);
+  --foreground: var(--app-fg);
+  --card: var(--app-panel);
+  --card-foreground: var(--app-fg);
+  --popover: var(--app-panel);
+  --popover-foreground: var(--app-fg);
+  --primary: var(--app-primary);
+  --primary-foreground: var(--app-primary-fg);
+  --secondary: var(--app-soft);
+  --secondary-foreground: var(--app-fg);
+  --muted: var(--app-board);
+  --muted-foreground: var(--app-muted);
+  --accent: var(--app-hover);
+  --accent-foreground: var(--app-fg);
+  --destructive: var(--app-error);
+  --border: var(--app-border);
+  --input: var(--app-border);
+  --ring: var(--app-primary);
+  --radius: var(--app-radius);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  font-family: var(--app-sans);
+}
+@layer base {
+  .account-ui * {
+    border-color: var(--border);
+  }
+}
+.account-ui [data-slot="card"] {
+  --card-spacing: 24px;
+  min-width: 0;
+}
+.account-ui .account-auth-card {
+  max-width: none;
+}
+.account-ui [data-slot="input"],
+.account-ui [data-slot="input-group"],
+.account-ui button[type="submit"] {
+  min-height: 44px;
+}
+.account-ui [data-slot="input-group-control"] {
+  height: 42px;
+}
+.account-settings > div {
+  min-width: 0;
+}
+.account-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  min-height: 360px;
+  color: var(--app-muted);
+}
+.account-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  max-width: 1000px;
+  margin-bottom: 50px;
+  align-items: start;
+}
+.account-sign-out {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.account-sign-out > button {
+  flex-shrink: 0;
+  min-height: 44px;
+}
+.account-sign-out .account-feedback {
+  margin-top: 14px;
+}
+.draft-choice {
+  padding: 24px;
+  margin-bottom: 24px;
+  border-color: var(--app-primary);
+}
+.draft-choice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+.draft-choice-actions > button {
+  min-height: 44px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .account-entry {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    margin: 8px auto 40px;
+    max-width: 460px;
+  }
+  .account-intro h1 {
+    font-size: 32px;
+  }
+  .account-intro .subheading {
+    font-size: 13px;
+  }
+  .account-benefits {
+    gap: 12px;
+    margin: 22px 0;
+  }
+  .account-settings {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .account-sign-out {
+    flex-wrap: wrap;
+  }
+  .account-ui input {
+    font-size: 16px;
+  }
+  .draft-choice {
+    padding: 20px;
+  }
+  .draft-choice-actions > button {
+    width: 100%;
+  }
+}
+
+/* Better Auth UI account controls, including the portaled menu. */
+.header-account {
+  min-width: 0;
+}
+.account-trigger {
+  max-width: 220px;
+  min-height: 44px;
+  padding: 6px 10px;
+}
+.account-trigger > div {
+  min-width: 0;
+}
+.account-trigger [data-slot="avatar"] {
+  flex-shrink: 0;
+}
+.account-menu {
+  z-index: 130;
+}
+.account-menu [role="menuitem"] {
+  min-height: 40px;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.account-menu [data-slot="dropdown-menu-label"] {
+  padding: 10px;
+}
+@media (max-width: 700px) {
+  .account-trigger {
+    max-width: 154px;
+    padding: 5px;
+  }
+  .account-trigger > div > .grid > .text-xs {
+    display: none;
+  }
+}
+
+/* Studio is a viewport workspace. Long lists scroll inside their own panels. */
+.studio-shell {
+  position: relative;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.studio-shell > .site-header {
+  flex-shrink: 0;
+  height: 64px;
+}
+.studio-shell > .main-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  padding: 20px 28px 18px;
+}
+.studio-shell .studio-heading {
+  flex-shrink: 0;
+  margin-bottom: 14px;
+  gap: 18px;
+}
+.studio-shell .studio-heading .eyebrow {
+  font-size: 9px;
+  margin-bottom: 5px;
+}
+.studio-shell .studio-heading h1 {
+  font-size: clamp(22px, 2vw, 28px);
+  margin-bottom: 5px;
+}
+.studio-shell .studio-heading .subheading {
+  font-size: 12px;
+}
+.studio-shell .studio-meta {
+  flex-shrink: 0;
+  margin: 0 0 14px;
+}
+.studio-shell .studio-grid {
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: 258px minmax(0, 1fr) 230px;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 18px;
+}
+.studio-shell .controls-panel,
+.studio-shell .export-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  padding: 16px;
+  overflow: hidden;
+  grid-column: auto;
+}
+.studio-shell .control-tabs {
+  flex-shrink: 0;
+  margin-bottom: 18px;
+}
+.studio-controls-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 4px 4px;
+}
+.studio-shell .color-row {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+.studio-shell .control-footer {
+  margin-top: 18px;
+}
+.studio-shell .preview-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.studio-shell .preview-toolbar {
+  flex-shrink: 0;
+  margin-bottom: 8px;
+}
+.fit-workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 14px;
+}
+.fit-workspace .preview-workspace-toolbar {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+.fit-workspace .integration-preview-toolbar {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+.fit-workspace .workspace-preview-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.fit-workspace .workspace-preview-content.component-content {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.fit-workspace .component-library.compact .fixture-frame-shell,
+.fit-workspace .shadcn-gallery.compact .shadcn-gallery-scroll {
+  max-height: none;
+  overflow: hidden;
+}
+.fit-workspace .preview-caption {
+  flex-shrink: 0;
+  margin: 10px 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.fit-workspace .integration-preview-note {
+  flex-shrink: 0;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+.fitted-preview {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+.fitted-preview-scene {
+  width: 100%;
+  transform: scale(var(--scene-scale, 1));
+  transform-origin: top center;
+}
+.studio-shell .use-site-theme {
+  flex-shrink: 0;
+  margin: 8px auto 0;
+}
+.studio-shell .studio-tip,
+.studio-shell .site-footer {
+  display: none;
+}
+.studio-shell .export-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.studio-shell .export-options > label {
+  min-height: 36px;
+  padding: 8px 0;
+}
+.studio-shell .export-panel > :not(.export-options) {
+  flex-shrink: 0;
+}
+.studio-shell .export-panel .primary-button {
+  max-width: none;
+  width: 100%;
+}
+.studio-shell .export-panel .export-note {
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.studio-shell .draft-choice {
+  flex-shrink: 0;
+  max-height: 42dvh;
+  overflow-y: auto;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.studio-shell .studio-mobile-nav {
+  display: none;
+}
+:where(
+  .studio-controls-scroll,
+  .studio-shell .export-options,
+  .component-content
+) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-border) transparent;
+}
+@media (min-width: 1500px) {
+  .studio-shell .studio-grid {
+    grid-template-columns: 280px minmax(0, 1fr) 245px;
+    gap: 22px;
+  }
+}
+@media (max-width: 1200px) and (min-width: 1001px) {
+  .studio-shell .studio-grid {
+    grid-template-columns: 230px minmax(0, 1fr) 205px;
+    gap: 12px;
+  }
+  .studio-shell > .main-shell {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+@media (max-width: 1000px) {
+  .studio-shell .studio-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .studio-shell .studio-mobile-nav {
+    display: flex;
+    flex-shrink: 0;
+    gap: 4px;
+    margin: 0 0 12px;
+    padding: 4px;
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius);
+    background: var(--app-soft);
+  }
+  .studio-mobile-nav > button {
+    flex: 1;
+    min-height: 36px;
+    border: 0;
+    border-radius: calc(var(--app-radius) * 0.7);
+    color: var(--app-muted);
+    background: transparent;
+    font-size: 12px;
+  }
+  .studio-mobile-nav > button[aria-pressed="true"] {
+    color: var(--app-fg);
+    background: var(--app-panel);
+  }
+  .studio-shell
+    .studio-grid:not([data-studio-section="controls"])
+    > .controls-panel,
+  .studio-shell
+    .studio-grid:not([data-studio-section="preview"])
+    > .preview-column,
+  .studio-shell
+    .studio-grid:not([data-studio-section="export"])
+    > .export-panel {
+    display: none;
+  }
+}
+@media (max-width: 850px) {
+  .studio-shell > .site-header {
+    height: auto;
+    min-height: 100px;
+    padding-top: 10px;
+    gap: 6px;
+  }
+}
+@media (max-width: 700px) {
+  .studio-shell > .main-shell {
+    padding: 12px 12px 10px;
+  }
+  .studio-shell .studio-heading {
+    display: none;
+  }
+  .studio-shell .studio-meta {
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .studio-shell .theme-identity {
+    flex: 1;
+    min-width: 0;
+  }
+  .studio-shell .theme-identity > input {
+    width: 100%;
+    min-width: 0;
+  }
+  .studio-shell .meta-divider,
+  .studio-shell .remix-caption {
+    display: none;
+  }
+  .studio-shell .editor-tools {
+    width: auto;
+    flex-shrink: 0;
+    gap: 0;
+    margin: 0;
+  }
+  .studio-shell .editor-tools > .text-button {
+    font-size: 0;
+    gap: 0;
+    min-width: 32px;
+  }
+  .studio-shell .editor-tools > .text-button > svg {
+    width: 15px;
+    height: 15px;
+  }
+  .studio-shell .studio-mobile-nav {
+    margin-bottom: 8px;
+  }
+  .studio-shell .preview-toolbar .eyebrow {
+    display: none;
+  }
+  .studio-shell .preview-toolbar {
+    justify-content: flex-end;
+    height: 30px;
+    margin-bottom: 5px;
+  }
+  .fit-workspace {
+    padding: 10px;
+  }
+  .fit-workspace .preview-workspace-toolbar {
+    margin-bottom: 10px;
+  }
+  .studio-shell .use-site-theme {
+    font-size: 10px;
+    margin-top: 5px;
+  }
+}
+@media (max-width: 700px) {
+  .studio-shell .studio-heading {
+    display: flex;
+    margin-bottom: 8px;
+  }
+  .studio-shell .studio-heading > div:first-child {
+    display: none;
+  }
+  .studio-shell .heading-actions {
+    gap: 8px;
+  }
+  .studio-shell .heading-actions .save-status {
+    font-size: 9px;
+  }
+  .studio-shell .heading-actions .secondary-button {
+    min-height: 32px;
+    padding: 7px 10px;
+  }
+}
+/* Leave the main workspace readable when vertical space is limited. */
+@media (max-height: 850px), (max-width: 700px) {
+  .fitted-preview-scene > .theme-scope > .mini-previews {
+    display: none;
+  }
+}
+.fitted-preview .integration-renderer .native-editor,
+.fitted-preview .integration-renderer .native-editor .native-editor-body {
+  min-height: 0;
+}
+.fitted-preview .engine-code-frame {
+  height: clamp(140px, calc(var(--scene-height) - 150px), 400px);
+}
+.fitted-preview .engine-terminal-canvas {
+  height: clamp(120px, calc(var(--scene-height) - 160px), 370px);
+}
+.fitted-preview .engine-terminal.compact .engine-terminal-canvas {
+  height: clamp(90px, calc(var(--scene-height) * 0.3), 185px);
 }

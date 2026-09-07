@@ -1,5 +1,5 @@
-import { env } from "cloudflare:workers";
-import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { getStorage } from "@/db";
+import { getAccountUser } from "./auth";
 import { parseTheme, type Theme } from "./theme";
 import { targets } from "./targets";
 
@@ -11,27 +11,20 @@ export type PublishedTheme = {
 };
 let initialization: Promise<unknown> | undefined;
 export async function database() {
-  if (!env.DB)
-    throw new Error("Theme storage is unavailable. Please try again shortly.");
-  initialization ??= env.DB.batch([
-    env.DB.prepare(
+  const db = getStorage();
+  initialization ??= db
+    .batch([
       "CREATE TABLE IF NOT EXISTS theme_drafts (owner_id TEXT PRIMARY KEY NOT NULL, body TEXT NOT NULL, updated_at TEXT NOT NULL)",
-    ),
-    env.DB.prepare(
       "CREATE TABLE IF NOT EXISTS published_themes (id TEXT PRIMARY KEY NOT NULL, owner_id TEXT NOT NULL, source_id TEXT NOT NULL, body TEXT NOT NULL, version INTEGER NOT NULL, published_at TEXT NOT NULL)",
-    ),
-    env.DB.prepare(
       "CREATE INDEX IF NOT EXISTS idx_themes_published_at ON published_themes(published_at)",
-    ),
-    env.DB.prepare(
       "CREATE UNIQUE INDEX IF NOT EXISTS idx_themes_owner_source_version ON published_themes(owner_id, source_id, version)",
-    ),
-  ]).catch((error) => {
-    initialization = undefined;
-    throw error;
-  });
+    ])
+    .catch((error) => {
+      initialization = undefined;
+      throw error;
+    });
   await initialization;
-  return env.DB;
+  return db;
 }
 export class ApiError extends Error {
   constructor(
@@ -47,9 +40,15 @@ export async function requireOwner(request?: Request) {
     if (origin && origin !== new URL(request.url).origin)
       throw new ApiError("This request must come from ThemeSpace.", 403);
   }
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) throw new ApiError("Sign in to save or publish your theme.", 401);
-  return user;
+  const expectedOwner = request?.headers.get("x-themespace-owner");
+  if (expectedOwner && expectedOwner !== user.id)
+    throw new ApiError(
+      "Your account changed in another tab. Reload before saving.",
+      409,
+    );
+  return { ...user, userId: user.id };
 }
 export async function readTheme(request: Request) {
   const reader = request.body?.getReader();

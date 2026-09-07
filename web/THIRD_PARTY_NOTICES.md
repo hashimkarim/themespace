@@ -38,6 +38,47 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+## Better Auth UI
+
+`components/auth/` and `lib/auth/` use the Better Auth UI shadcn registry,
+retrieved 2026-09-06 and 2026-09-07, with `@better-auth-ui/core` and `@better-auth-ui/react`
+1.7.23. The selected components are AuthProvider, SignIn, SignUp, UserProfile,
+ChangePassword, and UserButton, plus their shared dependencies. Registry paths and original
+installed file hashes are recorded in `components/auth/upstream.json`.
+Local changes connect account navigation and draft sync, honor the disabled
+avatar/recovery options, preserve dirty profile fields during session refreshes,
+and adapt imports and styles to ThemeSpace. The user menu uses the shared
+save-before-sign-out action and omits the unused multi-session hook.
+
+Source: https://github.com/better-auth-ui/better-auth-ui
+
+MIT License
+
+Copyright (c) 2025 daveycodez
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The matching primitives in `components/auth-ui/` use shadcn/ui's radix-nova
+registry under the shadcn MIT license above. Imports use the existing `cn`
+utility and Sonner inherits ThemeSpace appearance instead of another theme
+provider.
+
 ## Comfy palette
 
 The Comfy preset references the palette in https://github.com/Hashim-K/comfy-themes. Its light appearance is a ThemeSpace interpretation. No application-specific theme code was copied from Comfy repositories. Upstream palette terms are unspecified here; generated exports retain the reference.

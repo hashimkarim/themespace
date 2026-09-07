@@ -42,7 +42,8 @@ export function ComponentLibrary({
     [category, setCategory] = useState("All"),
     [chosenMode, setChosenMode] = useState<Appearance | undefined>(),
     [height, setHeight] = useState(900),
-    [loadedDocument, setLoadedDocument] = useState<string | null>(null),
+    [frameURL, setFrameURL] = useState(""),
+    [loadedURL, setLoadedURL] = useState(""),
     [fontCSS, setFontCSS] = useState("");
   const iframe = useRef<HTMLIFrameElement>(null),
     appearance = chosenMode && theme.modes[chosenMode] ? chosenMode : mode;
@@ -119,12 +120,15 @@ export function ComponentLibrary({
     const onMessage = (e: MessageEvent) => {
       if (
         e.source !== iframe.current?.contentWindow ||
-        e.data?.type !== "themespace-fixture-height"
+        e.data?.type !== "themespace-fixture-height" ||
+        e.data.url !== iframe.current?.src
       )
         return;
       const next = Number(e.data.height);
-      if (Number.isFinite(next) && next > 0 && next < 100000)
+      if (Number.isFinite(next) && next > 0 && next < 100000) {
         setHeight(Math.ceil(next));
+        setLoadedURL(e.data.url);
+      }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -145,6 +149,16 @@ export function ComponentLibrary({
       ),
     [theme, appearance, ids, fontCSS, settings.motion],
   );
+  useEffect(() => {
+    // Navigate after mounting so the sandbox loads a complete document,
+    // including embedded fonts. Readiness comes from that document's URL.
+    const url = URL.createObjectURL(new Blob([doc], { type: "text/html" }));
+    // This state holds an external resource, released when the document changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFrameURL(url);
+    return () => URL.revokeObjectURL(url);
+  }, [doc]);
+  const pending = !frameURL || loadedURL !== frameURL;
   return (
     <section
       className={`component-library ${compact ? "compact" : ""}`}
@@ -189,8 +203,8 @@ export function ComponentLibrary({
         ))}
       </div>
       {filtered.length ? (
-        <div className="fixture-frame-shell" aria-busy={loadedDocument !== doc}>
-          {loadedDocument !== doc && (
+        <div className="fixture-frame-shell" aria-busy={pending}>
+          {pending && (
             <div className="fixture-loading" role="status">
               <span className="live-dot" />
               Preparing component examples…
@@ -199,9 +213,8 @@ export function ComponentLibrary({
           <iframe
             ref={iframe}
             title={`${theme.name} interactive component examples`}
-            srcDoc={doc}
             sandbox="allow-scripts"
-            onLoad={() => setLoadedDocument(doc)}
+            src={frameURL || undefined}
             style={{ height }}
           />
         </div>

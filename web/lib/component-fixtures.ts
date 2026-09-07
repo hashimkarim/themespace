@@ -465,7 +465,7 @@ document.addEventListener('keydown',e=>{const b=e.target.closest('[role=tab]');i
 document.addEventListener('input',e=>{if(e.target.hasAttribute('data-range'))e.target.closest('label').querySelector('output').value=e.target.value});
 document.addEventListener('change',e=>{if(e.target.hasAttribute('data-check-all'))e.target.closest('table').querySelectorAll('tbody input').forEach(el=>el.checked=e.target.checked)});
 document.addEventListener('submit',e=>{const f=e.target;if(f.method==='dialog')return;e.preventDefault();if(f.classList.contains('terminal-form')){const input=f.querySelector('input'),out=f.parentElement.querySelector('output'),v=input.value.trim();out.textContent=v.startsWith('echo ')?v.slice(5):v==='clear'?'':v?'Demo terminal: try echo hello.':'';input.value=''}else if(f.classList.contains('composer')){f.nextElementSibling.textContent='Preview message: '+f.querySelector('textarea').value;f.reset()}else {f.querySelector('output').textContent='Project created in this example.'}});
-const report=()=>parent.postMessage({type:'themespace-fixture-height',height:Math.ceil(document.body.getBoundingClientRect().height)},'*');new ResizeObserver(report).observe(document.body);report();
+const report=()=>parent.postMessage({type:'themespace-fixture-height',url:location.href,height:Math.ceil(document.body.getBoundingClientRect().height)},'*');new ResizeObserver(report).observe(document.body);report();
 `;
 export function componentDocument(
   theme: Theme,

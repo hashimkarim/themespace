@@ -1,0 +1,25 @@
+{
+  "repo": "hashimkarim/themespace",
+  "profile": "contabo-themespace",
+  "environment": "production",
+  "branch": "main",
+  "stack": "themespace",
+  "service": "app",
+  "image": "ghcr.io/hashimkarim/themespace",
+  "dockerfile": "Dockerfile",
+  "context": ".",
+  "platforms": [
+    "linux/amd64"
+  ],
+  "container_port": 3000,
+  "host_port": 3191,
+  "domain": "themespace.app",
+  "runtime_env": true,
+  "auto_deploy": false,
+  "healthcheck": [
+    "CMD",
+    "node",
+    "-e",
+    "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  ]
+}

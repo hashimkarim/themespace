@@ -2,6 +2,9 @@
 
 Design a theme once, preview it across your apps, and take the whole theme home.
 
+Production: **[themespace.app](https://themespace.app)**. Deployment and recovery
+instructions are in [docs/deployment.md](docs/deployment.md).
+
 ThemeSpace now has a working first version in [`web/`](web/). The Studio edits
 light and dark palettes, typography, corners, spacing, shadows, semantic roles,
 syntax, charts, and all 16 ANSI colors. Every one of the 26 working integrations
@@ -88,12 +91,31 @@ Requires Node 22.13 or newer and npm.
 ```sh
 cd web
 npm ci
-npm run dev -- --port 5173
+npm run auth:setup
+cd ..
+./dev.sh
+# Optional port override (./dev is an alias):
+./dev 8080
 ```
 
-Open `http://localhost:5173`. Local **Sign in to sync** uses the Sites development
-identity; it does not require a real account. Drafts and published themes persist
-in the project's local D1 database under the ignored `.wrangler/` directory.
+The launcher defaults to port `5173`. Non-numeric values and ports outside
+`1–65535` fall back to `5173`. Occupied ports are skipped upward until a free
+port is found; if none remain through `65535`, the launcher exits with an error.
+Open the URL printed by the launcher. Account callbacks and page URLs follow
+that port without changing `.env`. The scripts also work from another directory.
+
+The header's **Account** menu opens the Better Auth UI sign-in and registration screens, where you can
+create a real email/password account. Better Auth manages credentials and cookie
+sessions in the same D1 database as drafts and published themes. Local data
+persists under the ignored `.wrangler/` directory. `auth:setup` creates a random
+secret in the ignored `.env` file without replacing existing values.
+
+The account screens use [Better Auth UI](https://better-auth-ui.com/docs/shadcn)
+components that follow the site's light, dark, and live Draft appearance.
+The account page supports updating your display name, changing your password
+(revoking other sessions), and signing out. If a browser draft differs from the
+account's saved draft, Studio asks which one to use before saving. Browser
+appearance preferences remain local. See [account setup](docs/accounts.md).
 
 ## Verify
 
@@ -104,6 +126,9 @@ npm run test:api
 npm run typecheck
 npm run lint
 npm run build
+# Contabo's standalone Node production runtime:
+npm run build:node
+npm run test:production
 ```
 
 The exporter suite compiles Sass and Tailwind, checks native data shapes, parses
@@ -118,24 +143,32 @@ all integration previews in both appearances. Additional tests verify every
 terminal palette, native file-to-preview mappings, Ghostty WebAssembly and xterm
 ANSI rendering, local command editing, and Spotify/Discord interactions across
 theme changes. These DOM and engine tests do not replace real-browser interaction,
-screenshot, or native app installation checks; those have not been run.
+screenshot, or native app installation checks. Desktop and mobile browser flows
+have also been checked; native app installation checks remain separate.
 
 ## Architecture and deployment
 
 React and Vinext provide the app routes, Tailwind and Radix provide the component
-foundation, and Cloudflare D1 stores drafts and published versions. The pure
+foundation. Production uses SQLite on a persistent Contabo volume; local Worker
+previews continue using Cloudflare D1. Both store accounts, drafts, and published
+versions with the same schema. The pure
 TypeScript theme model and generators live in `web/lib/`; the same source ships
 inside repository downloads. Exporting happens in the browser.
 
-The app retains the Sites build plugin and logical D1 declaration. Set `SITE_URL`
-to the trusted deployment origin for absolute social-card URLs. Production
-identity expects the Sites authentication gateway; an alternative host needs a
-real authentication integration and trusted identity-header handling.
+The Docker build creates a standalone Vinext server and runs lint, typecheck,
+unit tests, and API checks for both runtimes before publishing. Contabo's existing
+Traefik routes `themespace.app` to the private container and manages HTTPS.
+Startup applies checked-in Drizzle migrations before accepting traffic.
+Production secrets are supplied at runtime; the image contains no `.env` files.
+The GitHub Actions workflow builds images on `main`; deploying is a manual
+workflow action. See [deployment operations](docs/deployment.md) for the exact
+trigger, health check, persistent storage, backup, and rollback procedure.
 
-The deployment build is available locally. This session does not expose Sites
-hosting tools, so no hosted site has been published. The current Explore
-collection is scoped to whoever can access this instance; global public
-accounts, moderation, and a public community deployment remain future work.
+Production authentication uses Better Auth's own sessions; Sites identity
+headers and its development sign-in cookie do not grant account access. This
+app retains the Sites plugin and logical D1 declaration for local previews.
+The Explore collection belongs to this instance. A central service for managing
+multiple Better Auth instances and community moderation are separate work.
 
 ## References
 

@@ -1,0 +1,75 @@
+{
+  "services": {
+    "app": {
+      "image": "ghcr.io/hashimkarim/themespace:unconfigured",
+      "restart": "unless-stopped",
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ],
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 6,
+        "start_period": "20s"
+      },
+      "env_file": [
+        {
+          "path": "runtime.env",
+          "format": "raw"
+        }
+      ],
+      "networks": [
+        "proxy"
+      ],
+      "labels": {
+        "traefik.enable": "true",
+        "traefik.docker.network": "dokploy-network",
+        "traefik.http.routers.themespace.rule": "Host(`themespace.app`)",
+        "traefik.http.routers.themespace.entrypoints": "websecure",
+        "traefik.http.routers.themespace.tls": "true",
+        "traefik.http.routers.themespace.tls.certresolver": "letsencrypt",
+        "traefik.http.routers.themespace.service": "themespace",
+        "traefik.http.services.themespace.loadbalancer.server.port": "3000",
+        "traefik.http.routers.themespace-http.rule": "Host(`themespace.app`)",
+        "traefik.http.routers.themespace-http.entrypoints": "web",
+        "traefik.http.routers.themespace-http.middlewares": "themespace-https",
+        "traefik.http.routers.themespace-http.service": "themespace",
+        "traefik.http.middlewares.themespace-https.redirectscheme.scheme": "https",
+        "traefik.http.middlewares.themespace-https.redirectscheme.permanent": "true"
+      },
+      "volumes": [
+        "data:/data"
+      ],
+      "read_only": true,
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=64m"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "init": true,
+      "environment": {
+        "VINEXT_TRUSTED_HOSTS": "themespace.app",
+        "BETTER_AUTH_URL": "https://themespace.app",
+        "SITE_URL": "https://themespace.app"
+      }
+    }
+  },
+  "networks": {
+    "proxy": {
+      "external": true,
+      "name": "dokploy-network"
+    }
+  },
+  "volumes": {
+    "data": {
+      "name": "themespace-data"
+    }
+  }
+}

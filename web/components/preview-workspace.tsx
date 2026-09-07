@@ -14,22 +14,41 @@ import { getTarget, exportTargets } from "@/lib/targets";
 import { ThemePreview } from "./preview";
 import { ComponentGallery } from "./component-gallery";
 import { IntegrationPreview, IntegrationPicker } from "./integration-preview";
+import { FittedPreview } from "./fitted-preview";
 export function PreviewWorkspace({
   theme,
   mode,
   initialTarget = "vscode",
   initialTab = "overview",
+  fit = false,
 }: {
   theme: Theme;
   mode: Appearance;
   initialTarget?: string;
   initialTab?: string;
+  fit?: boolean;
 }) {
   const expandButton = useRef<HTMLButtonElement | null>(null);
   const [tab, setTab] = useState(initialTab),
     [target, setTarget] = useState(initialTarget),
     [expanded, setExpanded] = useState(false),
     active = getTarget(target);
+  const components =
+    tab === "components" ||
+    (tab === "integrations" && active.category === "Web frameworks");
+  const scene =
+    tab === "overview" ? (
+      <ThemePreview theme={theme} mode={mode} />
+    ) : tab === "components" ? (
+      <ComponentGallery theme={theme} mode={mode} compact />
+    ) : (
+      <IntegrationPreview
+        key={target}
+        target={target}
+        theme={theme}
+        mode={mode}
+      />
+    );
   const content = (
     <>
       <div className="preview-workspace-toolbar">
@@ -75,18 +94,13 @@ export function PreviewWorkspace({
           </a>
         </div>
       )}
-      <div className={`workspace-preview-content ${tab}`}>
-        {tab === "overview" ? (
-          <ThemePreview theme={theme} mode={mode} />
-        ) : tab === "components" ? (
-          <ComponentGallery theme={theme} mode={mode} compact />
+      <div
+        className={`workspace-preview-content ${tab} ${components ? "component-content" : ""}`}
+      >
+        {fit && !expanded && !components ? (
+          <FittedPreview>{scene}</FittedPreview>
         ) : (
-          <IntegrationPreview
-            key={target}
-            target={target}
-            theme={theme}
-            mode={mode}
-          />
+          scene
         )}
       </div>
       <p className="preview-caption">
@@ -102,7 +116,9 @@ export function PreviewWorkspace({
   );
   return (
     <Dialog.Root open={expanded} onOpenChange={setExpanded}>
-      <div className="preview-board preview-workspace">
+      <div
+        className={`preview-board preview-workspace ${fit ? "fit-workspace" : ""}`}
+      >
         {!expanded ? (
           content
         ) : (

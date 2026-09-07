@@ -29,8 +29,11 @@ palette. **From image** extracts up to ten colors from a PNG, JPG, WebP, AVIF,
 or GIF (up to 12 MB). It suggests a dominant surface color, contrasting buttons,
 and two supporting accents. A blue-and-yellow image produces blue surfaces and
 yellow buttons, with other image colors carried into charts and syntax.
-Change any assignment, preview both appearances, then apply it to one or both
-palettes. Button fills keep their source color while text adapts for contrast.
+Switch between **Light** and **Dark** to give each appearance its own surface,
+button, and accent colors. Switching keeps both combinations; **Auto assign**
+resets only the appearance being edited. Apply both combinations together, or
+turn off **Apply both appearances** to update only the appearance being edited.
+Button fills keep their source color while text adapts for contrast.
 Images are processed on your device and are never
 uploaded or saved with your draft. Colors are adapted for readable text; both
 tools support Undo and update the existing previews and exports.

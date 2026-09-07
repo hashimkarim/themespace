@@ -85,7 +85,7 @@ test("generated palettes keep semantic text readable in both appearances and rem
     ...Array.from({ length: 100 }, () => randomPalettes(random)),
   ];
   for (const palettes of candidates) {
-    const theme = applyPalettes(presets[0], palettes, true);
+    const theme = applyPalettes(presets[0], palettes, "both");
     assert.deepEqual(parseTheme(theme), theme);
     for (const palette of Object.values(palettes)) {
       for (const role of baseRoles) assert.match(palette[role], hexPattern);
@@ -124,11 +124,11 @@ test("choosing an accent updates generated palettes; applying preserves the draf
   assert.notEqual(red.dark.accent, blue.dark.accent);
   const original = structuredClone(presets[0]);
   const snapshot = structuredClone(original);
-  const updated = applyPalettes(original, blue, false);
+  const updated = applyPalettes(original, blue);
   assert.deepEqual(updated.modes.light, original.modes.light);
   assert.notDeepEqual(updated.modes.dark, original.modes.dark);
   assert.deepEqual({ ...updated, modes: original.modes }, original);
-  const both = applyPalettes(original, blue, true);
+  const both = applyPalettes(original, blue, "both");
   assert.notDeepEqual(both.modes.light, original.modes.light);
   both.modes.dark!.accent = "#ffffff";
   assert.notEqual(
@@ -146,8 +146,19 @@ test("choosing an accent updates generated palettes; applying preserves the draf
     defaultAppearance: "light",
     modes: { light: original.modes.light },
   };
-  assert.equal(applyPalettes(lightOnly, red, false).modes.dark, undefined);
-  assert.ok(applyPalettes(lightOnly, red, true).modes.dark);
+  assert.equal(applyPalettes(lightOnly, red).modes.dark, undefined);
+  assert.ok(applyPalettes(lightOnly, red, "both").modes.dark);
+
+  const light = applyPalettes(original, red, "light");
+  assert.deepEqual(light.modes.dark, original.modes.dark);
+  assert.deepEqual(light.modes.light, red.light);
+  assert.deepEqual({ ...light, modes: original.modes }, original);
+  const addedDark = applyPalettes(lightOnly, blue, "dark");
+  assert.deepEqual(addedDark.modes.light, lightOnly.modes.light);
+  assert.deepEqual(addedDark.modes.dark, blue.dark);
+  assert.equal(addedDark.defaultAppearance, "light");
+  light.modes.light!.overrides.chart1 = "#abcdef";
+  assert.notEqual(red.light.overrides.chart1, "#abcdef");
 });
 
 // Only color/coverage statistics from the reported image; no source photo is stored.
@@ -174,7 +185,7 @@ test("blue-and-gold images produce blue surfaces, yellow buttons, and distinct s
   );
   const generated = palettesFromImage(blueAndGold);
   for (const mode of ["dark", "light"] as const) {
-    const c = resolve(applyPalettes(presets[0], generated, true), mode);
+    const c = resolve(applyPalettes(presets[0], generated, "both"), mode);
     const [r, , b] = rgb(c.background);
     assert.ok(
       b > r,
@@ -224,6 +235,39 @@ test("blue-and-gold images produce blue surfaces, yellow buttons, and distinct s
   );
 });
 
+test("light and dark image combinations use separate surfaces and accents through save and export", () => {
+  const roles = {
+    dark: { surface: 4, primary: 6, secondary: 0, tertiary: 9 },
+    light: { surface: 2, primary: 4, secondary: 6, tertiary: 3 },
+  };
+  const snapshot = structuredClone(roles);
+  const pair = palettesFromImage(blueAndGold, roles);
+  assert.deepEqual(pair.dark, palettesFromImage(blueAndGold, roles.dark).dark);
+  assert.deepEqual(
+    pair.light,
+    palettesFromImage(blueAndGold, roles.light).light,
+  );
+  assert.equal(pair.dark.overrides.accentFill, "#f4c42a");
+  assert.equal(pair.light.overrides.accentFill, "#0865b9");
+  const theme = parseTheme(applyPalettes(presets[0], pair, "both"));
+  assert.deepEqual(theme.modes, pair);
+  const darkCss: Record<string, string> = cssVariables(theme, "dark");
+  const lightCss: Record<string, string> = cssVariables(theme, "light");
+  assert.equal(darkCss["--ts-accent-fill"], "#f4c42a");
+  assert.equal(lightCss["--ts-accent-fill"], "#0865b9");
+  assert.deepEqual(roles, snapshot);
+  for (const mode of ["dark", "light"] as const) {
+    assert.throws(
+      () =>
+        palettesFromImage(blueAndGold, {
+          ...roles,
+          [mode]: { ...roles[mode], tertiary: blueAndGold.length },
+        }),
+      /valid image palette/,
+    );
+  }
+});
+
 test("image palettes stay readable across diverse and monochrome sources, and survive save/export", () => {
   let seed = 73;
   const random = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32;
@@ -240,7 +284,7 @@ test("image palettes stay readable across diverse and monochrome sources, and su
     ),
   ];
   for (const colors of sources) {
-    const t = applyPalettes(presets[0], palettesFromImage(colors), true);
+    const t = applyPalettes(presets[0], palettesFromImage(colors), "both");
     assert.deepEqual(parseTheme(JSON.parse(JSON.stringify(t))), t);
     for (const mode of ["dark", "light"] as const) {
       const c = resolve(t, mode);
@@ -264,7 +308,7 @@ test("image palettes stay readable across diverse and monochrome sources, and su
       assert.ok(contrast(c.accentFill, c.accentForeground) >= 4.5);
     }
   }
-  const t = applyPalettes(presets[0], palettesFromImage(blueAndGold), true);
+  const t = applyPalettes(presets[0], palettesFromImage(blueAndGold), "both");
   const c = resolve(t, "light");
   const css: Record<string, string> = cssVariables(t, "light"),
     framework = semanticVariables(t, "light");

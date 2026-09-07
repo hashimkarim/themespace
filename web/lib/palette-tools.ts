@@ -10,12 +10,14 @@ import {
 
 export type ExtractedColor = { hex: string; share: number };
 export type GeneratedPalettes = Record<Appearance, Palette>;
+export type PaletteTarget = Appearance | "both";
 export type ImageColorRoles = {
   surface: number;
   primary: number;
   secondary: number;
   tertiary: number;
 };
+export type ImagePaletteRoles = Record<Appearance, ImageColorRoles>;
 type Point = { channels: number[]; weight: number };
 const toHex = (channels: number[]) =>
   "#" +
@@ -214,25 +216,26 @@ export function suggestImageRoles(colors: ExtractedColor[]): ImageColorRoles {
   return { surface, primary, secondary, tertiary };
 }
 
-/** Keep the image's foundation separate from its contrasting details. */
+/** Generate each appearance from its own roles, or reuse one starter combination. */
 export function palettesFromImage(
   colors: ExtractedColor[],
-  roles = suggestImageRoles(colors),
+  assignments: ImageColorRoles | ImagePaletteRoles = suggestImageRoles(colors),
 ): GeneratedPalettes {
-  if (
-    !colors.length ||
-    colors.some((c) => !hexPattern.test(c.hex)) ||
-    (["surface", "primary", "secondary", "tertiary"] as const).some(
-      (role) => !Number.isInteger(roles[role]) || !colors[roles[role]],
-    )
-  )
+  if (!colors.length || colors.some((c) => !hexPattern.test(c.hex)))
     throw new Error("Choose a valid image palette.");
-  const source = colors[roles.surface].hex;
-  const foundation = colorTraits(source);
-  const primary = colors[roles.primary].hex;
-  const secondary = colors[roles.secondary].hex;
-  const tertiary = colors[roles.tertiary].hex;
   const create = (mode: Appearance): Palette => {
+    const roles = "surface" in assignments ? assignments : assignments[mode];
+    if (
+      (["surface", "primary", "secondary", "tertiary"] as const).some(
+        (role) => !Number.isInteger(roles[role]) || !colors[roles[role]],
+      )
+    )
+      throw new Error("Choose a valid image palette.");
+    const source = colors[roles.surface].hex;
+    const foundation = colorTraits(source);
+    const primary = colors[roles.primary].hex;
+    const secondary = colors[roles.secondary].hex;
+    const tertiary = colors[roles.tertiary].hex;
     const dark = mode === "dark";
     const depth = 0.11 + Math.min(0.45, foundation.lightness) * 0.25;
     const backgroundTone = hsl(
@@ -421,17 +424,16 @@ export function randomPalettes(random = Math.random): GeneratedPalettes {
 export function applyPalettes(
   theme: Theme,
   palettes: GeneratedPalettes,
-  both: boolean,
+  target: PaletteTarget = theme.defaultAppearance,
 ): Theme {
   return {
     ...theme,
-    modes: both
-      ? structuredClone(palettes)
-      : {
-          ...theme.modes,
-          [theme.defaultAppearance]: structuredClone(
-            palettes[theme.defaultAppearance],
-          ),
-        },
+    modes:
+      target === "both"
+        ? structuredClone(palettes)
+        : {
+            ...theme.modes,
+            [target]: structuredClone(palettes[target]),
+          },
   };
 }

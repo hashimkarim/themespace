@@ -1011,7 +1011,7 @@ export function ThemeSpace({
                             title="Generate a new light and dark palette"
                             onClick={() => {
                               change(
-                                applyPalettes(theme, randomPalettes(), true),
+                                applyPalettes(theme, randomPalettes(), "both"),
                               );
                               notify(
                                 "New light and dark palettes. Undo to go back.",
@@ -1908,11 +1908,11 @@ export function ThemeSpace({
             <ImagePalettePicker
               appearance={appearance}
               onCancel={() => setImagePaletteOpen(false)}
-              onApply={(palettes, both) => {
-                change(applyPalettes(theme, palettes, both));
+              onApply={(palettes, target) => {
+                change(applyPalettes(theme, palettes, target));
                 setImagePaletteOpen(false);
                 notify(
-                  `Image palette applied to ${both ? "light and dark" : appearance}. Undo to go back.`,
+                  `Image palette applied to ${target === "both" ? "light and dark" : target}. Undo to go back.`,
                 );
               }}
             />

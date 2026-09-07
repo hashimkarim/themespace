@@ -7881,6 +7881,25 @@ body {
   margin: 20px 0 10px;
   font-size: 10px;
 }
+.image-palette-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+}
+.image-palette-editor-toolbar h3 {
+  color: var(--app-fg);
+  font-size: 13px;
+  font-weight: 600;
+}
+.image-palette-editor-toolbar p {
+  color: var(--app-muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin-top: 4px;
+}
 .image-palette-section-heading h3 {
   color: var(--app-fg);
   font-size: 13px;
@@ -7923,6 +7942,7 @@ body {
   border: 1px solid var(--app-border);
   border-radius: 7px;
   background: var(--app-soft);
+  font-size: 11px;
 }
 .image-palette-modes button {
   display: flex;

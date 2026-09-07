@@ -8,8 +8,11 @@ import {
 } from "../lib/image-palette";
 import {
   palettesFromImage,
+  suggestImageRoles,
   type GeneratedPalettes,
+  type PaletteTarget,
 } from "../lib/palette-tools";
+import { rgb } from "../lib/theme";
 
 test("image imports reject unsupported or oversized files before decoding", async () => {
   await assert.rejects(
@@ -28,7 +31,7 @@ test("image imports reject unsupported or oversized files before decoding", asyn
   );
 });
 
-test("image picker previews before applying, handles replacement uploads and errors, and releases image resources", async () => {
+test("image picker keeps independent light/dark combinations, applies the selected mode, and handles uploads safely", async () => {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', {
     url: "https://themespace.example/",
   });
@@ -78,7 +81,7 @@ test("image picker previews before applying, handles replacement uploads and err
     await import("../components/image-palette-picker");
   const container = dom.window.document.getElementById("root")!;
   const root = createRoot(container);
-  const applied: { palettes: GeneratedPalettes; both: boolean }[] = [];
+  const applied: { palettes: GeneratedPalettes; target: PaletteTarget }[] = [];
   let cancelled = 0,
     closed = 0;
   const bitmap = (width = 2400, height = 1200) => ({
@@ -92,6 +95,25 @@ test("image picker previews before applying, handles replacement uploads and err
     [...container.querySelectorAll("button")].find((b) =>
       b.textContent?.includes(text),
     )!;
+  const clickLabel = async (label: string) =>
+    act(async () => {
+      const control = container.querySelector<HTMLButtonElement>(
+        `button[aria-label="${label}"]`,
+      );
+      assert.ok(control, `Missing control: ${label}`);
+      control.click();
+    });
+  const roleColors = () =>
+    [...container.querySelectorAll(".image-palette-roles code")].map(
+      (element) => element.textContent,
+    );
+  const assign = async (colors: string[]) => {
+    const labels = ["surfaces", "buttons", "accent 2", "accent 3"];
+    for (const [index, label] of labels.entries()) {
+      await clickLabel(`Choose ${label} color`);
+      await clickLabel(`Use ${colors[index]} for ${label}`);
+    }
+  };
   const upload = async (name: string) => {
     await act(async () => {
       const input =
@@ -109,17 +131,17 @@ test("image picker previews before applying, handles replacement uploads and err
       root.render(
         createElement(ImagePalettePicker, {
           appearance: "dark",
-          onApply: (palettes, both) => applied.push({ palettes, both }),
+          onApply: (palettes, target) => applied.push({ palettes, target }),
           onCancel: () => {
             cancelled++;
           },
         }),
       ),
     );
-    assert.equal(button("Apply palette").disabled, true);
+    assert.equal(button("Apply both palettes").disabled, true);
     await upload("first.png");
     await upload("second.png");
-    assert.equal(button("Apply palette").disabled, true);
+    assert.equal(button("Apply both palettes").disabled, true);
     await act(async () => pending[1].resolve(bitmap()));
     assert.ok(container.textContent?.includes("second.png"));
     assert.deepEqual(
@@ -138,30 +160,13 @@ test("image picker previews before applying, handles replacement uploads and err
       "A slower earlier upload must not replace the chosen image",
     );
     assert.equal(closed, 2);
-    await act(async () =>
-      container
-        .querySelector<HTMLButtonElement>(
-          '[aria-label="Use #ffaa33 for buttons"]',
-        )!
-        .click(),
-    );
+    const suggested = roleColors();
+    await clickLabel("Use #ffaa33 for buttons");
     const originalBackground = container.querySelector<HTMLElement>(
       ".image-palette-preview",
     )!.style.background;
-    await act(async () =>
-      container
-        .querySelector<HTMLButtonElement>(
-          '[aria-label="Choose surfaces color"]',
-        )!
-        .click(),
-    );
-    await act(async () =>
-      container
-        .querySelector<HTMLButtonElement>(
-          '[aria-label="Use #3366cc for surfaces"]',
-        )!
-        .click(),
-    );
+    await clickLabel("Choose surfaces color");
+    await clickLabel("Use #3366cc for surfaces");
     assert.notEqual(
       container.querySelector<HTMLElement>(".image-palette-preview")!.style
         .background,
@@ -173,63 +178,103 @@ test("image picker previews before applying, handles replacement uploads and err
       "rgb(255, 170, 51)",
       "Changing the foundation must leave the button color alone",
     );
-    await act(async () =>
-      container
-        .querySelector<HTMLButtonElement>(
-          '[aria-label="Choose accent 2 color"]',
-        )!
-        .click(),
+    const darkColors = ["#3366cc", "#ffaa33", "#3366cc", "#ffaa33"];
+    const lightColors = ["#ffaa33", "#3366cc", "#ffaa33", "#3366cc"];
+    await assign(darkColors);
+    await clickLabel("Edit light palette");
+    assert.deepEqual(
+      roleColors(),
+      suggested,
+      "Dark edits leave light colors alone",
     );
-    await act(async () =>
-      container
-        .querySelector<HTMLButtonElement>(
-          '[aria-label="Use #3366cc for accent 2"]',
-        )!
-        .click(),
+    await assign(lightColors);
+    await clickLabel("Edit dark palette");
+    assert.deepEqual(
+      roleColors(),
+      darkColors,
+      "Switching preserves all four dark assignments",
     );
-    await act(async () =>
-      container
-        .querySelector<HTMLButtonElement>(
-          '[aria-label="Preview light palette"]',
-        )!
-        .click(),
+    await clickLabel("Auto assign dark colors");
+    assert.deepEqual(roleColors(), suggested);
+    await clickLabel("Edit light palette");
+    assert.deepEqual(
+      roleColors(),
+      lightColors,
+      "Auto assign only resets the edited appearance",
     );
-    const expected = palettesFromImage(
-      [
-        { hex: "#ffaa33", share: 0.5 },
-        { hex: "#3366cc", share: 0.5 },
-      ],
-      { surface: 1, primary: 0, secondary: 1, tertiary: 0 },
-    );
+    await clickLabel("Edit dark palette");
+    await assign(darkColors);
+    await clickLabel("Edit light palette");
+    const colors = [
+      { hex: "#ffaa33", share: 0.5 },
+      { hex: "#3366cc", share: 0.5 },
+    ];
+    const expected = palettesFromImage(colors, {
+      dark: { surface: 1, primary: 0, secondary: 1, tertiary: 0 },
+      light: { surface: 0, primary: 1, secondary: 0, tertiary: 1 },
+    });
     assert.equal(
       container.querySelector<HTMLElement>(".image-palette-preview")!.style
         .background,
-      `rgb(${parseInt(expected.light.background.slice(1, 3), 16)}, ${parseInt(expected.light.background.slice(3, 5), 16)}, ${parseInt(expected.light.background.slice(5, 7), 16)})`,
+      `rgb(${rgb(expected.light.background).join(", ")})`,
     );
+    assert.equal(
+      container.querySelector<HTMLElement>(".image-palette-preview-accent")!
+        .style.background,
+      "rgb(51, 102, 204)",
+      "The preview uses the light combination's own button color",
+    );
+    assert.equal(
+      applied.length,
+      0,
+      "Editing must not change the draft before Apply",
+    );
+    await act(async () => button("Apply both palettes").click());
+    assert.deepEqual(applied, [{ palettes: expected, target: "both" }]);
     await act(async () =>
       container
         .querySelector<HTMLInputElement>('input[type="checkbox"]')!
         .click(),
     );
     assert.ok(
+      container.textContent?.includes("Only replaces your light palette"),
+    );
+    await act(async () => button("Apply light palette").click());
+    assert.deepEqual(applied[1], { palettes: expected, target: "light" });
+    await clickLabel("Edit dark palette");
+    assert.ok(
       container.textContent?.includes("Only replaces your dark palette"),
     );
-    assert.equal(
-      applied.length,
-      0,
-      "Changing the preview and accent must not edit the draft",
+    await act(async () => button("Apply dark palette").click());
+    assert.deepEqual(applied[2], { palettes: expected, target: "dark" });
+
+    await upload("replacement.png");
+    await act(async () => pending[2].resolve(bitmap()));
+    assert.deepEqual(
+      roleColors(),
+      suggested,
+      "A new image resets dark assignments",
     );
-    await act(async () => button("Apply palette").click());
-    assert.deepEqual(applied, [{ palettes: expected, both: false }]);
+    await clickLabel("Edit light palette");
+    assert.deepEqual(
+      roleColors(),
+      suggested,
+      "A new image resets light assignments",
+    );
+    await act(async () => button("Apply light palette").click());
+    assert.deepEqual(applied[3], {
+      palettes: palettesFromImage(colors, suggestImageRoles(colors)),
+      target: "light",
+    });
 
     await upload("broken.png");
-    await act(async () => pending[2].reject(new Error("Decode error")));
+    await act(async () => pending[3].reject(new Error("Decode error")));
     assert.match(
       container.querySelector('[role="alert"]')!.textContent!,
       /could not be read/,
     );
     assert.equal(
-      button("Apply palette").disabled,
+      button("Apply light palette").disabled,
       true,
       "A failed upload must not apply stale colors",
     );
@@ -244,35 +289,35 @@ test("image picker previews before applying, handles replacement uploads and err
         }),
       },
     );
-    await act(async () => pending[3].resolve(bitmap()));
+    await act(async () => pending[4].resolve(bitmap()));
     assert.match(
       container.querySelector('[role="alert"]')!.textContent!,
       /transparent/,
     );
     assert.equal(
       closed,
-      3,
+      4,
       "Images are released even when color extraction fails",
     );
     await upload("huge.png");
-    await act(async () => pending[4].resolve(bitmap(10000, 10000)));
+    await act(async () => pending[5].resolve(bitmap(10000, 10000)));
     assert.match(
       container.querySelector('[role="alert"]')!.textContent!,
       /64 megapixels/,
     );
-    assert.equal(closed, 4);
+    assert.equal(closed, 5);
     await upload("cancelled.png");
     await act(async () => button("Cancel").click());
     assert.equal(cancelled, 1);
     await act(async () => root.unmount());
     unmounted = true;
-    await act(async () => pending[5].resolve(bitmap()));
+    await act(async () => pending[6].resolve(bitmap()));
     assert.equal(
       closed,
-      5,
+      6,
       "Closing the dialog during decoding still releases the eventual image",
     );
-    assert.equal(applied.length, 1, "Cancel never applies a palette");
+    assert.equal(applied.length, 4, "Cancel never applies a palette");
   } finally {
     if (!unmounted) await act(async () => root.unmount());
     dom.window.close();

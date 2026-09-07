@@ -2,6 +2,8 @@
 
 Design a theme once, preview it across your apps, and take the whole theme home.
 
+Created by [Hashim Karim](https://hashimkarim.com).
+
 Production: **[themespace.app](https://themespace.app)**. Deployment and recovery
 instructions are in [docs/deployment.md](docs/deployment.md).
 
@@ -21,6 +23,13 @@ can be searched, filtered, opened, and remixed. Guest drafts persist in browser
 local storage by default; a setting limits them to the current tab. Signing in
 enables a private saved draft and publishing to the
 instance's collection. Published versions remain immutable.
+
+In Studio's **Palette** tab, **Randomize** creates a coordinated light and dark
+palette. **From image** extracts up to six colors from a PNG, JPG, WebP, AVIF,
+or GIF (up to 12 MB). Choose an accent, preview both appearances, then apply it
+to one or both palettes. Images are processed on your device and are never
+uploaded or saved with your draft. Colors are adapted for readable text; both
+tools support Undo and update the existing previews and exports.
 
 ## Settings and component gallery
 
@@ -42,6 +51,8 @@ its seven editor/terminal surfaces, and the common foundation, control, form,
 layout, card, and motion families in Open Design. The same component document
 ships in the design-system download, works offline, and includes appearance
 switching. See [reference coverage](docs/component-coverage.md) for scope.
+The design-system gallery scrolls inside a bounded preview, keeping its filters
+within reach and avoiding an oversized embedded page during fast scrolling.
 
 Choose **shadcn/ui** in Components, or open `/components?library=shadcn`, for
 31 additional examples using 35 actual shadcn React components from the official

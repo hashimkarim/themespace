@@ -21,6 +21,7 @@ import {
   FileJson2,
   GitFork,
   Globe2,
+  ImagePlus,
   Layers3,
   LoaderCircle,
   Moon,
@@ -29,6 +30,7 @@ import {
   Redo2,
   RotateCcw,
   Search,
+  Shuffle,
   SlidersHorizontal,
   Sun,
   Undo2,
@@ -71,6 +73,8 @@ import type { AccountUser } from "@/lib/account";
 import { useSitePreferences } from "./site-preferences";
 import { readPreferences, GUEST_DRAFT_KEY } from "@/lib/preferences";
 import { ThemedSelect } from "./ui/select";
+import { ImagePalettePicker } from "./image-palette-picker";
+import { applyPalettes, randomPalettes } from "@/lib/palette-tools";
 import type { PublishedTheme } from "@/lib/store";
 
 type View =
@@ -208,6 +212,7 @@ function Modal({
   description,
   children,
   wide = false,
+  className = "",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -215,6 +220,7 @@ function Modal({
   description: string;
   children: React.ReactNode;
   wide?: boolean;
+  className?: string;
 }) {
   const returnFocus = useRef<HTMLElement | null>(null);
   return (
@@ -222,7 +228,7 @@ function Modal({
       <Dialog.Portal>
         <Dialog.Overlay className="modal-overlay" />
         <Dialog.Content
-          className={`modal-content ${wide ? "modal-wide" : ""}`}
+          className={`modal-content ${wide ? "modal-wide" : ""} ${className}`}
           onOpenAutoFocus={() => {
             returnFocus.current = document.activeElement as HTMLElement;
           }}
@@ -298,6 +304,7 @@ export function ThemeSpace({
     [publishing, setPublishing] = useState(false),
     [publishError, setPublishError] = useState("");
   const [exportTheme, setExportTheme] = useState<Theme>(theme);
+  const [imagePaletteOpen, setImagePaletteOpen] = useState(false);
   const [exportSearch, setExportSearch] = useState(""),
     [toast, setToast] = useState(""),
     [showAllTargets, setShowAllTargets] = useState(false);
@@ -996,6 +1003,32 @@ export function ThemeSpace({
                         <p className="small muted">
                           Small changes. A whole different feeling.
                         </p>
+                        <div className="palette-tools">
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            title="Generate a new light and dark palette"
+                            onClick={() => {
+                              change(
+                                applyPalettes(theme, randomPalettes(), true),
+                              );
+                              notify(
+                                "New light and dark palettes. Undo to go back.",
+                              );
+                            }}
+                          >
+                            <Shuffle size={13} />
+                            Randomize
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() => setImagePaletteOpen(true)}
+                          >
+                            <ImagePlus size={13} />
+                            From image
+                          </button>
+                        </div>
                         {baseRoles.map((role) => (
                           <ColorField
                             key={`${appearance}-${role}`}
@@ -1821,13 +1854,43 @@ export function ThemeSpace({
             </>
           )}
           <footer className="site-footer">
-            <span>Designed once. Yours everywhere.</span>
+            <span>
+              Made by{" "}
+              <a
+                href="https://hashimkarim.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Hashim Karim
+              </a>
+            </span>
             <span>
               <span className="footer-dot" />
               Built around open formats and a shared palette.
             </span>
           </footer>
         </main>
+        {imagePaletteOpen && (
+          <Modal
+            open={imagePaletteOpen}
+            onOpenChange={setImagePaletteOpen}
+            title="A palette from your picture."
+            description="Find the colors in a photo, artwork, or anything that inspires you."
+            className="image-palette-modal"
+          >
+            <ImagePalettePicker
+              appearance={appearance}
+              onCancel={() => setImagePaletteOpen(false)}
+              onApply={(palettes, both) => {
+                change(applyPalettes(theme, palettes, both));
+                setImagePaletteOpen(false);
+                notify(
+                  `Image palette applied to ${both ? "light and dark" : appearance}. Undo to go back.`,
+                );
+              }}
+            />
+          </Modal>
+        )}
         {exportOpen && (
           <ExportWorkspace
             open={exportOpen}

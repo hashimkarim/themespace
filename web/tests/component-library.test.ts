@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { JSDOM } from "jsdom";
 import { act, createElement } from "react";
-import { presets } from "../lib/theme";
+import { presets, rgb } from "../lib/theme";
 
-test("component frames mount documents, accept only their own readiness, and release replaced documents", async () => {
+test("component frames keep tall galleries in a bounded themed viewport, validate readiness, and release replaced documents", async () => {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', {
     url: "https://themespace.example/",
   });
@@ -72,6 +72,11 @@ test("component frames mount documents, accept only their own readiness, and rel
     );
     rendered.window.close();
     const shell = frame.parentElement!;
+    assert.equal(
+      shell.style.backgroundColor,
+      `rgb(${rgb(presets[0].modes.dark!.background).join(", ")})`,
+    );
+    assert.equal(shell.style.colorScheme, "dark");
     assert.equal(shell.getAttribute("aria-busy"), "true");
     const ready = (url: string, source: Window | null, height: number) =>
       dom.window.dispatchEvent(
@@ -92,7 +97,11 @@ test("component frames mount documents, accept only their own readiness, and rel
       ready(firstURL, frame.contentWindow, 2000);
     });
     assert.equal(shell.getAttribute("aria-busy"), "false");
-    assert.equal(frame.style.height, "2000px");
+    assert.equal(
+      frame.style.height,
+      "960px",
+      "Long galleries must scroll inside a bounded iframe",
+    );
     await act(async () => render({ ...presets[0], name: "Updated draft" }));
     assert.notEqual(frame.src, firstURL);
     assert.ok(revoked.includes(firstURL));
@@ -109,7 +118,26 @@ test("component frames mount documents, accept only their own readiness, and rel
       ready(frame.src, frame.contentWindow, 2400);
     });
     assert.equal(shell.getAttribute("aria-busy"), "false");
-    assert.equal(frame.style.height, "2400px");
+    assert.equal(frame.style.height, "960px");
+    await act(async () => ready(frame.src, frame.contentWindow, 340));
+    assert.equal(
+      frame.style.height,
+      "340px",
+      "Short filtered galleries should fit their content",
+    );
+    await act(async () =>
+      container
+        .querySelector<HTMLButtonElement>(
+          '[aria-label="light component preview"]',
+        )!
+        .click(),
+    );
+    assert.equal(shell.style.colorScheme, "light");
+    assert.equal(
+      shell.style.backgroundColor,
+      `rgb(${rgb(presets[0].modes.light!.background).join(", ")})`,
+    );
+    assert.equal(shell.getAttribute("aria-busy"), "true");
   } finally {
     await act(async () => root.unmount());
     assert.equal(revoked.length, blobs.size);

@@ -60,6 +60,7 @@ const socialImage = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),
   title: "ThemeSpace — One theme. Yours everywhere.",
+  creator: "Hashim Karim",
   description:
     "Create a personal theme for your apps, terminals, browsers, and web projects. Preview, remix, and export your design system.",
   openGraph: {

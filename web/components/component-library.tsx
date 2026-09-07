@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Sun, Moon, ArrowUpRight } from "lucide-react";
 import { componentFixtures, componentDocument } from "@/lib/component-fixtures";
 import { cssOutput } from "@/lib/exporters";
-import { type Theme, type Appearance } from "@/lib/theme";
+import { resolve, type Theme, type Appearance } from "@/lib/theme";
 import { useSitePreferences } from "./site-preferences";
 import { fontVariable } from "@/lib/preferences";
 // Data URLs let the sandboxed component document use the app's loaded fonts
@@ -47,6 +47,7 @@ export function ComponentLibrary({
     [fontCSS, setFontCSS] = useState("");
   const iframe = useRef<HTMLIFrameElement>(null),
     appearance = chosenMode && theme.modes[chosenMode] ? chosenMode : mode;
+  const colors = resolve(theme, appearance);
   const fixtures = componentFixtures(theme, appearance),
     categories = ["All", "Foundations", "Controls", "Patterns", "App surfaces"];
   const filtered = fixtures.filter(
@@ -126,7 +127,9 @@ export function ComponentLibrary({
         return;
       const next = Number(e.data.height);
       if (Number.isFinite(next) && next > 0 && next < 100000) {
-        setHeight(Math.ceil(next));
+        // The document scrolls inside the frame. Never expand its viewport to
+        // the full gallery height; CSS further limits it on smaller screens.
+        setHeight(Math.min(960, Math.ceil(next)));
         setLoadedURL(e.data.url);
       }
     };
@@ -203,7 +206,15 @@ export function ComponentLibrary({
         ))}
       </div>
       {filtered.length ? (
-        <div className="fixture-frame-shell" aria-busy={pending}>
+        <div
+          className="fixture-frame-shell"
+          aria-busy={pending}
+          style={{
+            backgroundColor: colors.background,
+            color: colors.foreground,
+            colorScheme: appearance,
+          }}
+        >
           {pending && (
             <div className="fixture-loading" role="status">
               <span className="live-dot" />

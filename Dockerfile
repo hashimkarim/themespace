@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS build
+FROM node:24.22.2-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS build
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ ca-certificates lua5.4 \
     && rm -rf /var/lib/apt/lists/*
@@ -9,7 +9,7 @@ COPY web/ ./
 RUN npm run typecheck && npm run lint && npm test && npm run test:api \
     && npm run build:node && npm run test:production
 
-FROM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS runtime
+FROM node:24.22.2-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS runtime
 ENV NODE_ENV=production PORT=3000 HOST=0.0.0.0 DATABASE_PATH=/data/themespace.sqlite
 WORKDIR /app
 COPY --from=build --chown=node:node /app/dist/standalone/ ./

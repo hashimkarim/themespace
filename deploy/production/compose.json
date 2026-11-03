@@ -58,6 +58,10 @@
         "VINEXT_TRUSTED_HOSTS": "themespace.app",
         "BETTER_AUTH_URL": "https://themespace.app",
         "SITE_URL": "https://themespace.app"
+      },
+      "sysctls": {
+        "net.mptcp.enabled": "0",
+        "net.ipv4.tcp_migrate_req": "0"
       }
     }
   },

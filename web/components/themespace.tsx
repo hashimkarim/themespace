@@ -1908,8 +1908,14 @@ export function ThemeSpace({
             <ImagePalettePicker
               appearance={appearance}
               onCancel={() => setImagePaletteOpen(false)}
-              onApply={(palettes, target) => {
-                change(applyPalettes(theme, palettes, target));
+              onApply={(palettes, target, natural) => {
+                const next = applyPalettes(theme, palettes, target);
+                // A dark screenshot imports as a dark-first theme, matching its source.
+                change(
+                  target === "both" && natural
+                    ? { ...next, defaultAppearance: natural }
+                    : next,
+                );
                 setImagePaletteOpen(false);
                 notify(
                   `Image palette applied to ${target === "both" ? "light and dark" : target}. Undo to go back.`,

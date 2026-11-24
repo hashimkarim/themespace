@@ -7,6 +7,8 @@ import {
   IMAGE_PALETTE_MAX_BYTES,
 } from "../lib/image-palette";
 import {
+  extractColors,
+  imageAppearance,
   palettesFromImage,
   suggestImageRoles,
   type GeneratedPalettes,
@@ -326,4 +328,88 @@ test("image picker keeps independent light/dark combinations, applies the select
       else Reflect.deleteProperty(globalThis, key);
     }
   }
+});
+
+test("a website screenshot round-trips to its own page, text, and accent colors", () => {
+  // Extracted from a dark product landing page: black page, white text,
+  // lime buttons, periwinkle headline, navy photo shadows.
+  const colors = [
+    { hex: "#010105", share: 0.407 },
+    { hex: "#030817", share: 0.203 },
+    { hex: "#193677", share: 0.109 },
+    { hex: "#061737", share: 0.085 },
+    { hex: "#375798", share: 0.064 },
+    { hex: "#668ac8", share: 0.035 },
+    { hex: "#363538", share: 0.03 },
+    { hex: "#c9f438", share: 0.029 },
+    { hex: "#94bb29", share: 0.026 },
+    { hex: "#fafbfb", share: 0.011 },
+  ];
+  assert.equal(imageAppearance(colors), "dark");
+  const { dark } = palettesFromImage(colors, suggestImageRoles(colors));
+  assert.equal(dark.background, "#010105", "The page color is kept exactly");
+  assert.equal(dark.foreground, "#fafbfb", "Text uses the page's own white");
+  assert.equal(dark.surface, "#061737", "Panels step up within the family");
+  assert.equal(dark.overrides.accentFill, "#c9f438");
+  assert.equal(dark.accent, "#c9f438", "Legible accents are not altered");
+  assert.equal(
+    dark.overrides.accent2,
+    "#668ac8",
+    "Accent 2 prefers a color already legible on the page",
+  );
+
+  const paper = [
+    { hex: "#f6f3ee", share: 0.55 },
+    { hex: "#e2d9cc", share: 0.15 },
+    { hex: "#c0533a", share: 0.2 },
+    { hex: "#2f6b5a", share: 0.1 },
+  ];
+  assert.equal(imageAppearance(paper), "light");
+  const { light } = palettesFromImage(paper, suggestImageRoles(paper));
+  assert.equal(light.background, "#f6f3ee");
+  assert.equal(light.surface, "#e2d9cc");
+
+  assert.equal(
+    imageAppearance([
+      { hex: "#ffaa33", share: 0.5 },
+      { hex: "#3366cc", share: 0.5 },
+    ]),
+    null,
+    "Mid-tone images don't claim an appearance",
+  );
+});
+
+test("flat fills are extracted exactly, not averaged with their anti-aliased edges", () => {
+  const pixel = (hex: string, count: number) =>
+    Array.from({ length: count }, () => [...rgb(hex), 255]).flat();
+  const colors = extractColors(
+    new Uint8ClampedArray([
+      ...pixel("#010104", 300),
+      ...pixel("#c4ed34", 80),
+      ...pixel("#b0d530", 12),
+      ...pixel("#a8cb2c", 8),
+    ]),
+    2,
+  );
+  assert.deepEqual(
+    colors.map((c) => c.hex),
+    ["#010104", "#c4ed34"],
+  );
+});
+
+test("dark sites that aren't near-black still keep their page and text", () => {
+  const colors = [
+    { hex: "#202124", share: 0.6 },
+    { hex: "#303134", share: 0.12 },
+    { hex: "#5f6368", share: 0.12 },
+    { hex: "#e8eaed", share: 0.06 },
+    { hex: "#8ab4f8", share: 0.05 },
+    { hex: "#9aa0a6", share: 0.05 },
+  ];
+  assert.equal(imageAppearance(colors), "dark");
+  const { dark } = palettesFromImage(colors, suggestImageRoles(colors));
+  assert.equal(dark.background, "#202124");
+  assert.equal(dark.surface, "#303134");
+  assert.equal(dark.foreground, "#e8eaed");
+  assert.equal(dark.overrides.accentFill, "#8ab4f8");
 });

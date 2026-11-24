@@ -80,8 +80,12 @@ export function extractColors(
     centers.push(best.channels);
   }
   let groups: Point[] = [];
+  // Each group's densest bin: flat UI fills are exact there, unlike the
+  // cluster mean, which anti-aliasing and gradients pull away from the fill.
+  let peaks: Point[] = [];
   for (let iteration = 0; iteration < 12; iteration++) {
     groups = centers.map(() => ({ channels: [0, 0, 0], weight: 0 }));
+    peaks = centers.map(() => ({ channels: [0, 0, 0], weight: 0 }));
     for (const point of points) {
       let nearest = 0;
       centers.forEach((c, i) => {
@@ -92,6 +96,7 @@ export function extractColors(
           nearest = i;
       });
       const group = groups[nearest];
+      if (point.weight > peaks[nearest].weight) peaks[nearest] = point;
       group.weight += point.weight;
       point.channels.forEach((c, i) => {
         group.channels[i] += c * point.weight;
@@ -108,10 +113,11 @@ export function extractColors(
   }
   const total = points.reduce((n, p) => n + p.weight, 0);
   const result: ExtractedColor[] = [];
-  for (const group of groups
-    .filter((g) => g.weight)
-    .sort((a, b) => b.weight - a.weight)) {
-    const hex = toHex(group.channels.map((c) => c / group.weight));
+  for (const [group, peak] of groups
+    .map((g, i) => [g, peaks[i]] as const)
+    .filter(([g]) => g.weight)
+    .sort(([a], [b]) => b.weight - a.weight)) {
+    const hex = toHex(peak.channels);
     if (group.weight / total < 0.01 && result.length) continue;
     const similar = result.find((c) => distance(rgb(c.hex), rgb(hex)) < 225);
     if (similar) similar.share += group.weight / total;
@@ -178,22 +184,40 @@ export function suggestImageRoles(colors: ExtractedColor[]): ImageColorRoles {
   const best = (candidates: number[], score: (i: number) => number) =>
     candidates.reduce((a, b) => (score(b) > score(a) ? b : a), candidates[0]);
   const colorful = indices.filter((i) => traits[i].chroma > 0.08);
-  const surface = best(colorful.length ? colorful : indices, (i) => {
-    const familyShare = colors.reduce(
-      (sum, c, j) =>
-        sum +
-        c.share *
-          (traits[j].chroma > 0.08
-            ? Math.max(0, 1 - hueDistance(traits[i].hue, traits[j].hue) / 40)
-            : i === j
-              ? 1
-              : 0),
-      0,
-    );
-    return Math.max(colors[i].share, familyShare) * (0.15 + traits[i].chroma);
-  });
+  // A screenshot's page color is its surface; otherwise the dominant family is.
+  const page = pageColor(colors);
+  const surface = page
+    ? page.index
+    : best(colorful.length ? colorful : indices, (i) => {
+        const familyShare = colors.reduce(
+          (sum, c, j) =>
+            sum +
+            c.share *
+              (traits[j].chroma > 0.08
+                ? Math.max(
+                    0,
+                    1 - hueDistance(traits[i].hue, traits[j].hue) / 40,
+                  )
+                : i === j
+                  ? 1
+                  : 0),
+          0,
+        );
+        return (
+          Math.max(colors[i].share, familyShare) * (0.15 + traits[i].chroma)
+        );
+      });
+  // On a screenshot with a page color, accents that are already legible on its
+  // backdrop beat ones that would need lightening into colors the image lacks.
+  const backdrop = pageColor(colors)?.index ?? -1;
+  const legibility = (i: number) =>
+    backdrop < 0
+      ? 1
+      : Math.min(1, contrast(colors[i].hex, colors[backdrop].hex) / 4.5) ** 2;
   const salience = (i: number) =>
-    (0.025 + traits[i].chroma) * Math.pow(colors[i].share, 0.25);
+    (0.025 + traits[i].chroma) *
+    Math.pow(colors[i].share, 0.25) *
+    legibility(i);
   const difference = (i: number, j: number) =>
     0.1 +
     Math.sin((hueDistance(traits[i].hue, traits[j].hue) * Math.PI) / 360) *
@@ -248,25 +272,33 @@ export function palettesFromImage(
       foundation.saturation * (dark ? 0.82 : 0.62),
       dark ? depth + 0.055 : 0.92,
     );
+    // When the image is mostly dark (or mostly light), its own tones are the backdrop.
+    const literal = literalFoundation(colors, roles.surface, dark);
     // Bright yellow/green foundations need extra room for raised surfaces and inputs.
     const background = dark
-      ? readable(backgroundTone, ["#ffffff"], "light", 7)
-      : backgroundTone;
+      ? readable(literal?.background ?? backgroundTone, ["#ffffff"], "light", 7)
+      : literal
+        ? readable(literal.background, ["#000000"], "dark", 15)
+        : backgroundTone;
     const surface = dark
-      ? readable(surfaceTone, ["#ffffff"], "light", 5.8)
-      : surfaceTone;
-    const foreground = hsl(
-      foundation.hue,
-      Math.min(0.6, foundation.saturation),
-      dark ? 0.97 : 0.1,
-    );
+      ? readable(literal?.surface ?? surfaceTone, ["#ffffff"], "light", 5.8)
+      : literal
+        ? readable(literal.surface, ["#000000"], "dark", 12)
+        : surfaceTone;
+    const foreground = literal?.foreground
+      ? readable(literal.foreground, [background, surface], mode, 5.5)
+      : hsl(
+          foundation.hue,
+          Math.min(0.6, foundation.saturation),
+          dark ? 0.97 : 0.1,
+        );
     const bases = [
       background,
       surface,
       mix(background, foreground, 0.07),
       mix(surface, foreground, 0.04),
     ];
-    const ink = (color: string) => readable(color, bases, mode);
+    const ink = (color: string) => readableHue(color, bases, mode);
     const accent = ink(primary),
       accent2 = ink(secondary);
     const accent3 = ink(
@@ -295,7 +327,7 @@ export function palettesFromImage(
       syntaxType: ink(source),
       syntaxString: accent3,
       syntaxNumber: accent,
-      chart1: readable(primary, bases, mode, 3),
+      chart1: readableHue(primary, bases, mode, 3),
       chart4: ink(source),
       chart5: ink(mix(secondary, dark ? "#ffffff" : "#000000", 0.28)),
       ansi4: ink(source),
@@ -319,12 +351,18 @@ export function palettesFromImage(
         )[0];
       return ink(match?.hex ?? fallback);
     };
+    const inked = ink(literal?.muted ?? mix(foreground, background, 0.46));
+    // Dim text must stay dimmer than body text, even after readability lifts it.
+    const muted =
+      contrast(inked, background) < contrast(foreground, background)
+        ? inked
+        : mix(foreground, background, 0.2);
     return {
       background,
       surface,
       foreground,
       accent,
-      muted: ink(mix(foreground, background, 0.46)),
+      muted,
       success: semantic(145, dark ? "#63ce9b" : "#24704d"),
       warning: semantic(48, dark ? "#e6bd71" : "#886014"),
       error: semantic(0, dark ? "#ed8a96" : "#ad3548"),
@@ -332,6 +370,136 @@ export function palettesFromImage(
     };
   };
   return { dark: create("dark"), light: create("light") };
+}
+
+/**
+ * The page color of a screenshot: one flat color that dominates the image
+ * (with near-identical tones, e.g. JPEG noise) and could carry text as a
+ * dark or light page. Photos and mid-tone images have none.
+ */
+export function pageColor(
+  colors: ExtractedColor[],
+): { index: number; appearance: Appearance } | null {
+  if (!colors.length) return null;
+  const index = colors.reduce(
+    (a, c, i) => (c.share > colors[a].share ? i : a),
+    0,
+  );
+  const page = colors[index].hex;
+  const coverage = colors.reduce(
+    (sum, c) => sum + (contrast(c.hex, page) < 1.2 ? c.share : 0),
+    0,
+  );
+  if (coverage < 0.3) return null;
+  if (contrast(page, "#ffffff") >= 7) return { index, appearance: "dark" };
+  if (contrast(page, "#000000") >= 12) return { index, appearance: "light" };
+  return null;
+}
+
+/** The appearance a screenshot was designed in, when it has a page color. */
+export const imageAppearance = (colors: ExtractedColor[]) =>
+  pageColor(colors)?.appearance ?? null;
+
+/**
+ * Use the screenshot's own page, panels, and text in the appearance it was
+ * designed in, so exporting the theme back reproduces the source.
+ */
+function literalFoundation(
+  colors: ExtractedColor[],
+  surfaceRole: number,
+  dark: boolean,
+) {
+  const page = pageColor(colors);
+  // Picking another Surfaces color opts out of the literal page.
+  if (
+    !page ||
+    page.index !== surfaceRole ||
+    (page.appearance === "dark") !== dark
+  )
+    return null;
+  const traits = colors.map((c) => colorTraits(c.hex));
+  const background = colors[page.index].hex;
+  const lightness = traits[page.index].lightness;
+  const foundation = traits[surfaceRole];
+  const inFamily = (i: number) =>
+    traits[i].chroma < 0.03 ||
+    foundation.chroma < 0.03 ||
+    hueDistance(traits[i].hue, foundation.hue) < 40;
+  // A raised panel is visibly off the page but still carries the page's text.
+  const panel = (i: number) =>
+    dark
+      ? traits[i].lightness > lightness + 0.04 &&
+        traits[i].lightness <= lightness + 0.2 &&
+        contrast(colors[i].hex, "#ffffff") >= 5.8
+      : traits[i].lightness < lightness - 0.04 &&
+        traits[i].lightness >= lightness - 0.2 &&
+        contrast(colors[i].hex, "#000000") >= 12;
+  const raised = panel(surfaceRole)
+    ? surfaceRole
+    : colors
+        .map((_, i) => i)
+        .filter((i) => inFamily(i) && panel(i))
+        // One visible step up from the page, not the boldest tone in the family.
+        .sort(
+          (a, b) =>
+            Math.abs(traits[a].lightness - lightness) -
+            Math.abs(traits[b].lightness - lightness),
+        )[0];
+  // Text is the most legible neutral on the page; a dimmer one is muted text.
+  const neutrals = colors
+    .map((_, i) => i)
+    .filter(
+      (i) =>
+        traits[i].chroma < 0.1 &&
+        (dark
+          ? traits[i].lightness > lightness
+          : traits[i].lightness < lightness) &&
+        contrast(colors[i].hex, background) >= 3,
+    )
+    .sort(
+      (a, b) =>
+        contrast(colors[b].hex, background) -
+        contrast(colors[a].hex, background),
+    );
+  const text =
+    neutrals[0] !== undefined &&
+    contrast(colors[neutrals[0]].hex, background) >= 4.5
+      ? neutrals[0]
+      : undefined;
+  const muted = text === undefined ? undefined : neutrals[1];
+  return {
+    background,
+    foreground: text === undefined ? undefined : colors[text].hex,
+    muted: muted === undefined ? undefined : colors[muted].hex,
+    surface:
+      raised !== undefined
+        ? colors[raised].hex
+        : mix(background, dark ? "#ffffff" : "#000000", 0.06),
+  };
+}
+
+/** Like readable(), but shifts lightness in HSL so vivid colors stay vivid. */
+function readableHue(
+  color: string,
+  backgrounds: string[],
+  mode: Appearance,
+  minimum = 4.5,
+) {
+  if (backgrounds.every((bg) => contrast(color, bg) >= minimum)) return color;
+  const { hue, saturation, lightness, chroma } = colorTraits(color);
+  // Near-black/white hue is noise; lifting it in HSL would invent a vivid color.
+  if (chroma < 0.05) return readable(color, backgrounds, mode, minimum);
+  const target = mode === "dark" ? 0.97 : 0.04;
+  for (let step = 1; step <= 100; step++) {
+    const candidate = hsl(
+      hue,
+      saturation,
+      lightness + ((target - lightness) * step) / 100,
+    );
+    if (backgrounds.every((bg) => contrast(candidate, bg) >= minimum))
+      return candidate;
+  }
+  return readable(color, backgrounds, mode, minimum);
 }
 
 function readable(

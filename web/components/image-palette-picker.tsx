@@ -16,6 +16,7 @@ import {
   type ImagePalette,
 } from "@/lib/image-palette";
 import {
+  imageAppearance,
   palettesFromImage,
   suggestImageRoles,
   type GeneratedPalettes,
@@ -38,7 +39,11 @@ export function ImagePalettePicker({
   onCancel,
 }: {
   appearance: Appearance;
-  onApply: (palettes: GeneratedPalettes, target: PaletteTarget) => void;
+  onApply: (
+    palettes: GeneratedPalettes,
+    target: PaletteTarget,
+    natural: Appearance | null,
+  ) => void;
   onCancel: () => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
@@ -73,6 +78,8 @@ export function ImagePalettePicker({
       if (current !== request.current) return;
       const suggested = suggestImageRoles(result.colors);
       setAssignments({ dark: { ...suggested }, light: { ...suggested } });
+      const natural = imageAppearance(result.colors);
+      if (natural) setEditingMode(natural);
       setImage(result);
     } catch (cause) {
       if (current === request.current)
@@ -278,9 +285,9 @@ export function ImagePalettePicker({
                 ))}
               </div>
               <p className="image-palette-hint">
-                The dominant color shapes the surfaces. Contrasting colors
-                become buttons and supporting accents for charts, highlights,
-                and code.
+                On a screenshot, its page color becomes the background and
+                Surfaces sets raised panels. Contrasting colors become buttons
+                and supporting accents for charts, highlights, and code.
               </p>
             </div>
             <div>
@@ -366,7 +373,7 @@ export function ImagePalettePicker({
               Apply both appearances
               <small>
                 {both
-                  ? "Uses each appearance’s own combination. You can undo after applying."
+                  ? `Uses each appearance’s own combination and ${imageAppearance(image.colors) ? `opens in ${imageAppearance(image.colors)}, like your image` : "keeps your default appearance"}. You can undo after applying.`
                   : `Only replaces your ${editingMode} palette. You can undo after applying.`}
               </small>
             </span>
@@ -382,7 +389,12 @@ export function ImagePalettePicker({
           className="primary-button"
           disabled={!palettes || busy}
           onClick={() => {
-            if (palettes) onApply(palettes, both ? "both" : editingMode);
+            if (palettes && image)
+              onApply(
+                palettes,
+                both ? "both" : editingMode,
+                imageAppearance(image.colors),
+              );
           }}
         >
           <Check size={14} />

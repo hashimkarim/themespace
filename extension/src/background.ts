@@ -11,6 +11,7 @@ import type {
   TabState,
   ThemeRef,
 } from "./shared/messages";
+import { sitePattern } from "./shared/messages";
 
 const DEFAULT_SERVER = "https://themespace.app";
 const ENGINE = "engine.js";
@@ -44,9 +45,6 @@ const originOf = (url?: string) => {
     return null;
   }
 };
-const sameRef = (a: ThemeRef, b: ThemeRef) =>
-  a.kind === b.kind &&
-  (a.kind === "studio" || a.id === (b as { id: string }).id);
 const label = (ref: ThemeRef, theme: Theme) =>
   ref.kind === "studio" ? `${theme.name} (studio draft)` : theme.name;
 
@@ -147,27 +145,37 @@ async function library(): Promise<Library> {
   };
 }
 
-/** Keep one registered content script that covers every pinned origin. */
+/**
+ * One registered content script per pinned site, so one site the browser
+ * rejects can't stop the others. Sites without granted access are skipped.
+ */
 async function syncPinnedScripts() {
   const sites = (await local("sites")) ?? {};
-  const granted: string[] = [];
-  for (const origin of Object.keys(sites))
-    if (await chrome.permissions.contains({ origins: [`${origin}/*`] }))
-      granted.push(`${origin}/*`);
-  const existing = await chrome.scripting.getRegisteredContentScripts({
-    ids: [PINNED_SCRIPT],
-  });
-  if (existing.length)
-    await chrome.scripting.unregisterContentScripts({ ids: [PINNED_SCRIPT] });
-  if (granted.length)
-    await chrome.scripting.registerContentScripts([
-      {
-        id: PINNED_SCRIPT,
-        matches: granted,
-        js: [ENGINE],
-        runAt: "document_idle",
-      },
-    ]);
+  const wanted = new Map<string, string>();
+  for (const origin of Object.keys(sites)) {
+    const pattern = sitePattern(origin);
+    if (await chrome.permissions.contains({ origins: [pattern] }))
+      wanted.set(
+        `${PINNED_SCRIPT}-${pattern.replace(/[^a-z0-9]/gi, "_")}`,
+        pattern,
+      );
+  }
+  const existing = await chrome.scripting.getRegisteredContentScripts();
+  const stale = existing
+    .map((s) => s.id)
+    .filter((id) => id.startsWith(PINNED_SCRIPT) && !wanted.has(id));
+  if (stale.length)
+    await chrome.scripting.unregisterContentScripts({ ids: stale });
+  const have = new Set(existing.map((s) => s.id));
+  for (const [id, pattern] of wanted)
+    if (!have.has(id))
+      try {
+        await chrome.scripting.registerContentScripts([
+          { id, matches: [pattern], js: [ENGINE], runAt: "document_idle" },
+        ]);
+      } catch (error) {
+        console.warn("ThemeSpace couldn't register", pattern, error);
+      }
 }
 
 async function tabState(tabId: number): Promise<TabState> {
@@ -238,6 +246,13 @@ async function openForPublish(theme: Theme) {
   } else await chrome.tabs.create({ url: `${base}/?companion=import` });
 }
 
+/** Only the configured ThemeSpace (not any page on localhost) may sync drafts and imports. */
+async function fromServer(sender: chrome.runtime.MessageSender) {
+  return (
+    !!sender.tab && originOf(sender.url ?? sender.tab.url) === (await server())
+  );
+}
+
 async function handle(
   message: BackgroundMessage,
   sender: chrome.runtime.MessageSender,
@@ -263,19 +278,11 @@ async function handle(
       return send(message.tabId, { type: "ts:revert" });
     }
     case "scan": {
+      // The engine keeps the site's own colors from before any theme, so scanning never reverts.
       await ensureEngine(message.tabId);
       const { sample } = await send<ScanReply>(message.tabId, {
         type: "ts:scan",
       });
-      // Scanning shows the original page; put back what was showing.
-      const preview = (await previews())[message.tabId];
-      if (preview)
-        await applyTo(
-          message.tabId,
-          preview.ref,
-          preview.theme,
-          preview.appearance,
-        );
       return themeFromScan(sample).theme;
     }
     case "save-picked": {
@@ -327,10 +334,11 @@ async function handle(
       return null;
     }
     case "studio-draft":
-      if (!sender.tab) return null;
+      if (!(await fromServer(sender))) return null;
       await studioChanged(parseTheme(message.theme));
       return null;
     case "take-import": {
+      if (!(await fromServer(sender))) return null;
       const { pendingImport } =
         await chrome.storage.session.get("pendingImport");
       await chrome.storage.session.remove("pendingImport");
@@ -380,3 +388,5 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
 chrome.runtime.onInstalled.addListener(() => void syncPinnedScripts());
 chrome.runtime.onStartup.addListener(() => void syncPinnedScripts());
 chrome.permissions.onRemoved.addListener(() => void syncPinnedScripts());
+// The popup can close while the permission prompt is open; finish pinning here.
+chrome.permissions.onAdded.addListener(() => void syncPinnedScripts());

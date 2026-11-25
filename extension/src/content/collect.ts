@@ -84,7 +84,9 @@ function backgroundAt(x: number, y: number): string | null {
   return document.elementFromPoint(x, y) ? "#ffffff" : null;
 }
 
-function resolveToken(name: string): string | null {
+function resolveToken(
+  name: string,
+): { hex: string; format: "bare-hsl" | "color" } | null {
   const raw = getComputedStyle(document.documentElement)
     .getPropertyValue(name)
     .trim();
@@ -94,12 +96,15 @@ function resolveToken(name: string): string | null {
   document.documentElement.appendChild(probe);
   try {
     // shadcn v3 stores bare HSL components ("222 47% 11%").
-    for (const candidate of [raw, `hsl(${raw})`]) {
+    for (const [candidate, format] of [
+      [raw, "color"],
+      [`hsl(${raw})`, "bare-hsl"],
+    ] as const) {
       probe.style.color = "";
       probe.style.color = candidate;
       if (probe.style.color) {
         const c = toRgba(getComputedStyle(probe).color);
-        return c && c.alpha >= 0.9 ? c.hex : null;
+        return c && c.alpha >= 0.9 ? { hex: c.hex, format } : null;
       }
     }
     return null;
@@ -186,9 +191,13 @@ export function collect(limit = 8000): ScanSample {
   const pageColor = swatches(page, 1)[0]?.hex ?? "#ffffff";
 
   const tokens: Record<string, string> = {};
+  const tokenFormats: Record<string, "bare-hsl" | "color"> = {};
   for (const name of knownTokens) {
     const value = resolveToken(name);
-    if (value) tokens[name] = value;
+    if (value) {
+      tokens[name] = value.hex;
+      tokenFormats[name] = value.format;
+    }
   }
   const family = getComputedStyle(document.body ?? document.documentElement)
     .fontFamily.split(",")[0]
@@ -200,6 +209,7 @@ export function collect(limit = 8000): ScanSample {
     title: document.title,
     page: pageColor,
     tokens,
+    tokenFormats,
     backgrounds: {
       surface: swatches(surface),
       button: swatches(button),

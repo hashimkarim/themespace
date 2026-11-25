@@ -7,6 +7,7 @@ import type {
   ThemeEntry,
   ThemeRef,
 } from "../shared/messages";
+import { sitePattern } from "../shared/messages";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
@@ -277,22 +278,25 @@ $("pin").addEventListener(
     const pin = $<HTMLInputElement>("pin");
     if (!state?.origin) return;
     if (pin.checked && current) {
+      // Save first: the popup can close while the permission prompt is open,
+      // and the background finishes pinning once access is granted.
+      await call({
+        type: "assign",
+        origin: state.origin,
+        assignment: { ref: current.ref, theme: current.theme, appearance },
+      });
       // Ask for this one site only, at the moment the user opts in.
       const granted = await chrome.permissions.request({
-        origins: [`${state.origin}/*`],
+        origins: [sitePattern(state.origin)],
       });
       if (!granted) {
+        await call({ type: "assign", origin: state.origin, assignment: null });
         pin.checked = false;
         return toast(
           "ThemeSpace needs access to this site to theme it on every visit.",
           true,
         );
       }
-      await call({
-        type: "assign",
-        origin: state.origin,
-        assignment: { ref: current.ref, theme: current.theme, appearance },
-      });
       toast(
         `${current.theme.name} will load on ${new URL(state.origin).host}.`,
       );

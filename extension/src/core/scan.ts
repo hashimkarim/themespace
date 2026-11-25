@@ -23,6 +23,8 @@ export type ScanSample = {
   page: string;
   /** Known design tokens on :root, resolved to hex. */
   tokens: Record<string, string>;
+  /** How each token is written, so it can be written back the same way. */
+  tokenFormats?: Record<string, "bare-hsl" | "color">;
   backgrounds: { surface: Swatch[]; button: Swatch[]; input: Swatch[] };
   texts: { body: Swatch[]; link: Swatch[]; button: Swatch[] };
   borders: Swatch[];

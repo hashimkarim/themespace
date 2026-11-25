@@ -22,6 +22,9 @@ main{padding:24px;max-width:720px}
 a{color:#0969da}
 button{background:#1f6feb;color:#fff;border:0;border-radius:6px;padding:8px 14px}
 input{background:#fbfcfd;border:1px solid #d1d9e0;padding:6px}
+body,a,button,.card,header{transition:color .4s,background-color .4s,border-color .4s}
+.alert{background:#d1242f;color:#fff;padding:6px 10px;border-radius:6px}
+footer{background:#24292f;color:#fff;padding:6px 24px;font-size:13px}
 </style></head><body>
 <header><strong>Example News</strong> <a href="#">Home</a> <a href="#">World</a></header>
 <main><h1>Scanning a website into a theme</h1>
@@ -29,7 +32,47 @@ input{background:#fbfcfd;border:1px solid #d1d9e0;padding:6px}
 <p class="muted">Muted supporting text with a date and byline that is long enough to count.</p>
 <div class="card"><p>A card with <a href="#">a link inside it</a> and more body copy for weighting purposes.</p>
 <button>Subscribe</button> <input placeholder="Email"></div>
-<div id="later"></div></main></body></html>`;
+<p class="alert" id="alert">Breaking: an alert banner with white text</p>
+<div id="later"></div></main><footer id="footer">Footer text on a dark band</footer></body></html>`;
+
+const tokenPage = (
+  title,
+  css,
+  extra = "",
+) => `<!doctype html><html><head><title>${title}</title><style>
+${css}
+main{padding:24px;font:16px system-ui}
+.card{padding:16px;margin:16px 0;border-radius:8px}
+</style></head><body><main><h1>${title}</h1>
+<p>Body copy long enough to carry weight in the scan, and then a bit more so text is the heaviest color here.</p>
+<div class="card"><p>Card content with more words to weigh.</p><button>Primary action</button> <a href="#">A hardcoded link</a></div>
+${extra}</main></body></html>`;
+const pages = {
+  "/tokens-hsl": tokenPage(
+    "Bare HSL tokens",
+    `:root{--background:0 0% 100%;--foreground:222 47% 11%;--secondary:210 40% 96%;--primary:221 83% 53%;--primary-foreground:0 0% 100%;--border:214 32% 91%;--muted-foreground:215 16% 47%}
+body{margin:0;background:hsl(var(--background));color:hsl(var(--foreground))}
+.card{background:hsl(var(--secondary));border:1px solid hsl(var(--border))}
+button{background:hsl(var(--primary));color:hsl(var(--primary-foreground));border:0;padding:8px 12px;border-radius:6px}
+a{color:#7c3aed}`,
+  ),
+  "/tokens-oklch": tokenPage(
+    "Oklch tokens",
+    `:root{--background:oklch(1 0 0);--foreground:oklch(0.21 0.03 265);--secondary:oklch(0.97 0.01 265);--primary:oklch(0.55 0.22 265);--primary-foreground:oklch(0.99 0 0);--border:oklch(0.92 0.01 265)}
+body{margin:0;background:var(--background);color:var(--foreground)}
+.card{background:var(--secondary);border:1px solid var(--border)}
+button{background:var(--primary);color:var(--primary-foreground);border:0;padding:8px 12px;border-radius:6px}
+a{color:#7c3aed}`,
+  ),
+  "/tokens-partial": tokenPage(
+    "Starter tokens",
+    `:root{--background:#ffffff;--foreground:#171717}
+body{margin:0;background:var(--background);color:var(--foreground)}
+.card{background:#f5f5f5;border:1px solid #e5e5e5}
+button{background:#0070f3;color:#fff;border:0;padding:8px 12px;border-radius:6px}
+a{color:#0070f3}`,
+  ),
+};
 
 const studio = `<!doctype html><html><head><title>ThemeSpace (fake)</title></head><body>
 <p id="log">waiting</p><script>
@@ -58,7 +101,9 @@ const server = createServer((req, res) => {
     return res.end("{}");
   }
   res.writeHead(200, { "content-type": "text/html" });
-  res.end(url.pathname === "/site" ? lightSite : studio);
+  res.end(
+    pages[url.pathname] ?? (url.pathname === "/site" ? lightSite : studio),
+  );
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const port = server.address().port;
@@ -178,6 +223,99 @@ try {
     assert.equal(colors.button, "rgb(201, 244, 56)");
     assert.equal(colors.link, "rgb(154, 180, 255)");
   });
+  await check(
+    "alerts keep their hue and every text stays readable",
+    async () => {
+      await call({
+        type: "preview",
+        tabId,
+        entry: { ref: { kind: "picked", id: "night" }, theme: dark },
+        appearance: "dark",
+      });
+      await page.waitForTimeout(100);
+      const read = await page.evaluate(() => {
+        const rgb = (v) => v.match(/\d+/g).slice(0, 3).map(Number);
+        const lum = (c) => {
+          const [r, g, b] = c.map((x) => {
+            x /= 255;
+            return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const ratio = (a, b) => {
+          const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+          return (x + 0.05) / (y + 0.05);
+        };
+        const pair = (sel) => {
+          const s = getComputedStyle(document.querySelector(sel));
+          return {
+            bg: rgb(s.backgroundColor),
+            fg: rgb(s.color),
+            ratio: ratio(rgb(s.backgroundColor), rgb(s.color)),
+          };
+        };
+        return { alert: pair("#alert"), footer: pair("#footer") };
+      });
+      const [r, g, b] = read.alert.bg;
+      assert.ok(r > g + 60 && r > b + 60, `alert stays red: ${read.alert.bg}`);
+      assert.ok(
+        read.alert.ratio >= 4.5,
+        `alert text contrast ${read.alert.ratio.toFixed(2)}`,
+      );
+      assert.ok(
+        read.footer.ratio >= 4.5,
+        `footer text contrast ${read.footer.ratio.toFixed(2)}`,
+      );
+      await page.screenshot({ path: join(shots, "3b-night-alerts.png") });
+    },
+  );
+  await check(
+    "switching themes and scanning while themed use the site's own colors",
+    async () => {
+      const rose = structuredClone(dark);
+      rose.id = "rose";
+      rose.name = "Rose";
+      rose.modes.dark = {
+        ...dark.modes.dark,
+        background: "#1d1015",
+        surface: "#2a1820",
+        overrides: { ...dark.modes.dark.overrides, accentFill: "#ff7ab6" },
+      };
+      await call({
+        type: "preview",
+        tabId,
+        entry: { ref: { kind: "picked", id: "rose" }, theme: rose },
+        appearance: "dark",
+      });
+      const colors = await page.evaluate(() => ({
+        page: getComputedStyle(document.documentElement).backgroundColor,
+        button: getComputedStyle(document.querySelector("button"))
+          .backgroundColor,
+        text: getComputedStyle(document.querySelector("h1")).color,
+      }));
+      assert.equal(colors.page, "rgb(29, 16, 21)");
+      assert.equal(colors.button, "rgb(255, 122, 182)");
+      assert.equal(
+        colors.text,
+        "rgb(232, 235, 242)",
+        "text isn't remapped twice",
+      );
+      const again = await call({ type: "scan", tabId });
+      assert.deepEqual(
+        again.modes.light,
+        picked.modes.light,
+        "a scan while themed matches the original scan",
+      );
+      const stillThemed = await page.evaluate(
+        () => getComputedStyle(document.documentElement).backgroundColor,
+      );
+      assert.equal(
+        stillThemed,
+        "rgb(29, 16, 21)",
+        "scanning doesn't revert the theme",
+      );
+    },
+  );
   await check("content added later is themed too", async () => {
     await page.evaluate(() => {
       document.getElementById("later").innerHTML =
@@ -260,6 +398,129 @@ try {
       assert.ok(tab.url().includes("companion=import"));
     },
   );
+  for (const path of Object.keys(pages)) {
+    await check(`token site ${path}: identity, theme, and revert`, async () => {
+      const tab = await context.newPage();
+      const url = `http://127.0.0.1:${port}${path}`;
+      await tab.goto(url);
+      await tab.bringToFront();
+      const id2 = await popup.evaluate(
+        async (u) => (await chrome.tabs.query({ url: u })).at(0).id,
+        url,
+      );
+      const before = await tab.screenshot();
+      const own = await call({ type: "scan", tabId: id2 });
+      await call({
+        type: "preview",
+        tabId: id2,
+        entry: { ref: { kind: "picked", id: own.id }, theme: own },
+        appearance: "auto",
+      });
+      assert.ok(
+        (await tab.screenshot()).equals(before),
+        "own theme is pixel-identical",
+      );
+      const status = await call({
+        type: "preview",
+        tabId: id2,
+        entry: { ref: { kind: "picked", id: "night" }, theme: dark },
+        appearance: "dark",
+      });
+      assert.equal(status.tier, "tokens");
+      await tab.waitForTimeout(100);
+      const c = await tab.evaluate(() => ({
+        body: getComputedStyle(document.body).backgroundColor,
+        button: getComputedStyle(document.querySelector("button"))
+          .backgroundColor,
+        link: getComputedStyle(document.querySelector("a")).color,
+        text: getComputedStyle(document.querySelector("h1")).color,
+      }));
+      await tab.screenshot({
+        path: join(shots, `7${path.replace(/\//g, "-")}.png`),
+      });
+      assert.equal(
+        c.body,
+        "rgb(16, 19, 26)",
+        "page token rewritten in a valid format",
+      );
+      assert.equal(c.text, "rgb(232, 235, 242)");
+      assert.notEqual(c.button, "rgb(0, 112, 243)", "buttons are themed");
+      assert.notEqual(
+        c.link,
+        "rgb(124, 58, 237)",
+        "hardcoded links are themed too",
+      );
+      await call({ type: "revert", tabId: id2 });
+      assert.ok(
+        (await tab.screenshot()).equals(before),
+        "revert is pixel-identical",
+      );
+      await tab.close();
+    });
+  }
+  await check(
+    "pinning a theme loads it on every visit, and unpinning stops it",
+    async () => {
+      const origin = new URL(site).origin;
+      await call({
+        type: "assign",
+        origin,
+        assignment: {
+          ref: { kind: "picked", id: "night" },
+          theme: dark,
+          appearance: "dark",
+        },
+      });
+      await page.reload();
+      await page.waitForFunction(
+        () =>
+          getComputedStyle(document.documentElement).backgroundColor ===
+          "rgb(16, 19, 26)",
+        null,
+        { timeout: 5000 },
+      );
+      const scanned = await call({ type: "scan", tabId });
+      assert.deepEqual(
+        scanned.modes.light,
+        picked.modes.light,
+        "scanning a pinned site reads the site",
+      );
+      assert.equal(
+        await page.evaluate(
+          () => getComputedStyle(document.documentElement).backgroundColor,
+        ),
+        "rgb(16, 19, 26)",
+        "and leaves the pinned theme on",
+      );
+      await call({ type: "assign", origin, assignment: null });
+      await page.reload();
+      await page.waitForTimeout(600);
+      assert.ok(
+        (await page.screenshot()).equals(original),
+        "unpinned site loads with its own colors",
+      );
+    },
+  );
+  await check("other localhost pages can't set the studio draft", async () => {
+    const other = await context.newPage();
+    await other.goto(`http://127.0.0.1:${port}/`);
+    await other.evaluate(
+      (theme) =>
+        window.postMessage(
+          {
+            source: "themespace-app",
+            type: "draft",
+            theme: { ...theme, name: "Imposter" },
+          },
+          location.origin,
+        ),
+      dark,
+    );
+    await other.waitForTimeout(500);
+    const lib = await call({ type: "library" });
+    assert.notEqual(lib.studio?.theme.name, "Imposter");
+    await other.close();
+  });
   await check("other pages can't drive the bridge", async () => {
     // A cross-origin frame posting app messages is ignored.
     const studioPage = await context.newPage();

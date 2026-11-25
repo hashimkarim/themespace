@@ -21,4 +21,4 @@
 .github
 deploy
 docs
-**/extension
+extension

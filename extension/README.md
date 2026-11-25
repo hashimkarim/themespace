@@ -20,18 +20,30 @@ nearest anchor, so the anchor lands exactly on the theme's role color and
 nearby shades keep their offset. Applying a site's own scan back to it is the
 identity: the e2e test checks that the page is pixel-identical.
 
+**Read the site once.** The engine keeps the untouched page's scan and each
+element's original colors. Switching themes, scanning while themed, and CSS
+transitions never feed themed colors back in as the site's own.
+
+**Unexplained colors keep their hue.** A color far from every anchor, such
+as an alert or a brand band, keeps its hue. When the appearance flips, it moves
+only if it's on the wrong side: backgrounds go dark in dark themes and text goes
+light. Text always keeps the contrast it had on the site, up to 4.5:1, against
+its new background.
+
 **Apply in two tiers.** If the site uses design tokens ThemeSpace knows,
 meaning its own `--ts-*` export or shadcn names, the extension rewrites those
-tokens. That's exact and keeps hover states. Otherwise it recolors computed
-styles with recorded inline overrides, follows new content with a
-`MutationObserver`, never touches images, and reverts exactly.
+tokens in the format the site wrote them (hex, oklch, or bare HSL). That's
+exact and keeps hover states. Colors the tokens don't cover are recolored
+through computed styles with recorded inline overrides. New content is followed
+with a `MutationObserver`, images are never touched, and revert is exact.
 
 **The server API stays same-origin.** The extension reads public themes, your
 session, and your saved draft. Everything that writes goes through the
 ThemeSpace page itself: a bridge script, running only on themespace.app and
 local dev, relays the editor's live draft to the extension and hands
 picked-up themes to the editor. You publish with the site's own signed-in UI.
-Bridge messages are accepted only from the ThemeSpace window itself.
+Bridge messages are accepted only from the ThemeSpace window itself, and only
+when its address is the one the extension is set to sync with.
 
 **Least privilege.** One-off previews and scans use `activeTab`. Access to a
 site is requested only when you pin a theme to it, and only for that site.
@@ -45,6 +57,7 @@ npm run build        # dist/chrome and dist/firefox
 npm test             # scan/apply core
 npm run e2e          # real Chromium with the extension loaded (needs Chromium)
 npm run e2e:studio -- http://localhost:5173   # against a running ThemeSpace dev server
+npm run e2e:real     # apply, revert, and scan on public sites (test-only broad access)
 ```
 
 - **Chromium:** go to `chrome://extensions`, turn on Developer mode, and use
@@ -62,5 +75,7 @@ dev server address. The shared theme model and palette code are bundled from
 
 - Hover and focus states on sites without known tokens keep their original
   colors, because inline overrides replace the resting state only.
-- Colors inside images, canvases, and cross-origin frames are left alone.
+- Colors inside images, background images and gradients, canvases, and
+  cross-origin frames are left alone, as are backgrounds drawn by
+  `::before` and `::after`.
 - Closed shadow roots can't be recolored.

@@ -9,7 +9,8 @@
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "e2e": "npm run build && node tests/e2e.mjs",
-    "e2e:studio": "npm run build && node tests/e2e-studio.mjs"
+    "e2e:studio": "npm run build && node tests/e2e-studio.mjs",
+    "e2e:real": "npm run build && node tests/e2e-real.mjs"
   },
   "devDependencies": {
     "@types/chrome": "0.0.287",

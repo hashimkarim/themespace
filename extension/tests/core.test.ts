@@ -144,3 +144,27 @@ test("computed CSS colors parse, including alpha", () => {
     "rgba(255, 128, 0, 0.5)",
   );
 });
+
+test("colors far from every anchor keep their hue when the appearance flips", () => {
+  const scan = themeFromScan(lightSite);
+  const remap = planRemap(scan, presets[0], "dark");
+  const [r, g, b] = [1, 3, 5].map((i) =>
+    parseInt(remap.color("#d1242f", "bg").slice(i, i + 2), 16),
+  );
+  assert.ok(
+    r > g + 60 && r > b + 60,
+    `an alert stays red, got rgb(${r}, ${g}, ${b})`,
+  );
+  // Same appearance: a color no anchor explains is left as the site drew it.
+  const light = presets.find((p) => p.modes.light)!;
+  assert.equal(
+    planRemap(scan, light, "light").color("#d1242f", "bg"),
+    "#d1242f",
+  );
+});
+
+test("a dark band stays dark under a dark theme instead of inverting", () => {
+  const scan = themeFromScan(lightSite);
+  const header = planRemap(scan, presets[0], "dark").color("#000000", "bg");
+  assert.ok(parseInt(header.slice(1, 3), 16) < 60, `got ${header}`);
+});

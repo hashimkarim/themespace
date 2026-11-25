@@ -79,3 +79,12 @@ export type AppToBridge =
 export type BridgeToApp =
   | { source: typeof BRIDGE_EXTENSION; type: "hello" }
   | { source: typeof BRIDGE_EXTENSION; type: "import"; theme: Theme };
+
+/**
+ * Match pattern for a pinned site. Match patterns can't carry ports in every
+ * browser, so this covers the host; the background still checks the exact origin.
+ */
+export const sitePattern = (origin: string) => {
+  const url = new URL(origin);
+  return `${url.protocol}//${url.hostname}/*`;
+};

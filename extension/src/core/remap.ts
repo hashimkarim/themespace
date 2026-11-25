@@ -1,5 +1,12 @@
 import { resolve, type Appearance, type Theme } from "../../../web/lib/theme";
-import { channels, distance, toHex } from "./color";
+import {
+  channels,
+  distance,
+  invertLightness,
+  lightness,
+  mixHex,
+  toHex,
+} from "./color";
 import type { Anchor, Channel, ScanResult } from "./scan";
 
 export type Remap = {
@@ -56,7 +63,20 @@ export function planRemap(
       const nearest = pool.reduce((a, b) =>
         distance(b.color, hex) < distance(a.color, hex) ? b : a,
       );
-      out = shift(nearest.role, hex, nearest.color);
+      const shifted = shift(nearest.role, hex, nearest.color);
+      // Colors no anchor explains (alerts, brand bands) keep their own hue;
+      // only their lightness follows the appearance.
+      const far = Math.max(
+        0,
+        Math.min(1, (distance(nearest.color, hex) - 60) / 90),
+      );
+      out = far
+        ? mixHex(
+            shifted,
+            flip < 0 ? toSide(hex, channel, appearance) : hex,
+            far,
+          )
+        : shifted;
     }
     cache.set(key, out);
     return out;
@@ -65,4 +85,16 @@ export function planRemap(
     scan.tokens.map((t) => [t.name, shift(t.role, t.color, t.base)]),
   );
   return { appearance, color, tokens };
+}
+
+/**
+ * Put a far color on the right side for the appearance without inventing a
+ * new hue: dark themes want dark backgrounds and light text, light themes the
+ * reverse. A color already on the right side (a dark header in a dark theme)
+ * stays as it is.
+ */
+function toSide(hex: string, channel: Channel, appearance: Appearance) {
+  const wantLight = (channel === "text") === (appearance === "dark");
+  const l = lightness(hex);
+  return wantLight === l >= 0.5 ? hex : invertLightness(hex);
 }

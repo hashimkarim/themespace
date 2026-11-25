@@ -57,3 +57,81 @@ export function chroma(hex: string) {
   const c = channels(hex);
   return (Math.max(...c) - Math.min(...c)) / 255;
 }
+
+export const mixHex = (a: string, b: string, weight: number) => {
+  const x = channels(a),
+    y = channels(b);
+  return toHex(x.map((v, i) => v + (y[i] - v) * weight));
+};
+
+/** Same hue and saturation, mirrored lightness: a dark band becomes a light one. */
+export function invertLightness(hex: string) {
+  const [r, g, b] = channels(hex).map((c) => c / 255);
+  const max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
+  const l = (max + min) / 2,
+    d = max - min;
+  const s = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+  const h = !d
+    ? 0
+    : max === r
+      ? ((g - b) / d + 6) % 6
+      : max === g
+        ? (b - r) / d + 2
+        : (r - g) / d + 4;
+  const L = 1 - l;
+  const C = (1 - Math.abs(2 * L - 1)) * s;
+  const X = C * (1 - Math.abs((h % 2) - 1));
+  const m = L - C / 2;
+  const [rr, gg, bb] =
+    h < 1
+      ? [C, X, 0]
+      : h < 2
+        ? [X, C, 0]
+        : h < 3
+          ? [0, C, X]
+          : h < 4
+            ? [0, X, C]
+            : h < 5
+              ? [X, 0, C]
+              : [C, 0, X];
+  return toHex([rr + m, gg + m, bb + m].map((c) => c * 255));
+}
+
+/** WCAG contrast between two hex colors. */
+export function contrastRatio(a: string, b: string) {
+  const lum = (hex: string) => {
+    const [r, g, bl] = channels(hex).map((c) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+  };
+  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
+
+/** hex → bare HSL components ("210 40% 98%"), the shadcn v3 token format. */
+export function bareHsl(hex: string) {
+  const [r, g, b] = channels(hex).map((c) => c / 255);
+  const max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
+  const l = (max + min) / 2,
+    d = max - min;
+  const s = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+  const h = !d
+    ? 0
+    : (max === r
+        ? ((g - b) / d + 6) % 6
+        : max === g
+          ? (b - r) / d + 2
+          : (r - g) / d + 4) * 60;
+  const round = (n: number) => Math.round(n * 10) / 10;
+  return `${round(h)} ${round(s * 100)}% ${round(l * 100)}%`;
+}
+
+/** HSL lightness, 0–1. */
+export function lightness(hex: string) {
+  const c = channels(hex);
+  return (Math.max(...c) + Math.min(...c)) / 510;
+}

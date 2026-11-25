@@ -11,7 +11,8 @@
     "e2e": "npm run build:dev && node tests/e2e.mjs",
     "e2e:studio": "npm run build:dev && node tests/e2e-studio.mjs",
     "e2e:real": "npm run build:dev && node tests/e2e-real.mjs",
-    "build:dev": "node scripts/build.mjs --dev"
+    "build:dev": "node scripts/build.mjs --dev",
+    "pack:web": "node scripts/build.mjs --pack ../web/public/downloads"
   },
   "devDependencies": {
     "@types/chrome": "0.0.287",

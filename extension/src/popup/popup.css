@@ -89,6 +89,16 @@ a:focus-visible {
   padding: 12px;
   margin-bottom: 10px;
 }
+.sync-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sync-banner p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
 .site-head {
   display: flex;
   justify-content: space-between;

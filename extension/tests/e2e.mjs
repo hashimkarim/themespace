@@ -564,6 +564,10 @@ try {
       );
       await ui.getByText("Night", { exact: true }).first().waitFor();
       assert.equal(await ui.locator("#state").textContent(), "Night");
+      // Reopening the popup during an unpinned preview restores the active theme and enables pinning.
+      await ui.reload();
+      assert.equal(await ui.locator("#state").textContent(), "Night");
+      assert.equal(await ui.locator("#pin").isDisabled(), false);
       // Night has no light mode of its own here, so Light falls back to its default; Auto/Dark keep it dark.
       await ui.getByRole("button", { name: "Dark" }).click();
       assert.equal(
@@ -589,6 +593,9 @@ try {
       assert.equal(await ui.locator("#picked-name").textContent(), "127.0.0.1");
       await ui.getByRole("button", { name: "Save" }).click();
       await ui.getByText(/Saved 127.0.0.1/).waitFor();
+      // Close any existing studio tab so Open in ThemeSpace opens a fresh tab with ?companion=import.
+      for (const p of context.pages())
+        if (p.url().startsWith(studioUrl)) await p.close();
       await ui.getByRole("button", { name: "Open in ThemeSpace" }).click();
       // ThemeSpace opens in a new tab, or reuses one that's already open.
       let tab;

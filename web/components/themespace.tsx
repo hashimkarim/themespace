@@ -336,12 +336,17 @@ export function ThemeSpace({
   // ThemeSpace Companion (browser extension): share the live draft so it can
   // preview it on other sites, and accept themes picked up from websites.
   // Messages stay inside this window; the extension's bridge relays them.
+  const [companionConnected, setCompanionConnected] = useState(false);
   const companion = useRef(false),
     latestTheme = useRef(theme),
+    loadedRef = useRef(loaded),
+    draftChoiceRef = useRef(draftChoice),
     companionImport = useRef<Theme | null>(null),
     acceptImport = useRef<(theme: Theme) => void>(() => {});
   useEffect(() => {
     latestTheme.current = theme;
+    loadedRef.current = loaded;
+    draftChoiceRef.current = draftChoice;
   });
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -350,14 +355,16 @@ export function ThemeSpace({
       if (!data || data.source !== "themespace-companion") return;
       if (data.type === "hello") {
         companion.current = true;
-        window.postMessage(
-          {
-            source: "themespace-app",
-            type: "draft",
-            theme: latestTheme.current,
-          },
-          location.origin,
-        );
+        setCompanionConnected(true);
+        if (loadedRef.current && !draftChoiceRef.current)
+          window.postMessage(
+            {
+              source: "themespace-app",
+              type: "draft",
+              theme: latestTheme.current,
+            },
+            location.origin,
+          );
       } else if (data.type === "import") {
         try {
           companionImport.current = parseTheme(data.theme);
@@ -365,6 +372,8 @@ export function ThemeSpace({
         } catch {
           notify("The companion sent a theme ThemeSpace couldn't read.");
         }
+      } else if (data.type === "saved" && typeof data.name === "string") {
+        notify(`${data.name} saved to ThemeSpace Companion.`);
       }
     };
     window.addEventListener("message", onMessage);
@@ -375,12 +384,18 @@ export function ThemeSpace({
     return () => window.removeEventListener("message", onMessage);
   }, [notify]);
   useEffect(() => {
-    if (companion.current && loaded)
+    if (companion.current && loaded && !draftChoice)
       window.postMessage(
         { source: "themespace-app", type: "draft", theme },
         location.origin,
       );
-  }, [theme, loaded]);
+  }, [theme, loaded, draftChoice]);
+  function sendToCompanion(source: Theme) {
+    window.postMessage(
+      { source: "themespace-app", type: "save-theme", theme: source },
+      location.origin,
+    );
+  }
   useEffect(() => {
     let active = true;
     (async () => {
@@ -657,7 +672,7 @@ export function ThemeSpace({
   // Imports wait until the workspace has opened, so they never race the saved draft.
   useEffect(() => {
     acceptImport.current = (picked: Theme) => {
-      if (!loaded) return;
+      if (!loaded || draftChoice) return;
       companionImport.current = null;
       const next = structuredClone(picked);
       next.id = `${slugify(next.name).slice(0, 48)}-${crypto.randomUUID().slice(0, 8)}`;
@@ -1434,19 +1449,32 @@ export function ThemeSpace({
                     </div>
                   </div>
                   <PreviewWorkspace theme={theme} mode={appearance} fit />
-                  <button
-                    className="text-button use-site-theme"
-                    aria-pressed={settings.themeId === "draft"}
-                    onClick={() => {
-                      followDraft(theme);
-                      notify("ThemeSpace now follows your draft as you edit.");
-                    }}
-                  >
-                    <Paintbrush size={13} />
-                    {settings.themeId === "draft"
-                      ? "Draft is live on ThemeSpace"
-                      : "Use Draft live on ThemeSpace"}
-                  </button>
+                  <div className="studio-live-actions">
+                    <button
+                      className="text-button use-site-theme"
+                      aria-pressed={settings.themeId === "draft"}
+                      onClick={() => {
+                        followDraft(theme);
+                        notify("ThemeSpace now follows your draft as you edit.");
+                      }}
+                    >
+                      <Paintbrush size={13} />
+                      {settings.themeId === "draft"
+                        ? "Draft is live on ThemeSpace"
+                        : "Use Draft live on ThemeSpace"}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button use-site-theme"
+                      aria-pressed={companionConnected}
+                      onClick={() => navigate("integrations")}
+                    >
+                      <Globe2 size={13} />
+                      {companionConnected
+                        ? "Companion synced · live draft"
+                        : "Preview on any site with Companion"}
+                    </button>
+                  </div>
                   <div className="studio-tip">
                     <Layers3 size={17} />
                     <div>
@@ -1719,6 +1747,63 @@ export function ThemeSpace({
                   </span>
                 </div>
               </div>
+              <section className="panel companion-banner" id="companion">
+                <div className="companion-banner-copy">
+                  <div className="companion-banner-head">
+                    <span className="eyebrow">
+                      BROWSER EXTENSION · CHROMIUM &amp; FIREFOX
+                    </span>
+                    <span
+                      className={`companion-status ${companionConnected ? "connected" : ""}`}
+                    >
+                      <span className="status-dot" />
+                      {companionConnected
+                        ? "Connected · syncing live draft"
+                        : "Ready to install"}
+                    </span>
+                  </div>
+                  <h2>ThemeSpace Companion</h2>
+                  <p className="subheading">
+                    Preview your Studio draft live on any website, pin themes
+                    per site, and pick up colors from websites to refine and
+                    publish in ThemeSpace.
+                  </p>
+                  <details className="companion-install">
+                    <summary>How to install</summary>
+                    <p className="small muted">
+                      <strong>Chromium (Chrome, Brave, Edge, Arc):</strong>{" "}
+                      Unzip the download, open <code>chrome://extensions</code>,
+                      enable Developer mode, and choose{" "}
+                      <strong>Load unpacked</strong>.
+                    </p>
+                    <p className="small muted">
+                      <strong>Firefox:</strong> Unzip the download, open{" "}
+                      <code>about:debugging#/runtime/this-firefox</code>, choose{" "}
+                      <strong>Load Temporary Add-on</strong> on{" "}
+                      <code>manifest.json</code>, then click{" "}
+                      <strong>Enable ThemeSpace sync</strong> in the popup.
+                    </p>
+                  </details>
+                </div>
+                <div className="companion-banner-actions">
+                  <a
+                    className="primary-button"
+                    href="/downloads/themespace-companion-chrome.zip"
+                    download="themespace-companion-chrome.zip"
+                  >
+                    <Download size={14} />
+                    Download for Chromium
+                  </a>
+                  <a
+                    className="secondary-button"
+                    href="/downloads/themespace-companion-firefox.zip"
+                    download="themespace-companion-firefox.zip"
+                  >
+                    <Download size={14} />
+                    Download for Firefox
+                  </a>
+                </div>
+              </section>
               <div className="catalog-toolbar">
                 <div className="search-field">
                   <Search size={16} />
@@ -1831,7 +1916,8 @@ export function ThemeSpace({
               <div className="collection-note">
                 Native theme, client mod, extension, or config: each integration
                 includes its own installation guide. Browser themes affect
-                browser chrome; website content needs its own integration.
+                browser chrome; use ThemeSpace Companion above to recolor
+                websites themselves.
               </div>
             </>
           )}
@@ -1905,6 +1991,15 @@ export function ThemeSpace({
                     <Paintbrush size={14} />
                     Use on ThemeSpace
                   </button>
+                  {companionConnected && (
+                    <button
+                      className="secondary-button full-width"
+                      onClick={() => sendToCompanion(detail.theme)}
+                    >
+                      <Globe2 size={14} />
+                      Save to Companion
+                    </button>
+                  )}
                   <p>{detail.theme.description}</p>
                   {detail.theme.parent && (
                     <p className="small muted">

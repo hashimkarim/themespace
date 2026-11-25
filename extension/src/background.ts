@@ -1,4 +1,4 @@
-import { parseTheme, type Theme } from "../../web/lib/theme";
+import { parseTheme, presets, type Theme } from "../../web/lib/theme";
 import { themeFromScan } from "./core/scan";
 import type {
   AppearanceChoice,
@@ -58,17 +58,21 @@ async function send<T>(tabId: number, message: EngineMessage): Promise<T> {
 const injecting = new Set<number>();
 async function ensureEngine(tabId: number) {
   try {
-    await send(tabId, { type: "ts:status" });
+    const status = await send<EngineStatus | undefined>(tabId, {
+      type: "ts:status",
+    });
+    if (status && typeof status.applied === "boolean") return;
   } catch {
-    injecting.add(tabId);
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        files: [ENGINE],
-      });
-    } finally {
-      injecting.delete(tabId);
-    }
+    /* engine not injected yet */
+  }
+  injecting.add(tabId);
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: [ENGINE],
+    });
+  } finally {
+    injecting.delete(tabId);
   }
 }
 
@@ -132,6 +136,13 @@ async function library(): Promise<Library> {
       } catch {
         /* skip invalid rows */
       }
+  for (const preset of presets)
+    themes.push({
+      id: `preset-${preset.id}`,
+      theme: preset,
+      version: 1,
+      preset: true,
+    });
   return {
     server: base,
     user: session.status === "fulfilled" ? session.value.user : null,
@@ -140,7 +151,7 @@ async function library(): Promise<Library> {
     community: themes,
     communityError:
       community.status === "rejected"
-        ? "Couldn't reach ThemeSpace."
+        ? "Offline — showing starter palettes."
         : undefined,
   };
 }
@@ -185,7 +196,10 @@ async function tabState(tabId: number): Promise<TabState> {
   const preview = (await previews())[tabId];
   let status: EngineStatus | null = null;
   try {
-    status = await send<EngineStatus>(tabId, { type: "ts:status" });
+    const reply = await send<EngineStatus | undefined>(tabId, {
+      type: "ts:status",
+    });
+    if (reply && typeof reply.applied === "boolean") status = reply;
   } catch {
     /* engine not injected yet */
   }
@@ -195,7 +209,11 @@ async function tabState(tabId: number): Promise<TabState> {
     status,
     assignment: origin ? (sites[origin] ?? null) : null,
     preview: preview
-      ? { ref: preview.ref, appearance: preview.appearance }
+      ? {
+          ref: preview.ref,
+          theme: preview.theme,
+          appearance: preview.appearance,
+        }
       : null,
   };
 }
@@ -237,12 +255,26 @@ async function openForPublish(theme: Theme) {
   const base = await server();
   const [existing] = await chrome.tabs.query({ url: `${base}/*` });
   if (existing?.id) {
+    await chrome.tabs.update(existing.id, { active: true });
+    if (existing.windowId)
+      await chrome.windows.update(existing.windowId, { focused: true });
+    // Deliver directly when the editor is already live, preserving undo history.
+    try {
+      const reply = (await chrome.tabs.sendMessage(existing.id, {
+        type: "ts:import",
+        theme,
+      })) as { handled?: boolean } | undefined;
+      if (reply?.handled) {
+        await chrome.storage.session.remove("pendingImport");
+        return;
+      }
+    } catch {
+      /* tab hasn't loaded the bridge yet; fall back to navigation */
+    }
     await chrome.tabs.update(existing.id, {
       active: true,
       url: `${base}/?companion=import`,
     });
-    if (existing.windowId)
-      await chrome.windows.update(existing.windowId, { focused: true });
   } else await chrome.tabs.create({ url: `${base}/?companion=import` });
 }
 
@@ -323,6 +355,17 @@ async function handle(
     case "publish":
       await openForPublish(parseTheme(message.theme));
       return null;
+    case "save-from-app": {
+      if (!(await fromServer(sender))) return null;
+      const theme = parseTheme(message.theme);
+      const picked = ((await local("picked")) ?? []).filter(
+        (t) => t.id !== theme.id,
+      );
+      await chrome.storage.local.set({
+        picked: [theme, ...picked].slice(0, 40),
+      });
+      return theme.name;
+    }
     case "engine-ready": {
       // A page loaded with the engine: show its pinned theme unless a preview overrides it.
       const tabId = sender.tab?.id;

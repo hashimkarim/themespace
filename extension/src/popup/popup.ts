@@ -92,7 +92,9 @@ function entries(): ThemeEntry[] {
   return library.community.map((row) => ({
     ref: { kind: "public", id: row.id },
     theme: row.theme,
-    detail: `${row.theme.author} · v${row.version}`,
+    detail: row.preset
+      ? "Starter palette"
+      : `${row.theme.author} · v${row.version}`,
   }));
 }
 
@@ -204,11 +206,22 @@ function renderSite() {
 function renderAccount() {
   const account = $<HTMLAnchorElement>("account");
   const base = library?.server ?? "https://themespace.app";
-  account.href = library?.user ? base : `${base}/account/sign-in`;
+  account.href = library?.user ? `${base}/account` : `${base}/account/sign-in`;
   account.textContent = library?.user
-    ? library.user.name || library.user.email || "Signed in"
+    ? library.user.displayName ||
+      library.user.name ||
+      library.user.email ||
+      "Signed in"
     : "Sign in";
   $("server-label").textContent = `Synced with ${new URL(base).host}`;
+  void chrome.permissions
+    .contains({ origins: [sitePattern(base)] })
+    .then((granted) => {
+      $("sync-grant").hidden = granted;
+    })
+    .catch(() => {
+      $("sync-grant").hidden = true;
+    });
 }
 function renderPicked() {
   $("picked-result").hidden = !picked;
@@ -236,8 +249,12 @@ async function preview(entry: ThemeEntry) {
 
 async function refreshTab() {
   state = await call<TabState>({ type: "tab-state", tabId });
-  if (state.assignment && !current)
-    current = { ref: state.assignment.ref, theme: state.assignment.theme };
+  if (!current) {
+    if (state.preview)
+      current = { ref: state.preview.ref, theme: state.preview.theme };
+    else if (state.assignment)
+      current = { ref: state.assignment.ref, theme: state.assignment.theme };
+  }
   if (state.preview) appearance = state.preview.appearance;
   else if (state.assignment) appearance = state.assignment.appearance;
   renderSite();
@@ -302,6 +319,13 @@ $("pin").addEventListener(
           true,
         );
       }
+      // Re-run assign now that permission is granted so the pinned script registers immediately.
+      await call({
+        type: "assign",
+        origin: state.origin,
+        assignment: { ref: current.ref, theme: current.theme, appearance },
+      });
+      if (!state.status?.applied) await preview(current);
       toast(
         `${current.theme.name} will load on ${new URL(state.origin).host}.`,
       );
@@ -345,6 +369,21 @@ $("publish-picked").addEventListener(
     await call({ type: "publish", theme: picked });
   }),
 );
+$("grant-sync").addEventListener(
+  "click",
+  guard(async () => {
+    const base = library?.server ?? "https://themespace.app";
+    const granted = await chrome.permissions.request({
+      origins: [sitePattern(base)],
+    });
+    if (!granted) {
+      return toast("ThemeSpace needs permission to sync your account and draft.", true);
+    }
+    $("sync-grant").hidden = true;
+    await refresh();
+    toast("ThemeSpace sync enabled.");
+  }),
+);
 $("server-change")?.addEventListener(
   "click",
   guard(async () => {
@@ -357,6 +396,22 @@ $("server-change")?.addEventListener(
     await refresh();
   }),
 );
+
+function pickInitialTab() {
+  if (current) {
+    tab =
+      current.ref.kind === "public"
+        ? "community"
+        : current.ref.kind;
+  } else if (library?.studio) {
+    tab = "studio";
+  } else if (library?.picked.length) {
+    tab = "picked";
+  } else {
+    tab = "community";
+  }
+  renderList();
+}
 
 guard(async () => {
   const [active] = await chrome.tabs.query({
@@ -371,13 +426,11 @@ guard(async () => {
     tabId = forced;
     await refreshTab();
     await refresh();
+    pickInitialTab();
     return;
   }
   tabId = active?.id ?? -1;
   await refreshTab();
   await refresh();
-  if (!library?.studio && library?.picked.length) {
-    tab = "picked";
-    renderList();
-  }
+  pickInitialTab();
 })();

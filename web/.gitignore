@@ -38,5 +38,6 @@ next-env.d.ts
 /outputs/
 /work/
 /.data/
+/public/downloads/
 
 *.tsbuildinfo

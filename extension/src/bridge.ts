@@ -14,6 +14,7 @@ import {
 const post = (message: BridgeToApp) =>
   window.postMessage(message, location.origin);
 let draftTimer: ReturnType<typeof setTimeout> | undefined;
+let pageReady = false;
 
 window.addEventListener("message", async (event: MessageEvent<AppToBridge>) => {
   // Only the ThemeSpace page itself, never frames or other windows.
@@ -21,17 +22,38 @@ window.addEventListener("message", async (event: MessageEvent<AppToBridge>) => {
   const data = event.data;
   if (!data || typeof data !== "object" || data.source !== BRIDGE_APP) return;
   if (data.type === "ready") {
+    pageReady = true;
     post({ source: BRIDGE_EXTENSION, type: "hello" });
     const reply = await chrome.runtime.sendMessage({ type: "take-import" });
     if (reply?.ok && reply.value)
       post({ source: BRIDGE_EXTENSION, type: "import", theme: reply.value });
   } else if (data.type === "draft") {
+    pageReady = true;
     clearTimeout(draftTimer);
     draftTimer = setTimeout(() => {
       chrome.runtime
         .sendMessage({ type: "studio-draft", theme: data.theme })
         .catch(() => {});
     }, 150);
+  } else if (data.type === "save-theme") {
+    pageReady = true;
+    const reply = await chrome.runtime
+      .sendMessage({ type: "save-from-app", theme: data.theme })
+      .catch(() => null);
+    if (reply?.ok && typeof reply.value === "string")
+      post({ source: BRIDGE_EXTENSION, type: "saved", name: reply.value });
   }
+});
+chrome.runtime.onMessage.addListener((message, _sender, reply) => {
+  if (message?.type === "ts:import") {
+    if (!pageReady) {
+      reply({ handled: false });
+      return false;
+    }
+    post({ source: BRIDGE_EXTENSION, type: "import", theme: message.theme });
+    reply({ handled: true });
+    return false;
+  }
+  return false;
 });
 post({ source: BRIDGE_EXTENSION, type: "hello" });

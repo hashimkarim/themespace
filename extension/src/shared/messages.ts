@@ -49,6 +49,7 @@ export type BackgroundMessage =
   | { type: "delete-picked"; id: string }
   | { type: "assign"; origin: string; assignment: SiteAssignment | null }
   | { type: "publish"; theme: Theme }
+  | { type: "save-from-app"; theme: Theme }
   | { type: "engine-ready" }
   | { type: "studio-draft"; theme: Theme }
   | { type: "take-import" }
@@ -56,10 +57,15 @@ export type BackgroundMessage =
 
 export type Library = {
   server: string;
-  user: { name?: string; email?: string } | null;
+  user: {
+    id?: string;
+    displayName?: string;
+    name?: string;
+    email?: string;
+  } | null;
   studio: { theme: Theme; at: string; live: boolean } | null;
   picked: Theme[];
-  community: { id: string; theme: Theme; version: number }[];
+  community: { id: string; theme: Theme; version: number; preset?: boolean }[];
   communityError?: string;
 };
 export type TabState = {
@@ -67,7 +73,11 @@ export type TabState = {
   supported: boolean;
   status: EngineStatus | null;
   assignment: SiteAssignment | null;
-  preview: { ref: ThemeRef; appearance: AppearanceChoice } | null;
+  preview: {
+    ref: ThemeRef;
+    theme: Theme;
+    appearance: AppearanceChoice;
+  } | null;
 };
 
 /** window.postMessage protocol between themespace.app and the bridge script. */
@@ -75,10 +85,12 @@ export const BRIDGE_APP = "themespace-app";
 export const BRIDGE_EXTENSION = "themespace-companion";
 export type AppToBridge =
   | { source: typeof BRIDGE_APP; type: "ready" }
-  | { source: typeof BRIDGE_APP; type: "draft"; theme: unknown };
+  | { source: typeof BRIDGE_APP; type: "draft"; theme: unknown }
+  | { source: typeof BRIDGE_APP; type: "save-theme"; theme: unknown };
 export type BridgeToApp =
   | { source: typeof BRIDGE_EXTENSION; type: "hello" }
-  | { source: typeof BRIDGE_EXTENSION; type: "import"; theme: Theme };
+  | { source: typeof BRIDGE_EXTENSION; type: "import"; theme: Theme }
+  | { source: typeof BRIDGE_EXTENSION; type: "saved"; name: string };
 
 /**
  * Match pattern for a pinned site. Match patterns can't carry ports in every

@@ -1,13 +1,32 @@
 // Builds unpacked extensions for Chromium (dist/chrome) and Firefox (dist/firefox).
+// Pass --pack [dir] to also write zip archives (themespace-companion-{chrome,firefox}.zip).
 import { build, context } from "esbuild";
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import {
+  cp,
+  mkdir,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { deflateRawSync } from "node:zlib";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const watch = process.argv.includes("--watch");
 // Development builds also sync with local ThemeSpace servers and expose test hooks.
 const dev = watch || process.argv.includes("--dev");
+const packArg = process.argv.findIndex((a) => a === "--pack");
+const packDir =
+  packArg !== -1
+    ? resolve(
+        root,
+        process.argv[packArg + 1] && !process.argv[packArg + 1].startsWith("--")
+          ? process.argv[packArg + 1]
+          : "dist",
+      )
+    : null;
 const pkg = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 const sites = [
   "https://themespace.app/*",
@@ -84,8 +103,84 @@ async function assemble(browser) {
   return out;
 }
 
+const crcTable = new Uint32Array(256);
+for (let i = 0; i < 256; i++) {
+  let c = i;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  crcTable[i] = c >>> 0;
+}
+function crc32(buf) {
+  let crc = 0xffffffff;
+  for (let i = 0; i < buf.length; i++)
+    crc = crcTable[(crc ^ buf[i]) & 0xff] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+}
+async function collectFiles(dir) {
+  const out = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...(await collectFiles(full)));
+    else if (entry.isFile()) out.push(full);
+  }
+  return out.sort();
+}
+async function writeZip(srcDir, destFile) {
+  const files = await collectFiles(srcDir);
+  const locals = [];
+  const centrals = [];
+  let offset = 0;
+  for (const file of files) {
+    const name = Buffer.from(relative(srcDir, file).replace(/\\/g, "/"), "utf8");
+    const raw = await readFile(file);
+    const data = deflateRawSync(raw, { level: 9 });
+    const crc = crc32(raw);
+    const local = Buffer.alloc(30 + name.length);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0x0800, 6);
+    local.writeUInt16LE(8, 8);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(data.length, 18);
+    local.writeUInt32LE(raw.length, 22);
+    local.writeUInt16LE(name.length, 26);
+    name.copy(local, 30);
+    locals.push(local, data);
+    const central = Buffer.alloc(46 + name.length);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(0x0800, 8);
+    central.writeUInt16LE(8, 10);
+    central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(data.length, 20);
+    central.writeUInt32LE(raw.length, 24);
+    central.writeUInt16LE(name.length, 28);
+    central.writeUInt32LE(offset, 42);
+    name.copy(central, 46);
+    centrals.push(central);
+    offset += local.length + data.length;
+  }
+  const centralSize = centrals.reduce((n, b) => n + b.length, 0);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(files.length, 8);
+  eocd.writeUInt16LE(files.length, 10);
+  eocd.writeUInt32LE(centralSize, 12);
+  eocd.writeUInt32LE(offset, 16);
+  await mkdir(dirname(destFile), { recursive: true });
+  await writeFile(destFile, Buffer.concat([...locals, ...centrals, eocd]));
+}
+
 for (const browser of ["chrome", "firefox"]) {
   const outdir = await assemble(browser);
   if (watch) await (await context({ ...options, outdir })).watch();
-  else await build({ ...options, outdir });
+  else {
+    await build({ ...options, outdir });
+    if (packDir) {
+      await writeZip(
+        outdir,
+        join(packDir, `themespace-companion-${browser}.zip`),
+      );
+    }
+  }
 }

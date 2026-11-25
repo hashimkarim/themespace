@@ -24,13 +24,22 @@ const colorProps: [string, Channel][] = [
   ["border-left-color", "border"],
   ["outline-color", "border"],
   ["text-decoration-color", "text"],
+  ["-webkit-text-fill-color", "text"],
 ];
 const svgProps: [string, Channel][] = [
   ["fill", "text"],
   ["stroke", "text"],
 ];
+/** Color values inside a computed gradient. */
+const colorFunction =
+  /(?:rgba?|hsla?|lab|lch|oklab|oklch|color)\([^()]*\)|#[0-9a-f]{3,8}\b/gi;
 /** Inherited properties: a value equal to the parent's is inheritance, not a choice. */
-const inherited = new Set(["color", "fill", "stroke"]);
+const inherited = new Set([
+  "color",
+  "fill",
+  "stroke",
+  "-webkit-text-fill-color",
+]);
 
 /**
  * Recolors the page in place.
@@ -47,9 +56,15 @@ class Engine {
   private sample: ScanSample | null = null;
   private scan: ScanResult | null = null;
   /** Original computed value per element and property, for everything we changed. */
-  private originals = new Map<Element, Map<string, string>>();
+  // Weakly held, so elements the site removes are collected even on pages open for hours.
+  private originals = new WeakMap<Element, Map<string, string>>();
   /** The element's own inline value before we touched it. */
-  private saved = new Map<Element, Map<string, Saved>>();
+  private saved = new WeakMap<Element, Map<string, Saved>>();
+  /** Every element we changed, for revert. */
+  private touched = new Set<WeakRef<Element>>();
+  private refs = new WeakMap<Element, WeakRef<Element>>();
+  /** The values we set, to tell our own style writes from the site's. */
+  private applied = new WeakMap<Element, Map<string, string>>();
   private rootSaved = new Map<string, Saved>();
   private observer: MutationObserver | null = null;
   private remap: Remap | null = null;
@@ -59,6 +74,16 @@ class Engine {
   private queue = new Set<Element>();
   private scheduled = false;
   private calm: CSSStyleSheet | null = null;
+  private canvas: string | null = null;
+
+  private canvasColor() {
+    for (const el of [document.documentElement, document.body]) {
+      if (!el) continue;
+      const c = toRgba(getComputedStyle(el).backgroundColor);
+      if (c && c.alpha >= 0.9) return c.hex;
+    }
+    return "#ffffff";
+  }
 
   /** The site's own colors, read before any theme touches them. */
   siteSample() {
@@ -74,7 +99,8 @@ class Engine {
     }
     const scan = this.scan!;
     const remap = (this.remap = planRemap(scan, theme, appearance));
-    this.setRoot("color-scheme", remap.appearance);
+    // Never touch color-scheme: it re-resolves the site's own light-dark() colors
+    // underneath us. Scrollbars are themed directly instead.
     const formats = this.sample.tokenFormats ?? {};
     this.tokenColors.clear();
     for (const [name, value] of Object.entries(remap.tokens)) {
@@ -84,9 +110,18 @@ class Engine {
     const tier = scan.tokens.some((t) => t.role === "background")
       ? "tokens"
       : "computed";
-    // Pages that paint nothing show the browser canvas; give it the theme's page color.
-    const page = scan.anchors.find((a) => a.role === "background")!.color;
-    this.setRoot("background-color", remap.color(page, "bg"));
+    // Recolor the canvas itself: html's background, else body's, else the browser's white.
+    this.canvas ??= this.canvasColor();
+    this.setRoot("background-color", remap.color(this.canvas, "bg"));
+    const track = remap.color(this.canvas, "bg");
+    const text = scan.anchors.find((x) => x.role === "foreground")?.color;
+    if (text)
+      this.setRoot(
+        "scrollbar-color",
+        `${mixHex(remap.color(text, "text"), track, 0.55)} ${track}`,
+      );
+    // <html> too: sites often set their text color there. Its background is the canvas, above.
+    this.queue.add(document.documentElement);
     for (const el of allElements(document.body ?? document.documentElement))
       this.queue.add(el);
     this.flush();
@@ -94,9 +129,17 @@ class Engine {
       this.observer = new MutationObserver((records) => {
         for (const record of records) {
           if (record.type === "attributes") {
-            // The site changed this element's styling: its originals are stale.
-            this.restore(record.target as Element);
-            this.queue.add(record.target as Element);
+            const el = record.target as Element;
+            if (record.attributeName === "class") {
+              // The site restyled this element: its originals are stale.
+              this.restore(el);
+              this.queue.add(el);
+            } else if (!this.intact(el)) {
+              // The site rewrote the style attribute and dropped our values. Start over
+              // from what it set; there's nothing of ours left to put back.
+              this.forget(el);
+              this.queue.add(el);
+            }
           }
           for (const node of record.addedNodes)
             if (node instanceof Element)
@@ -108,7 +151,7 @@ class Engine {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ["class"],
+        attributeFilter: ["class", "style"],
       });
     }
     this.status = { applied: true, label, appearance: remap.appearance, tier };
@@ -154,6 +197,9 @@ class Engine {
 
   /** Recolor queued elements in slices so large pages stay responsive. */
   private flush() {
+    if (this.touched.size > 20_000)
+      for (const ref of this.touched)
+        if (!ref.deref()) this.touched.delete(ref);
     const started = performance.now();
     for (const el of this.queue) {
       this.queue.delete(el);
@@ -214,16 +260,22 @@ class Engine {
       el instanceof SVGElement ? [...colorProps, ...svgProps] : colorProps;
     const changes = new Map<string, { from: string; to: string | null }>();
     for (const [prop, channel] of props) {
+      if (prop === "background-color" && el === document.documentElement)
+        continue;
       const value = this.original(el, style, prop);
       if (!value || value === "none" || value.startsWith("url(")) continue;
       // Inherited from a parent we've already recolored (or will): nothing to do here.
       if (
         !own?.has(prop) &&
-        inherited.has(prop) &&
-        parentStyle?.getPropertyValue(prop) === value
+        parentStyle?.getPropertyValue(prop) === value &&
+        // Also `background: inherit` and friends: a value we just set on the parent.
+        (inherited.has(prop) ||
+          (parent && this.originals.get(parent)?.has(prop)))
       )
         continue;
       // Borders, outlines, and underlines that follow currentColor track the text color.
+      // Text fill and underlines that follow currentColor track the text color.
+      if (prop === "-webkit-text-fill-color" && value === ownColor) continue;
       if (
         prop !== "color" &&
         prop !== "background-color" &&
@@ -254,6 +306,24 @@ class Engine {
             ? null
             : formatColor({ hex: next, alpha: color.alpha }),
       });
+    }
+    // Gradients are colors too: recolor their stops, leave images alone.
+    const image = this.original(el, style, "background-image");
+    if (image.includes("gradient(") && !image.includes("url(")) {
+      // Gradient text (background-clip: text) is text, not a backdrop.
+      const clipped =
+        style.getPropertyValue("background-clip") === "text" ||
+        style.getPropertyValue("-webkit-background-clip") === "text";
+      let moved = false;
+      const next = image.replace(colorFunction, (match) => {
+        const c = toRgba(match);
+        if (!c) return match;
+        const hex = remap.color(c.hex, clipped ? "text" : "bg");
+        if (hex === c.hex) return match;
+        moved = true;
+        return formatColor({ hex, alpha: c.alpha });
+      });
+      changes.set("background-image", { from: image, to: moved ? next : null });
     }
     for (const [prop, { from, to }] of changes) {
       if (to === null) this.restoreProp(el, prop);
@@ -304,13 +374,40 @@ class Engine {
     if (!originals) this.originals.set(el, (originals = new Map()));
     if (!originals.has(prop)) originals.set(prop, original);
     let saved = this.saved.get(el);
-    if (!saved) this.saved.set(el, (saved = new Map()));
+    if (!saved) {
+      this.saved.set(el, (saved = new Map()));
+      if (!this.refs.has(el)) {
+        const ref = new WeakRef<Element>(el);
+        this.refs.set(el, ref);
+        this.touched.add(ref);
+      }
+    }
     if (!saved.has(prop))
       saved.set(prop, {
         value: el.style.getPropertyValue(prop),
         priority: el.style.getPropertyPriority(prop),
       });
     el.style.setProperty(prop, value, "important");
+    let applied = this.applied.get(el);
+    if (!applied) this.applied.set(el, (applied = new Map()));
+    // Store the browser's serialization, which is what we'll read back.
+    applied.set(prop, el.style.getPropertyValue(prop));
+  }
+
+  /** Whether every value we set on this element is still there (our own writes are). */
+  private intact(el: Element) {
+    const applied = this.applied.get(el);
+    if (!applied || !(el instanceof HTMLElement || el instanceof SVGElement))
+      return true;
+    for (const [prop, value] of applied)
+      if (el.style.getPropertyValue(prop) !== value) return false;
+    return true;
+  }
+
+  private forget(el: Element) {
+    this.saved.delete(el);
+    this.originals.delete(el);
+    this.applied.delete(el);
   }
 
   private restoreProp(el: Element, prop: string) {
@@ -321,13 +418,13 @@ class Engine {
     else el.style.removeProperty(prop);
     this.saved.get(el)!.delete(prop);
     this.originals.get(el)?.delete(prop);
+    this.applied.get(el)?.delete(prop);
   }
 
   private restore(el: Element) {
     for (const prop of [...(this.saved.get(el)?.keys() ?? [])])
       this.restoreProp(el, prop);
-    this.saved.delete(el);
-    this.originals.delete(el);
+    this.forget(el);
   }
 
   /** Remove every change and forget what we read. */
@@ -335,7 +432,12 @@ class Engine {
     this.observer?.disconnect();
     this.observer = null;
     this.queue.clear();
-    for (const el of [...this.saved.keys()]) this.restore(el);
+    for (const ref of this.touched) {
+      const el = ref.deref();
+      if (el) this.restore(el);
+    }
+    this.touched.clear();
+    this.refs = new WeakMap();
     const root = document.documentElement.style;
     for (const [prop, s] of this.rootSaved) {
       if (s.value) root.setProperty(prop, s.value, s.priority);
@@ -346,6 +448,7 @@ class Engine {
     this.remap = null;
     this.sample = null;
     this.scan = null;
+    this.canvas = null;
   }
 
   revert() {

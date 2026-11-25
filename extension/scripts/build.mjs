@@ -6,11 +6,12 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const watch = process.argv.includes("--watch");
+// Development builds also sync with local ThemeSpace servers and expose test hooks.
+const dev = watch || process.argv.includes("--dev");
 const pkg = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 const sites = [
   "https://themespace.app/*",
-  "http://localhost/*",
-  "http://127.0.0.1/*",
+  ...(dev ? ["http://localhost/*", "http://127.0.0.1/*"] : []),
 ];
 
 const manifest = (browser) => ({
@@ -63,7 +64,8 @@ const options = {
   bundle: true,
   format: "iife",
   target: ["chrome116", "firefox128"],
-  minify: !watch,
+  minify: !dev,
+  define: { __DEV__: String(dev) },
   sourcemap: watch ? "inline" : false,
   logLevel: "info",
 };

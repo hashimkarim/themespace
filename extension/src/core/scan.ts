@@ -11,7 +11,7 @@ import {
   type Theme,
 } from "../../../web/lib/theme";
 import { palettesFromColors } from "../../../web/lib/palette-tools";
-import { chroma, distance } from "./color";
+import { chroma, distance, lightness } from "./color";
 
 export type Swatch = { hex: string; weight: number };
 export type Channel = "bg" | "text" | "border";
@@ -92,6 +92,11 @@ const heaviest = (
       (a, b) => (!a || b.weight > a.weight ? b : a),
       undefined,
     );
+const best = (swatches: Swatch[], score: (s: Swatch) => number) =>
+  swatches.reduce<Swatch | undefined>(
+    (a, b) => (!a || score(b) > score(a) ? b : a),
+    undefined,
+  );
 const merge = (...lists: Swatch[][]) => {
   const out = new Map<string, number>();
   for (const s of lists.flat())
@@ -137,10 +142,18 @@ export function themeFromScan(sample: ScanSample): ScanResult {
   const appearance: Appearance =
     contrast(page, "#ffffff") > contrast(page, "#000000") ? "dark" : "light";
 
-  const bodyText = merge(sample.texts.body);
+  // Neutral links (news headlines, nav) are body text in all but name.
+  const bodyText = merge(
+    sample.texts.body,
+    sample.texts.link.filter((s) => chroma(s.hex) < 0.1),
+  );
+  // The main text is both common and clearly legible, not just the most common.
   const fg =
     roles.foreground ??
-    heaviest(bodyText, (s) => contrast(s.hex, page) >= 3)?.hex ??
+    best(
+      bodyText.filter((s) => contrast(s.hex, page) >= 3),
+      (s) => s.weight * Math.min(1, contrast(s.hex, page) / 7) ** 2,
+    )?.hex ??
     readableOn(page);
   const fgWeight = bodyText.find((s) => s.hex === fg)?.weight ?? 1;
   assign("foreground", fg, "text");
@@ -148,7 +161,7 @@ export function themeFromScan(sample: ScanSample): ScanResult {
   const muted =
     roles.muted ??
     heaviest(
-      merge(sample.texts.body),
+      bodyText,
       (s) =>
         s.hex !== fg &&
         chroma(s.hex) < 0.2 &&
@@ -158,9 +171,17 @@ export function themeFromScan(sample: ScanSample): ScanResult {
     )?.hex;
   if (muted) assign("muted", muted, "text");
 
+  // Surfaces sit close to the page; a bold colored band is a brand color, not a panel.
+  const pageLight = lightness(page);
   const surface =
     roles.surface ??
-    heaviest(sample.backgrounds.surface, (s) => distance(s.hex, page) > 6)?.hex;
+    heaviest(
+      sample.backgrounds.surface,
+      (s) =>
+        distance(s.hex, page) > 6 &&
+        chroma(s.hex) < 0.15 &&
+        Math.abs(lightness(s.hex) - pageLight) < 0.25,
+    )?.hex;
   if (surface) assign("surface", surface, "bg");
   if (roles.elevated && roles.elevated !== surface)
     assign("elevated", roles.elevated, "bg");
@@ -171,12 +192,26 @@ export function themeFromScan(sample: ScanSample): ScanResult {
   if (input) assign("input", input, "bg");
 
   const link = heaviest(sample.texts.link, (s) => chroma(s.hex) >= 0.1)?.hex;
+  // Vivid beats big: a green call to action outranks a row of pale chips.
   const fill =
     roles.accentFill ??
-    heaviest(sample.backgrounds.button, (s) => chroma(s.hex) >= 0.12)?.hex ??
+    best(
+      sample.backgrounds.button.filter((s) => chroma(s.hex) >= 0.12),
+      (s) => s.weight * chroma(s.hex) ** 2,
+    )?.hex ??
     heaviest(sample.backgrounds.button, (s) => distance(s.hex, page) > 12)?.hex;
   if (fill) assign("accentFill", fill, "bg");
-  const accent = roles.accent ?? link;
+  // Without colored links, the site's most salient color is its accent.
+  const salient = best(
+    [
+      ...sample.texts.link,
+      ...sample.backgrounds.button,
+      ...sample.backgrounds.surface,
+      ...sample.texts.body,
+    ].filter((s) => chroma(s.hex) >= 0.2),
+    (s) => s.weight * chroma(s.hex) ** 2,
+  )?.hex;
+  const accent = roles.accent ?? link ?? salient;
   if (accent) assign("accent", accent, "text");
   const fillColor = fill ?? accent;
   const fillText =
@@ -193,8 +228,8 @@ export function themeFromScan(sample: ScanSample): ScanResult {
     if (roles[role])
       assign(role, roles[role], role === "focus" ? "border" : "bg");
 
-  const accentColor =
-    accent ?? fill ?? (appearance === "dark" ? "#8ab4f8" : "#2563eb");
+  // A fully monochrome site uses its text color as its accent.
+  const accentColor = accent ?? fill ?? fg;
   const palette: Palette = {
     background: page,
     surface: surface ?? mix(page, fg, 0.05),

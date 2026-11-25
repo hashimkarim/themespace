@@ -9,6 +9,9 @@ import type {
 } from "../shared/messages";
 import { sitePattern } from "../shared/messages";
 
+declare const __DEV__: boolean;
+if (!__DEV__) document.getElementById("server-change")?.remove();
+
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 type Tab = "studio" | "picked" | "community";
@@ -278,17 +281,19 @@ $("pin").addEventListener(
     const pin = $<HTMLInputElement>("pin");
     if (!state?.origin) return;
     if (pin.checked && current) {
-      // Save first: the popup can close while the permission prompt is open,
-      // and the background finishes pinning once access is granted.
-      await call({
+      // Ask for this one site only. The request must start inside the click
+      // (Firefox rejects it after an await), and the assignment is saved
+      // alongside it: the popup can close during the prompt, and the
+      // background finishes pinning once access is granted.
+      const request = chrome.permissions.request({
+        origins: [sitePattern(state.origin)],
+      });
+      const saved = call({
         type: "assign",
         origin: state.origin,
         assignment: { ref: current.ref, theme: current.theme, appearance },
       });
-      // Ask for this one site only, at the moment the user opts in.
-      const granted = await chrome.permissions.request({
-        origins: [sitePattern(state.origin)],
-      });
+      const [granted] = await Promise.all([request, saved]);
       if (!granted) {
         await call({ type: "assign", origin: state.origin, assignment: null });
         pin.checked = false;
@@ -340,7 +345,7 @@ $("publish-picked").addEventListener(
     await call({ type: "publish", theme: picked });
   }),
 );
-$("server-change").addEventListener(
+$("server-change")?.addEventListener(
   "click",
   guard(async () => {
     const next = prompt(
@@ -358,6 +363,16 @@ guard(async () => {
     active: true,
     currentWindow: true,
   });
+  // Development builds let tests point the popup at a specific tab.
+  const forced = __DEV__
+    ? Number(new URLSearchParams(location.search).get("tab"))
+    : 0;
+  if (forced) {
+    tabId = forced;
+    await refreshTab();
+    await refresh();
+    return;
+  }
   tabId = active?.id ?? -1;
   await refreshTab();
   await refresh();

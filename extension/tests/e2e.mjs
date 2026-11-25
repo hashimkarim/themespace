@@ -541,6 +541,88 @@ try {
     const lib = await call({ type: "library" });
     assert.equal(lib.studio.theme.name, "Night");
   });
+  await check(
+    "the popup drives preview, appearance, pin, scan, save, and open",
+    async () => {
+      await call({ type: "revert", tabId });
+      await call({
+        type: "assign",
+        origin: new URL(site).origin,
+        assignment: null,
+      });
+      await page.reload();
+      await call({ type: "save-picked", theme: dark });
+      const ui = await context.newPage();
+      await ui.setViewportSize({ width: 360, height: 640 });
+      await ui.goto(`chrome-extension://${id}/popup.html?tab=${tabId}`);
+      await ui.getByRole("tab", { name: "Picked up" }).click();
+      await ui.getByRole("button", { name: /Night/ }).first().click();
+      await page.waitForFunction(
+        () =>
+          getComputedStyle(document.documentElement).backgroundColor ===
+          "rgb(16, 19, 26)",
+      );
+      await ui.getByText("Night", { exact: true }).first().waitFor();
+      assert.equal(await ui.locator("#state").textContent(), "Night");
+      // Night has no light mode of its own here, so Light falls back to its default; Auto/Dark keep it dark.
+      await ui.getByRole("button", { name: "Dark" }).click();
+      assert.equal(
+        await ui
+          .getByRole("button", { name: "Dark" })
+          .getAttribute("aria-pressed"),
+        "true",
+      );
+      await ui.locator("#pin").check();
+      await ui.getByText(/loads every time you visit/).waitFor();
+      await page.reload();
+      await page.waitForFunction(
+        () =>
+          getComputedStyle(document.documentElement).backgroundColor ===
+          "rgb(16, 19, 26)",
+        null,
+        { timeout: 5000 },
+      );
+      await ui.reload();
+      await ui.locator("#pin").uncheck();
+      await ui.getByText("Pick up this site's theme").click();
+      await ui.locator("#picked-result").waitFor({ state: "visible" });
+      assert.equal(await ui.locator("#picked-name").textContent(), "127.0.0.1");
+      await ui.getByRole("button", { name: "Save" }).click();
+      await ui.getByText(/Saved 127.0.0.1/).waitFor();
+      await ui.getByRole("button", { name: "Open in ThemeSpace" }).click();
+      // ThemeSpace opens in a new tab, or reuses one that's already open.
+      let tab;
+      for (let i = 0; i < 50 && !tab; i++) {
+        await ui.waitForTimeout(100);
+        tab = context.pages().find((p) => p.url().includes("companion=import"));
+      }
+      assert.ok(tab, "a ThemeSpace tab opened for the import");
+      await tab.waitForFunction(
+        (name) =>
+          window.received?.some(
+            (m) => m.type === "import" && m.theme.name === name,
+          ),
+        "127.0.0.1",
+        { timeout: 5000 },
+      );
+      await ui.screenshot({ path: join(shots, "5b-popup-themed.png") });
+      await tab.close();
+      // Pages the extension can't theme hide every control.
+      const blank = await context.newPage();
+      await blank.goto(`chrome-extension://${id}/popup.html`);
+      const blankId = await popup.evaluate(
+        async (url) =>
+          (await chrome.tabs.query({})).find((t) => t.url === url)?.id,
+        `chrome-extension://${id}/popup.html`,
+      );
+      await ui.goto(`chrome-extension://${id}/popup.html?tab=${blankId}`);
+      await ui.locator("#unsupported").waitFor({ state: "visible" });
+      assert.equal(await ui.locator("#controls").isVisible(), false);
+      assert.equal(await ui.locator("#pickup").isVisible(), false);
+      await blank.close();
+      await ui.close();
+    },
+  );
   await popup.setViewportSize({ width: 360, height: 640 });
   await popup.goto(`chrome-extension://${id}/popup.html`);
   await popup.waitForTimeout(500);

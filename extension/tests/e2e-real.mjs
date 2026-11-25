@@ -10,6 +10,19 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 // Pixel diffs use the web app's sharp; this script is a dev tool, not a dependency.
 const sharp = createRequire(join(root, "../web/package.json"))("sharp");
+/** Share of pixels whose lightness passes a test. */
+async function share(buf, test) {
+  const x = await sharp(buf).raw().toBuffer();
+  let n = 0;
+  for (let i = 0; i < x.length; i += 3) {
+    const l =
+      (Math.max(x[i], x[i + 1], x[i + 2]) +
+        Math.min(x[i], x[i + 1], x[i + 2])) /
+      510;
+    if (test(l)) n++;
+  }
+  return n / (x.length / 3);
+}
 async function changed(a, b) {
   const [x, y] = await Promise.all(
     [a, b].map((buf) => sharp(buf).raw().toBuffer()),
@@ -35,6 +48,7 @@ const urls = process.argv.slice(2).length
       "https://en.wikipedia.org/wiki/Color",
       "https://github.com/microsoft/vscode",
       "https://ui.shadcn.com",
+      "https://linear.app",
     ];
 const ext = await mkdtemp(join(tmpdir(), "ts-ext-"));
 await cp(join(root, "dist/chrome"), ext, { recursive: true });
@@ -55,6 +69,21 @@ const night = {
     accentFill: "#c9f438",
     accentForeground: "#101320",
     border: "#2c3343",
+  },
+};
+const paper = {
+  background: "#fbf8f2",
+  surface: "#f1ece2",
+  foreground: "#22201c",
+  accent: "#9a3412",
+  muted: "#6b655c",
+  success: "#24704d",
+  warning: "#886014",
+  error: "#ad3548",
+  overrides: {
+    accentFill: "#c2410c",
+    accentForeground: "#ffffff",
+    border: "#ddd5c7",
   },
 };
 const context = await chromium.launchPersistentContext(
@@ -99,38 +128,67 @@ try {
       await page.waitForTimeout(1600);
       const churn = await changed(before, await page.screenshot());
       const scanned = await call({ type: "scan", tabId });
+      const own = scanned.defaultAppearance;
+      const p = scanned.modes[own];
+      // The site's own scan must leave it as it was (beyond what the page changes by itself).
+      await call({
+        type: "preview",
+        tabId,
+        entry: { ref: { kind: "picked", id: scanned.id }, theme: scanned },
+        appearance: "auto",
+      });
+      await page.waitForTimeout(800);
+      const identityDiff = await changed(before, await page.screenshot());
+      // Then the opposite appearance: a dark theme on light sites, a light theme on dark ones.
       const theme = structuredClone(scanned);
-      theme.id = "night";
-      theme.name = "Night";
-      theme.defaultAppearance = "dark";
-      theme.modes.dark = night;
+      theme.id = "probe";
+      theme.name = own === "light" ? "Night" : "Paper";
+      theme.defaultAppearance = own === "light" ? "dark" : "light";
+      theme.modes[theme.defaultAppearance] = own === "light" ? night : paper;
       const t0 = Date.now();
       const status = await call({
         type: "preview",
         tabId,
-        entry: { ref: { kind: "picked", id: "night" }, theme },
-        appearance: "dark",
+        entry: { ref: { kind: "picked", id: "probe" }, theme },
+        appearance: theme.defaultAppearance,
       });
       const took = Date.now() - t0;
       await page.waitForTimeout(800);
-      if (process.env.DEBUG_SELECTOR)
+      const themed = await page.screenshot({
+        path: join(shots, `${i}-${host}-b-${theme.name.toLowerCase()}.png`),
+      });
+      const wrongSide = await share(
+        themed,
+        theme.defaultAppearance === "dark" ? (l) => l > 0.75 : (l) => l < 0.25,
+      );
+      if (process.env.PROBE)
         console.log(
-          await page.evaluate((sel) => {
-            const el = document.querySelector(sel);
-            return el
-              ? `${sel}: inline="${el.getAttribute("style")}" bg=${getComputedStyle(el).backgroundColor} visible=${document.visibilityState}`
-              : "missing";
-          }, process.env.DEBUG_SELECTOR),
+          await page.evaluate(([x, y]) => {
+            const out = [];
+            for (
+              let el = document.elementFromPoint(x, y);
+              el;
+              el = el.parentElement
+            ) {
+              const s = getComputedStyle(el);
+              out.push(
+                `${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}.${[...el.classList].slice(0, 3).join(".")} bg=${s.backgroundColor} color=${s.color} fill=${s.webkitTextFillColor} inline="${(el.getAttribute("style") ?? "").slice(0, 90)}"`,
+              );
+              if (out.length > 6) break;
+            }
+            return out.join("\n");
+          }, process.env.PROBE.split(",").map(Number)),
         );
-      await page.screenshot({ path: join(shots, `${i}-${host}-b-night.png`) });
       await call({ type: "revert", tabId });
       await page.waitForTimeout(800);
       const after = await page.screenshot({
         path: join(shots, `${i}-${host}-c-reverted.png`),
       });
-      const p = scanned.modes[scanned.defaultAppearance];
       console.log(
-        `${host}: tier=${status.tier} apply=${took}ms revertDiff=${await changed(before, after)}px pageChurn=${churn}px scan=${scanned.defaultAppearance} bg=${p.background} fg=${p.foreground} accent=${p.accent} fill=${p.overrides.accentFill ?? "-"} border=${p.overrides.border ?? "-"}`,
+        `${host} [${status.tier}, ${took}ms] churn=${churn}px identity=${identityDiff}px revert=${await changed(before, after)}px ${theme.name}: ${(wrongSide * 100).toFixed(1)}% of viewport still ${own}`,
+      );
+      console.log(
+        `  picked ${own}: bg=${p.background} surface=${p.surface} fg=${p.foreground} muted=${p.muted} accent=${p.accent} fill=${p.overrides.accentFill ?? "-"} fillText=${p.overrides.accentForeground ?? "-"} border=${p.overrides.border ?? "-"}`,
       );
     } catch (error) {
       console.log(`${url}: ERROR ${error.message.split("\n")[0]}`);

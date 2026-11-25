@@ -168,3 +168,11 @@ test("a dark band stays dark under a dark theme instead of inverting", () => {
   const header = planRemap(scan, presets[0], "dark").color("#000000", "bg");
   assert.ok(parseInt(header.slice(1, 3), 16) < 60, `got ${header}`);
 });
+
+test("flipping the appearance keeps a tint's direction", () => {
+  const scan = themeFromScan(lightSite);
+  // A pale blue chip near the light surface becomes a dark, still-blue chip.
+  const chip = planRemap(scan, presets[0], "dark").color("#ddf4ff", "bg");
+  const [r, , b] = [1, 3, 5].map((i) => parseInt(chip.slice(i, i + 2), 16));
+  assert.ok(b > r, `got ${chip}`);
+});

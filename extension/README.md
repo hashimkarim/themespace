@@ -53,7 +53,8 @@ Scans stay on your device until you choose to open them in ThemeSpace.
 
 ```bash
 npm ci
-npm run build        # dist/chrome and dist/firefox
+npm run build        # release builds: dist/chrome and dist/firefox
+npm run build:dev    # also syncs with local ThemeSpace servers and enables test hooks
 npm test             # scan/apply core
 npm run e2e          # real Chromium with the extension loaded (needs Chromium)
 npm run e2e:studio -- http://localhost:5173   # against a running ThemeSpace dev server
@@ -67,8 +68,9 @@ npm run e2e:real     # apply, revert, and scan on public sites (test-only broad 
   optional, so grant it for themespace.app in the add-on's permissions for
   sync to work.
 
-To use a local ThemeSpace, choose Change in the popup footer and enter the
-dev server address. The shared theme model and palette code are bundled from
+To use a local ThemeSpace, make a development build, choose Change in the
+popup footer, and enter the dev server address. Release builds only talk to
+themespace.app. The shared theme model and palette code are bundled from
 `../web/lib`, not copied.
 
 ## Limits
@@ -79,3 +81,5 @@ dev server address. The shared theme model and palette code are bundled from
   cross-origin frames are left alone, as are backgrounds drawn by
   `::before` and `::after`.
 - Closed shadow roots can't be recolored.
+- Pinned sites show their own colors for a moment while the page loads,
+  because the engine starts once the page is ready.

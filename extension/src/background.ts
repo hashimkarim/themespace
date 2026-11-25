@@ -307,6 +307,16 @@ async function handle(
       if (message.assignment) sites[message.origin] = message.assignment;
       else delete sites[message.origin];
       await chrome.storage.local.set({ sites });
+      // Give back access to a host once nothing pinned needs it.
+      const pattern = sitePattern(message.origin);
+      if (
+        !message.assignment &&
+        !Object.keys(sites).some((o) => sitePattern(o) === pattern) &&
+        !(chrome.runtime.getManifest().host_permissions ?? []).includes(pattern)
+      )
+        await chrome.permissions
+          .remove({ origins: [pattern] })
+          .catch(() => false);
       await syncPinnedScripts();
       return sites[message.origin] ?? null;
     }

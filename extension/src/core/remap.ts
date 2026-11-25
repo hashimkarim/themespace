@@ -46,7 +46,11 @@ export function planRemap(
     const t = channels(to),
       a = channels(base),
       c = channels(from);
-    return toHex(t.map((v, i) => v + flip * (c[i] - a[i])));
+    // Flip only the lightness of the offset; the tint keeps its direction,
+    // so a bluish chip stays bluish instead of turning brown.
+    const d = c.map((v, i) => v - a[i]);
+    const grey = (d[0] + d[1] + d[2]) / 3;
+    return toHex(t.map((v, i) => v + d[i] - grey + flip * grey));
   };
   const byChannel: Record<Channel, Anchor[]> = { bg: [], text: [], border: [] };
   for (const anchor of scan.anchors) byChannel[anchor.channel].push(anchor);

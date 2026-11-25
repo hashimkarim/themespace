@@ -18,6 +18,11 @@ Browser chrome is reconstructed from the generated manifests. Each native previe
 lists its renderer, source files and limits under **About this preview**. See the
 [renderer research and coverage](docs/preview-renderers.md).
 
+The [ThemeSpace Companion](extension/) browser extension (Chromium and
+Firefox) shows other websites in your themes, previews your studio draft live
+while you edit, and picks up a website's colors as a theme you can refine and
+publish here.
+
 Explore includes six starter palettes plus actual published snapshots. Themes
 can be searched, filtered, opened, and remixed. Guest drafts persist in browser
 local storage by default; a setting limits them to the current tab. Signing in

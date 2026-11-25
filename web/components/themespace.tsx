@@ -333,6 +333,54 @@ export function ThemeSpace({
       setCatalogLoading(false);
     }
   }, []);
+  // ThemeSpace Companion (browser extension): share the live draft so it can
+  // preview it on other sites, and accept themes picked up from websites.
+  // Messages stay inside this window; the extension's bridge relays them.
+  const companion = useRef(false),
+    latestTheme = useRef(theme),
+    companionImport = useRef<Theme | null>(null),
+    acceptImport = useRef<(theme: Theme) => void>(() => {});
+  useEffect(() => {
+    latestTheme.current = theme;
+  });
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window || event.origin !== location.origin) return;
+      const data = event.data;
+      if (!data || data.source !== "themespace-companion") return;
+      if (data.type === "hello") {
+        companion.current = true;
+        window.postMessage(
+          {
+            source: "themespace-app",
+            type: "draft",
+            theme: latestTheme.current,
+          },
+          location.origin,
+        );
+      } else if (data.type === "import") {
+        try {
+          companionImport.current = parseTheme(data.theme);
+          acceptImport.current(companionImport.current);
+        } catch {
+          notify("The companion sent a theme ThemeSpace couldn't read.");
+        }
+      }
+    };
+    window.addEventListener("message", onMessage);
+    window.postMessage(
+      { source: "themespace-app", type: "ready" },
+      location.origin,
+    );
+    return () => window.removeEventListener("message", onMessage);
+  }, [notify]);
+  useEffect(() => {
+    if (companion.current && loaded)
+      window.postMessage(
+        { source: "themespace-app", type: "draft", theme },
+        location.origin,
+      );
+  }, [theme, loaded]);
   useEffect(() => {
     let active = true;
     (async () => {
@@ -606,6 +654,30 @@ export function ThemeSpace({
     );
     window.scrollTo({ top: 0, behavior: "instant" });
   }
+  // Imports wait until the workspace has opened, so they never race the saved draft.
+  useEffect(() => {
+    acceptImport.current = (picked: Theme) => {
+      if (!loaded) return;
+      companionImport.current = null;
+      const next = structuredClone(picked);
+      next.id = `${slugify(next.name).slice(0, 48)}-${crypto.randomUUID().slice(0, 8)}`;
+      next.targets = next.targets.filter((id) =>
+        exportTargets.some((t) => t.id === id),
+      );
+      dispatch({ type: "edit", theme: next });
+      navigate("studio");
+      if (new URLSearchParams(location.search).has("companion"))
+        window.history.replaceState(
+          window.history.state,
+          "",
+          location.pathname,
+        );
+      notify(
+        `Picked up ${next.name} from the companion. Review it, then publish. Undo to go back.`,
+      );
+    };
+    if (companionImport.current) acceptImport.current(companionImport.current);
+  });
   function startRemix(entry: Entry) {
     if (!loaded) {
       notify("Your workspace is still opening. Please try again in a moment.");

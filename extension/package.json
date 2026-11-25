@@ -1,0 +1,23 @@
+{
+  "name": "themespace-companion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "test": "tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "e2e": "npm run build && node tests/e2e.mjs",
+    "e2e:studio": "npm run build && node tests/e2e-studio.mjs"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.0.287",
+    "@types/jsdom": "^30.0.0",
+    "esbuild": "0.25.12",
+    "jsdom": "^30.0.1",
+    "playwright-core": "^1.59.1",
+    "tsx": "^4.23.13",
+    "typescript": "5.9.3"
+  }
+}

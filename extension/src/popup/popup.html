@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ThemeSpace Companion</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <img src="icons/icon-32.png" alt="" width="20" height="20" />
+        <strong>ThemeSpace</strong>
+      </div>
+      <a id="account" class="account" target="_blank" rel="noreferrer"
+        >Sign in</a
+      >
+    </header>
+
+    <section class="site card" id="site">
+      <div class="site-head">
+        <span class="host" id="host">This page</span>
+        <span class="state" id="state">Original colors</span>
+      </div>
+      <div class="controls" id="controls">
+        <div
+          class="segmented"
+          role="group"
+          aria-label="Appearance"
+          id="appearance"
+        >
+          <button type="button" data-appearance="auto" aria-pressed="true">
+            Auto
+          </button>
+          <button type="button" data-appearance="light" aria-pressed="false">
+            Light
+          </button>
+          <button type="button" data-appearance="dark" aria-pressed="false">
+            Dark
+          </button>
+        </div>
+        <button type="button" class="ghost" id="revert">Original</button>
+      </div>
+      <label class="pin" id="pin-row">
+        <input type="checkbox" id="pin" />
+        <span>
+          Always use this theme here
+          <small id="pin-detail">Pick a theme below first.</small>
+        </span>
+      </label>
+      <p class="unsupported" id="unsupported" hidden>
+        Browser pages can't be themed. Open a website to use ThemeSpace here.
+      </p>
+    </section>
+
+    <section class="pickup card" id="pickup">
+      <button type="button" class="primary" id="scan">
+        Pick up this site's theme
+      </button>
+      <div class="picked" id="picked-result" hidden>
+        <div class="swatches large" id="picked-swatches"></div>
+        <div class="picked-name">
+          <strong id="picked-name"></strong>
+          <span id="picked-detail"></span>
+        </div>
+        <div class="row">
+          <button type="button" class="secondary" id="save-picked">Save</button>
+          <button type="button" class="secondary" id="publish-picked">
+            Open in ThemeSpace
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <nav class="tabs" role="tablist" aria-label="Themes">
+      <button type="button" role="tab" data-tab="studio" aria-selected="true">
+        Studio
+      </button>
+      <button type="button" role="tab" data-tab="picked" aria-selected="false">
+        Picked up
+      </button>
+      <button
+        type="button"
+        role="tab"
+        data-tab="community"
+        aria-selected="false"
+      >
+        Community
+      </button>
+    </nav>
+    <ul class="list" id="list" role="tabpanel"></ul>
+
+    <footer class="foot">
+      <span id="server-label"></span>
+      <button type="button" class="link" id="server-change">Change</button>
+    </footer>
+    <p class="toast" id="toast" role="status" hidden></p>
+    <script src="popup.js"></script>
+  </body>
+</html>

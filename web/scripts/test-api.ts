@@ -403,6 +403,7 @@ try {
     "/integrations",
     "/settings",
     "/components",
+    "/privacy",
     "/account",
     "/account/sign-in",
     "/account/sign-up",

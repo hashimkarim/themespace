@@ -12,7 +12,9 @@
     "e2e:studio": "npm run build:dev && node tests/e2e-studio.mjs",
     "e2e:real": "npm run build:dev && node tests/e2e-real.mjs",
     "build:dev": "node scripts/build.mjs --dev",
-    "pack:web": "node scripts/build.mjs --pack ../web/public/downloads"
+    "pack:web": "node scripts/build.mjs --pack ../web/public/downloads",
+    "pack:store": "node scripts/build.mjs --pack dist/store --source dist/store/themespace-companion-source.zip",
+    "store:assets": "npm run build:dev && node scripts/capture-store-assets.mjs && npm run pack:store"
   },
   "devDependencies": {
     "@types/chrome": "0.0.287",

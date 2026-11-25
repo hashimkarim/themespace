@@ -27,6 +27,17 @@ const packDir =
           : "dist",
       )
     : null;
+const sourceArg = process.argv.findIndex((a) => a === "--source");
+const sourceZip =
+  sourceArg !== -1
+    ? resolve(
+        root,
+        process.argv[sourceArg + 1] &&
+          !process.argv[sourceArg + 1].startsWith("--")
+          ? process.argv[sourceArg + 1]
+          : "dist/store/themespace-companion-source.zip",
+      )
+    : null;
 const pkg = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 const sites = [
   "https://themespace.app/*",
@@ -37,6 +48,7 @@ const manifest = (browser) => ({
   manifest_version: 3,
   name: "ThemeSpace Companion",
   version: pkg.version,
+  homepage_url: "https://themespace.app",
   description:
     "See websites in your ThemeSpace themes, pick up a site's colors as a theme, and sync with themespace.app.",
   icons: {
@@ -64,6 +76,9 @@ const manifest = (browser) => ({
           gecko: {
             id: "companion@themespace.app",
             strict_min_version: "128.0",
+            data_collection_permissions: {
+              required: ["none"],
+            },
           },
         },
       }
@@ -124,14 +139,12 @@ async function collectFiles(dir) {
   }
   return out.sort();
 }
-async function writeZip(srcDir, destFile) {
-  const files = await collectFiles(srcDir);
+async function writeZipEntries(entries, destFile) {
   const locals = [];
   const centrals = [];
   let offset = 0;
-  for (const file of files) {
-    const name = Buffer.from(relative(srcDir, file).replace(/\\/g, "/"), "utf8");
-    const raw = await readFile(file);
+  for (const { name: entryName, raw } of entries) {
+    const name = Buffer.from(entryName.replace(/\\/g, "/"), "utf8");
     const data = deflateRawSync(raw, { level: 9 });
     const crc = crc32(raw);
     const local = Buffer.alloc(30 + name.length);
@@ -163,12 +176,63 @@ async function writeZip(srcDir, destFile) {
   const centralSize = centrals.reduce((n, b) => n + b.length, 0);
   const eocd = Buffer.alloc(22);
   eocd.writeUInt32LE(0x06054b50, 0);
-  eocd.writeUInt16LE(files.length, 8);
-  eocd.writeUInt16LE(files.length, 10);
+  eocd.writeUInt16LE(entries.length, 8);
+  eocd.writeUInt16LE(entries.length, 10);
   eocd.writeUInt32LE(centralSize, 12);
   eocd.writeUInt32LE(offset, 16);
   await mkdir(dirname(destFile), { recursive: true });
   await writeFile(destFile, Buffer.concat([...locals, ...centrals, eocd]));
+}
+async function writeZip(srcDir, destFile) {
+  const files = await collectFiles(srcDir);
+  const entries = [];
+  for (const file of files)
+    entries.push({ name: relative(srcDir, file), raw: await readFile(file) });
+  await writeZipEntries(entries, destFile);
+}
+async function writeSourceZip(destFile) {
+  const repoRoot = resolve(root, "..");
+  const entries = [];
+  const addFile = async (relPath) => {
+    entries.push({ name: relPath, raw: await readFile(join(repoRoot, relPath)) });
+  };
+  const addDir = async (relDir) => {
+    for (const file of await collectFiles(join(repoRoot, relDir)))
+      entries.push({
+        name: relative(repoRoot, file),
+        raw: await readFile(file),
+      });
+  };
+  for (const f of [
+    "extension/package.json",
+    "extension/package-lock.json",
+    "extension/tsconfig.json",
+    "extension/README.md",
+  ])
+    await addFile(f);
+  await addDir("extension/scripts");
+  await addDir("extension/src");
+  await addDir("extension/static");
+  await addDir("web/lib");
+  entries.push({
+    name: "BUILD.md",
+    raw: Buffer.from(
+      `# Reproducing ThemeSpace Companion (${pkg.version})\n\n` +
+        `Requirements: Node.js 22.13+ (or 24.x) and npm.\n\n` +
+        `\`\`\`bash\n` +
+        `cd extension\n` +
+        `npm ci\n` +
+        `npm run build\n` +
+        `\`\`\`\n\n` +
+        `Outputs:\n` +
+        `- Firefox: \`extension/dist/firefox/\`\n` +
+        `- Chromium: \`extension/dist/chrome/\`\n\n` +
+        `The shared theme schema and palette helpers are imported directly from \`web/lib/\`.\n`,
+      "utf8",
+    ),
+  });
+  entries.sort((a, b) => a.name.localeCompare(b.name));
+  await writeZipEntries(entries, destFile);
 }
 
 for (const browser of ["chrome", "firefox"]) {
@@ -183,4 +247,7 @@ for (const browser of ["chrome", "firefox"]) {
       );
     }
   }
+}
+if (!watch && sourceZip) {
+  await writeSourceZip(sourceZip);
 }

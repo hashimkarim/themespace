@@ -2060,7 +2060,10 @@ export function ThemeSpace({
             </span>
             <span>
               <span className="footer-dot" />
-              Built around open formats and a shared palette.
+              Built around open formats and a shared palette.{" "}
+              <Link href="/privacy" prefetch={false}>
+                Privacy
+              </Link>
             </span>
           </footer>
         </main>

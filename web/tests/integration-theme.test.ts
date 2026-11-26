@@ -376,19 +376,25 @@ test("workspace, git, slack, browser, and desktop adapters read independently ch
   );
 });
 
-test("xterm.js TUI ANSI scenes fit exact column widths without wrapping", () => {
+test("xterm.js TUI ANSI scenes fit exact column widths and row heights without wrapping", () => {
   const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
   for (const target of ["btop", "lazygit", "tmux", "zellij", "starship"]) {
     for (const cols of [56, 74, 90]) {
-      const frame = tuiAnsi(target, theme, "dark", cols);
-      const lines = frame.split("\r\n");
-      assert.ok(lines.length >= 6, `${target} has TUI lines`);
-      for (const line of lines) {
-        const visible = stripAnsi(line).length;
+      for (const rows of [12, 18, 22]) {
+        const frame = tuiAnsi(target, theme, "dark", cols, rows);
+        const lines = frame.split("\r\n");
+        assert.ok(lines.length >= 6, `${target} has TUI lines`);
         assert.ok(
-          visible <= cols,
-          `${target} at ${cols} cols overflowed (${visible} chars): ${stripAnsi(line)}`,
+          lines.length <= rows,
+          `${target} at ${rows} rows overflowed (${lines.length} lines)`,
         );
+        for (const line of lines) {
+          const visible = stripAnsi(line).length;
+          assert.ok(
+            visible <= cols,
+            `${target} at ${cols} cols overflowed (${visible} chars): ${stripAnsi(line)}`,
+          );
+        }
       }
     }
   }

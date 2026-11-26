@@ -12,26 +12,50 @@ import { exampleCode } from "@/lib/editor-preview";
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
+  Battery,
+  Bell,
+  Bluetooth,
+  Bookmark,
   BookOpen,
   Check,
   ChevronDown,
   ChevronRight,
+  Clock,
   Code2,
+  Cpu,
+  Download,
   FileCode2,
   FileText,
   Files,
   Folder,
   GitBranch,
+  GitCommitHorizontal,
+  GitPullRequest,
   Globe,
+  Hash,
+  Home,
+  Keyboard,
   LayoutGrid,
   Lock,
+  MessageSquare,
   Minus,
+  Monitor,
   MoreHorizontal,
+  Palette,
+  Paperclip,
   Plus,
+  RefreshCw,
   Search,
+  Send,
   Settings,
+  Sliders,
+  Sparkles,
   Square,
+  Tag,
   Terminal,
+  Volume2,
+  Wifi,
   X,
 } from "lucide-react";
 import { type Theme, type Appearance } from "@/lib/theme";
@@ -401,9 +425,10 @@ function Browser({
   const c = integrationTheme(theme, mode, target).roles;
   if (target === "zen") {
     const zenTabs = [
-      { title: "New Tab", url: "about:newtab" },
-      { title: "ThemeSpace Studio", url: "themespace.app" },
-      { title: "Zen Mods Docs", url: "docs.zen-browser.app" },
+      { title: "New Tab", url: "about:newtab", badge: "N" },
+      { title: "ThemeSpace Studio", url: "themespace.app", badge: "T" },
+      { title: "Zen Mods Docs", url: "docs.zen-browser.app", badge: "Z" },
+      { title: "GitHub · themespace", url: "github.com/themespace", badge: "G" },
     ];
     return (
       <div className="native-window native-browser zen zen-vertical">
@@ -420,11 +445,24 @@ function Browser({
               onChange={(e) => setUrl(e.target.value)}
             />
           </label>
-          <div className="zen-pinned">
-            {["G", "M", "D"].map((k) => (
-              <span key={k}>{k}</span>
+          <div className="zen-pinned" aria-label="Zen Essentials">
+            {[
+              { label: "Web", Icon: Globe },
+              { label: "Code", Icon: Code2 },
+              { label: "Docs", Icon: BookOpen },
+            ].map(({ label, Icon }) => (
+              <button
+                key={label}
+                type="button"
+                className="zen-essential"
+                title={label}
+                onClick={() => setResult(`Opened ${label} essential tab.`)}
+              >
+                <Icon size={14} />
+              </button>
             ))}
           </div>
+          <div className="zen-divider" />
           <div className="zen-tab-list" role="tablist" aria-label="Zen vertical tabs">
             {zenTabs.map((item, i) => (
               <button
@@ -437,39 +475,78 @@ function Browser({
                   setUrl(item.url);
                 }}
               >
-                <Globe size={12} />
-                <span>{item.title}</span>
+                <span className="zen-favicon">{item.badge}</span>
+                <span className="zen-tab-title">{item.title}</span>
               </button>
             ))}
+            <button
+              type="button"
+              className="zen-new-tab-btn"
+              onClick={() => {
+                setTab(0);
+                setUrl("about:newtab");
+              }}
+            >
+              <Plus size={12} />
+              <span>New Tab</span>
+            </button>
           </div>
           <div className="zen-rail-foot">
+            <span className="zen-ws-dots">
+              <i className="active" />
+              <i />
+              <i />
+            </span>
             <span>Zen Browser</span>
-            <Plus size={13} />
+            <Settings size={12} />
           </div>
         </aside>
-        <div className="native-browser-page native-new-tab zen-page">
-          <small>{tab === 0 ? "ZEN · ABOUT:NEWTAB" : zenTabs[tab]?.url.toUpperCase()}</small>
-          <h2>{tab === 0 ? `${theme.name} on Zen` : zenTabs[tab]?.title}</h2>
-          <p>
-            Vertical sidebar, URL bar, and built-in <code>about:</code> pages
-            styled via <code>userChrome.css</code> and <code>userContent.css</code>.
-          </p>
-          <div className="native-browser-shortcuts">
-            {[
-              ["◇", "Projects"],
-              ["☷", "Reading list"],
-              ["✳", "ThemeSpace"],
-            ].map(([icon, label]) => (
-              <button
-                key={label}
-                onClick={() => setResult(`Opened ${label} in Zen preview.`)}
-              >
-                <span>{icon}</span>
-                {label}
-              </button>
-            ))}
+        <div className="zen-viewport-shell">
+          <div className="native-browser-page native-new-tab zen-page">
+            <small>{tab === 0 ? "ZEN · ABOUT:NEWTAB" : zenTabs[tab]?.url.toUpperCase()}</small>
+            <h2>{tab === 0 ? `${theme.name} on Zen` : zenTabs[tab]?.title}</h2>
+            <p>
+              Vertical sidebar, URL bar, Essentials tiles, and built-in{" "}
+              <code>about:</code> pages styled via <code>userChrome.css</code>{" "}
+              and <code>userContent.css</code>.
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setResult(
+                  search
+                    ? `Zen search for “${search}”`
+                    : "Type to preview Zen search.",
+                );
+              }}
+            >
+              <label>
+                <Search size={15} />
+                <input
+                  aria-label="Zen new tab search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search with Zen…"
+                />
+              </label>
+            </form>
+            <div className="native-browser-shortcuts">
+              {[
+                ["◇", "Projects"],
+                ["☷", "Reading list"],
+                ["✳", "ThemeSpace"],
+              ].map(([icon, label]) => (
+                <button
+                  key={label}
+                  onClick={() => setResult(`Opened ${label} in Zen preview.`)}
+                >
+                  <span>{icon}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {result && <p aria-live="polite">{result}</p>}
           </div>
-          {result && <p aria-live="polite">{result}</p>}
         </div>
       </div>
     );
@@ -566,14 +643,24 @@ function Browser({
           <button onClick={() => setSidebar(false)}>Close sidebar</button>
         </aside>
       )}
-      <div className={target === "vivaldi" ? "vivaldi-body" : ""}>
+      <div className={target === "vivaldi" ? "vivaldi-body" : "browser-body-fill"}>
         {target === "vivaldi" && (
           <aside className="vivaldi-panel-rail" aria-label="Vivaldi web panels">
-            <span>★</span>
-            <span>↓</span>
-            <span>✎</span>
-            <span>⏱</span>
-            <span>⚙</span>
+            <span className="vivaldi-rail-btn active" title="Bookmarks">
+              <Bookmark size={14} />
+            </span>
+            <span className="vivaldi-rail-btn" title="Downloads">
+              <Download size={14} />
+            </span>
+            <span className="vivaldi-rail-btn" title="Notes">
+              <FileText size={14} />
+            </span>
+            <span className="vivaldi-rail-btn" title="History">
+              <Clock size={14} />
+            </span>
+            <span className="vivaldi-rail-btn vivaldi-rail-bottom" title="Settings">
+              <Settings size={14} />
+            </span>
           </aside>
         )}
         <div
@@ -797,43 +884,86 @@ function T3CodeWorkspace({
   const [messages, setMessages] = useState([
     {
       role: "user",
-      text: `Export ${theme.name} to T3 Code and verify terminal contrast.`,
+      text: `Export ${theme.name} to T3 Code and verify integrated terminal contrast.`,
     },
     {
       role: "work",
-      text: "Edited web/lib/exporters.ts · +64 -0 · 50 tests passed",
+      text: "Edited 2 files · +64 -8 · 50 tests passed",
+      files: ["web/lib/exporters.ts", "web/tests/exporters.test.ts"],
     },
     {
       role: "assistant",
-      text: `Generated ${theme.name} (${mode}) with all 65 T3 Code color roles and integrated terminal palette.`,
+      text: `Published ${theme.name} (${mode}) with all 65 T3 Code color roles, sidebar tokens, and 16-color integrated terminal palette.`,
     },
   ]);
   const threads = [
-    { name: "Export T3 Code theme", time: "2m", status: "done" },
-    { name: "Fix xterm ANSI wrapping", time: "18m", status: "active" },
-    { name: "Release v0.2 checklist", time: "1h", status: "done" },
+    { name: "Export T3 Code theme", time: "2m", status: "done", branch: "main", diff: ["+64", "-8"] },
+    { name: "Fix xterm ANSI wrapping", time: "18m", status: "active", branch: "feat/tui", diff: ["+112", "-24"] },
+    { name: "Release v0.2 checklist", time: "1h", status: "done", branch: "main", diff: ["+19", "-3"] },
   ];
+  const secondaryThreads = [
+    { name: "Port T3 Code palette", time: "3h", status: "done" },
+    { name: "Audit GTK 4 colors", time: "1d", status: "done" },
+  ];
+  const slug = theme.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   return (
     <div className="native-window native-t3code">
       <div className="t3-layout">
         <aside className="t3-sidebar">
-          <div className="t3-project-head">
-            <span className="t3-monogram">TS</span>
-            <b>themespace</b>
-            <small>main</small>
+          <div className="t3-sidebar-top">
+            <Dots />
+            <span className="t3-brand">T3 Code</span>
+            <button
+              type="button"
+              className="t3-icon-btn"
+              aria-label="New thread"
+              onClick={() => setThread(0)}
+            >
+              <Plus size={13} />
+            </button>
           </div>
-          <div className="t3-thread-list">
-            {threads.map((item, idx) => (
-              <button
-                key={item.name}
-                className={`t3-thread ${thread === idx ? "selected" : ""}`}
-                onClick={() => setThread(idx)}
-              >
-                <i className={`t3-dot t3-dot-${item.status}`} />
-                <span>{item.name}</span>
-                <small>{item.time}</small>
-              </button>
-            ))}
+          <div className="t3-project-group">
+            <div className="t3-project-head">
+              <span className="t3-monogram">TS</span>
+              <b>themespace</b>
+              <small>main</small>
+            </div>
+            <div className="t3-thread-list">
+              {threads.map((item, idx) => (
+                <button
+                  key={item.name}
+                  type="button"
+                  className={`t3-thread ${thread === idx ? "selected" : ""}`}
+                  onClick={() => setThread(idx)}
+                >
+                  <i className={`t3-dot t3-dot-${item.status}`} />
+                  <span>{item.name}</span>
+                  <small>{item.time}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="t3-project-group">
+            <div className="t3-project-head">
+              <span className="t3-monogram t3-monogram-alt">CT</span>
+              <b>comfy-themes</b>
+              <small>main</small>
+            </div>
+            <div className="t3-thread-list">
+              {secondaryThreads.map((item) => (
+                <div key={item.name} className="t3-thread t3-thread-muted">
+                  <i className={`t3-dot t3-dot-${item.status}`} />
+                  <span>{item.name}</span>
+                  <small>{item.time}</small>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="t3-sidebar-foot">
+            <span className="t3-env-pill">
+              <i /> Local · Connected
+            </span>
+            <Settings size={13} />
           </div>
         </aside>
         <section className="t3-main">
@@ -841,14 +971,16 @@ function T3CodeWorkspace({
             <div className="t3-header-title">
               <b>{threads[thread].name}</b>
               <span className="t3-badge">
-                <GitBranch size={10} /> main
+                <GitBranch size={10} /> {threads[thread].branch}
               </span>
               <span className="t3-diff-pill">
-                <em className="t3-add">+64</em> <em className="t3-del">-0</em>
+                <em className="t3-add">{threads[thread].diff[0]}</em>{" "}
+                <em className="t3-del">{threads[thread].diff[1]}</em>
               </span>
             </div>
             <button
-              className="native-pill-btn"
+              type="button"
+              className={`native-pill-btn ${showTerm ? "active" : ""}`}
               aria-pressed={showTerm}
               onClick={() => setShowTerm(!showTerm)}
             >
@@ -859,8 +991,19 @@ function T3CodeWorkspace({
             {messages.map((m, i) =>
               m.role === "work" ? (
                 <div key={i} className="t3-work-card">
-                  <Check size={12} />
-                  <span>{m.text}</span>
+                  <div className="t3-work-head">
+                    <Check size={12} />
+                    <b>{m.text}</b>
+                  </div>
+                  {"files" in m && m.files && (
+                    <div className="t3-work-files">
+                      {m.files.map((f) => (
+                        <span key={f} className="t3-file-chip">
+                          <FileCode2 size={10} /> {f}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div key={i} className={`t3-msg t3-msg-${m.role}`}>
@@ -868,16 +1011,35 @@ function T3CodeWorkspace({
                 </div>
               ),
             )}
-            <pre className="t3-code">
-              <code>{`{
-  "version": 1,
-  "name": "${theme.name}",
-  "appearance": "${mode}",
-  "canvas": "${r.background}",
-  "accent": "${r.accentFill}",
-  "colors": { "sidebar": "${r.sidebar}", "surface": "${r.surface}" }
-}`}</code>
-            </pre>
+            <div className="t3-code-card">
+              <div className="t3-code-head">
+                <span>{slug}.t3-theme.json</span>
+                <small>JSON</small>
+              </div>
+              <pre className="t3-code">
+                <code>
+                  <span className="syntax-comment">{"{"}</span>
+                  {"\n  "}
+                  <span className="syntax-keyword">&quot;version&quot;</span>:{" "}
+                  <span className="syntax-number">1</span>,{"\n  "}
+                  <span className="syntax-keyword">&quot;name&quot;</span>:{" "}
+                  <span className="syntax-string">&quot;{theme.name}&quot;</span>,{"\n  "}
+                  <span className="syntax-keyword">&quot;appearance&quot;</span>:{" "}
+                  <span className="syntax-string">&quot;{mode}&quot;</span>,{"\n  "}
+                  <span className="syntax-keyword">&quot;canvas&quot;</span>:{" "}
+                  <span className="syntax-string">&quot;{r.background}&quot;</span>,{"\n  "}
+                  <span className="syntax-keyword">&quot;accent&quot;</span>:{" "}
+                  <span className="syntax-string">&quot;{r.accentFill}&quot;</span>,{"\n  "}
+                  <span className="syntax-keyword">&quot;colors&quot;</span>: {"{ "}
+                  <span className="syntax-keyword">&quot;sidebar&quot;</span>:{" "}
+                  <span className="syntax-string">&quot;{r.sidebar}&quot;</span>,{" "}
+                  <span className="syntax-keyword">&quot;surface&quot;</span>:{" "}
+                  <span className="syntax-string">&quot;{r.surface}&quot;</span>
+                  {" }\n"}
+                  <span className="syntax-comment">{"}"}</span>
+                </code>
+              </pre>
+            </div>
           </div>
           <form
             className="t3-composer"
@@ -895,8 +1057,22 @@ function T3CodeWorkspace({
               onChange={(e) => setDraft(e.target.value)}
             />
             <div className="t3-composer-bar">
-              <span className="t3-model-pill">Default · Full access</span>
-              <button type="submit">Send</button>
+              <div className="t3-composer-pills">
+                <span className="t3-tool-icon" aria-hidden="true">
+                  <Paperclip size={12} />
+                </span>
+                <span className="t3-model-pill">
+                  <Sparkles size={10} /> Default
+                </span>
+                <span className="t3-model-pill">Full access</span>
+              </div>
+              <button
+                type="submit"
+                className="t3-send-btn"
+                aria-label="Send message"
+              >
+                <ArrowUp size={13} />
+              </button>
             </div>
           </form>
           {showTerm && (
@@ -926,6 +1102,8 @@ function GitClient({
   const r = integrationTheme(theme, mode, target).roles;
   const [commit, setCommit] = useState(0);
   const [branch, setBranch] = useState("main");
+  const [selectedFile, setSelectedFile] = useState(0);
+  const isSmartGit = target === "smartgit";
   const commits = [
     {
       hash: "64b0589",
@@ -933,18 +1111,21 @@ function GitClient({
       author: theme.author,
       time: "4m ago",
       lane: 0,
-      msg: `Export ${theme.name} in GitComet v2 format`,
+      msg: `Export ${theme.name} in ${isSmartGit ? "SmartGit patch" : "GitComet v2"} format`,
       files: [
         { status: "M", path: "web/lib/exporters.ts", stat: "+84 -12" },
         { status: "M", path: "web/tests/exporters.test.ts", stat: "+26 -4" },
+        { status: "A", path: "web/lib/tui-ansi.ts", stat: "+215 -0" },
       ],
-      hunk: "@@ -742,6 +742,8 @@ export function generateTarget(",
+      hunk: "@@ -742,6 +742,9 @@ generateTarget(",
       lines: [
-        { n1: "742", n2: "742", kind: "ctx", text: '  schema_version: 2,' },
-        { n1: "743", n2: "", kind: "del", text: `  background: "#1c1f26",` },
+        { n1: "742", n2: "742", kind: "ctx", text: "  schema_version: 2," },
+        { n1: "743", n2: "", kind: "del", text: '  background: "#1c1f26",' },
+        { n1: "744", n2: "", kind: "del", text: '  accent: "#3b82f6",' },
         { n1: "", n2: "743", kind: "add", text: `  canvas: "${r.background}ff",` },
         { n1: "", n2: "744", kind: "add", text: `  accent: "${r.accent}ff",` },
-        { n1: "744", n2: "745", kind: "ctx", text: "  radii: { panel: 10, pill: 999, row: 7 }," },
+        { n1: "", n2: "745", kind: "add", text: `  surface: "${r.surface}ff",` },
+        { n1: "745", n2: "746", kind: "ctx", text: "  radii: { panel: 10, pill: 999 }," },
       ],
     },
     {
@@ -999,6 +1180,20 @@ function GitClient({
         { n1: "", n2: "1691", kind: "add", text: 'const FIREFOX_AMO_URL = "https://addons.mozilla.org/firefox/addon/themespace-companion/";' },
       ],
     },
+    {
+      hash: "8c0a12d",
+      branch: "main",
+      author: theme.author,
+      time: "1d ago",
+      lane: 0,
+      msg: "Release ThemeSpace v0.2.0 presets & docs",
+      files: [{ status: "M", path: "README.md", stat: "+42 -11" }],
+      hunk: "@@ -1,3 +1,5 @@ # ThemeSpace",
+      lines: [
+        { n1: "1", n2: "1", kind: "ctx", text: "# ThemeSpace" },
+        { n1: "", n2: "2", kind: "add", text: "Design once. Export native themes for 47 apps." },
+      ],
+    },
   ];
   const active = commits[commit];
   const laneColors = [
@@ -1006,20 +1201,46 @@ function GitClient({
     r.chart2 ?? r.success,
     r.chart3 ?? r.warning,
   ];
+  const rowH = 34;
   return (
-    <div className="native-window native-git">
-      <div className="native-titlebar">
+    <div className={`native-window native-git ${isSmartGit ? "git-smartgit" : "git-gitcomet"}`}>
+      <div className="native-titlebar git-titlebar">
         <Dots />
-        <span>
-          {previewProfiles[target].label} — themespace
-        </span>
+        <div className="git-repo-tabs">
+          <span className="git-repo-tab active">
+            <GitBranch size={11} /> themespace
+          </span>
+          <span className="git-repo-tab">comfy-themes</span>
+        </div>
+        <div className="git-toolbar-actions">
+          <span className="git-tool-pill">
+            <RefreshCw size={11} /> Fetch
+          </span>
+          <span className="git-tool-pill">
+            <Download size={11} /> Pull
+          </span>
+          <span className="git-tool-pill">
+            <ArrowUp size={11} /> Push ↑2
+          </span>
+          {isSmartGit && (
+            <span className="git-tool-pill">
+              <GitCommitHorizontal size={11} /> Commit
+            </span>
+          )}
+        </div>
         <span className="git-branch-pill">
           <GitBranch size={11} /> {branch}
         </span>
       </div>
       <div className="git-workbench">
         <aside className="git-refs">
-          <div className="native-section-label">BRANCHES</div>
+          <div className="git-ref-section">WORKING TREE</div>
+          <div className="git-ref-row git-wt-row">
+            <FileCode2 size={11} />
+            <span>Uncommitted</span>
+            <small className="git-wt-badge">3</small>
+          </div>
+          <div className="git-ref-section">LOCAL BRANCHES</div>
           {[
             { name: "main", badge: "↑2" },
             { name: "feat/companion", badge: "1" },
@@ -1027,6 +1248,7 @@ function GitClient({
           ].map((b) => (
             <button
               key={b.name}
+              type="button"
               className={`git-ref-row ${branch === b.name ? "selected" : ""}`}
               onClick={() => setBranch(b.name)}
             >
@@ -1035,27 +1257,62 @@ function GitClient({
               {b.badge && <small>{b.badge}</small>}
             </button>
           ))}
-          <div className="native-section-label">TAGS</div>
-          <div className="git-ref-row muted-row">v0.2.0</div>
-          <div className="git-ref-row muted-row">v0.1.0</div>
+          <div className="git-ref-section">REMOTES</div>
+          <div className="git-ref-row muted-row">
+            <GitPullRequest size={11} />
+            <span>origin/main</span>
+          </div>
+          <div className="git-ref-section">TAGS</div>
+          <div className="git-ref-row muted-row">
+            <Tag size={11} />
+            <span>v0.2.0</span>
+          </div>
+          <div className="git-ref-row muted-row">
+            <Tag size={11} />
+            <span>v0.1.0</span>
+          </div>
         </aside>
         <div className="git-main">
+          <div className="git-graph-head">
+            <span>Graph</span>
+            <span>Commit Message</span>
+            <span>Author</span>
+            <span>SHA</span>
+            <span>When</span>
+          </div>
           <div className="git-graph-table">
             <svg
               className="git-graph-svg"
-              width="52"
-              height={commits.length * 36}
-              viewBox={`0 0 52 ${commits.length * 36}`}
+              width="54"
+              height={commits.length * rowH}
+              viewBox={`0 0 54 ${commits.length * rowH}`}
               aria-hidden="true"
             >
-              <line x1="12" y1="18" x2="12" y2={commits.length * 36 - 18} stroke={laneColors[0]} strokeWidth="2" />
-              <path d="M 12 18 C 26 24, 26 42, 26 54 C 26 78, 12 108, 12 126" fill="none" stroke={laneColors[1]} strokeWidth="2" />
-              <path d="M 26 54 C 40 62, 40 78, 40 90 C 40 108, 12 118, 12 126" fill="none" stroke={laneColors[2]} strokeWidth="2" />
+              <line
+                x1="13"
+                y1={rowH / 2}
+                x2="13"
+                y2={commits.length * rowH - rowH / 2}
+                stroke={laneColors[0]}
+                strokeWidth="2"
+              />
+              <path
+                d={`M 13 ${rowH / 2} C 27 24, 27 40, 27 ${rowH * 1.5} C 27 74, 13 102, 13 ${rowH * 3.5}`}
+                fill="none"
+                stroke={laneColors[1]}
+                strokeWidth="2"
+              />
+              <path
+                d={`M 27 ${rowH * 1.5} C 41 60, 41 72, 41 ${rowH * 2.5} C 41 102, 13 112, 13 ${rowH * 3.5}`}
+                fill="none"
+                stroke={laneColors[2]}
+                strokeWidth="2"
+              />
               {commits.map((c, idx) => (
                 <circle
                   key={c.hash}
-                  cx={12 + c.lane * 14}
-                  cy={18 + idx * 36}
+                  cx={13 + c.lane * 14}
+                  cy={rowH / 2 + idx * rowH}
                   r={commit === idx ? 5 : 4}
                   fill={laneColors[c.lane]}
                   stroke={r.background}
@@ -1067,51 +1324,71 @@ function GitClient({
               {commits.map((c, idx) => (
                 <button
                   key={c.hash}
+                  type="button"
                   className={`git-row ${commit === idx ? "selected" : ""}`}
                   onClick={() => {
                     setCommit(idx);
                     setBranch(c.branch);
+                    setSelectedFile(0);
                   }}
                 >
                   <span className="git-row-msg">
-                    <b>{c.msg}</b>
                     {idx < 3 && (
                       <em
                         className="git-ref-tag"
-                        style={{ borderColor: laneColors[c.lane], color: laneColors[c.lane] }}
+                        style={{
+                          borderColor: laneColors[c.lane],
+                          color: laneColors[c.lane],
+                        }}
                       >
-                        {c.branch}
+                        {idx === 0 ? `HEAD → ${c.branch}` : c.branch}
                       </em>
                     )}
+                    <b>{c.msg}</b>
                   </span>
-                  <span className="git-row-meta">
-                    <code>{c.hash}</code>
-                    <small>{c.time}</small>
-                  </span>
+                  <span className="git-row-author">{c.author}</span>
+                  <code className="git-row-sha">{c.hash}</code>
+                  <small className="git-row-time">{c.time}</small>
                 </button>
               ))}
             </div>
           </div>
-          <section className="git-diff-pane">
-            <div className="git-files">
-              {active.files.map((f) => (
-                <span key={f.path} className={`git-file git-status-${f.status}`}>
-                  <b>{f.status}</b> {f.path} <small>{f.stat}</small>
-                </span>
+          <section className="git-diff-split">
+            <div className="git-file-list">
+              <div className="git-pane-title">
+                Changed files · {active.files.length}
+              </div>
+              {active.files.map((f, fi) => (
+                <button
+                  key={f.path}
+                  type="button"
+                  className={`git-file-row git-status-${f.status} ${selectedFile === fi ? "selected" : ""}`}
+                  onClick={() => setSelectedFile(fi)}
+                >
+                  <b>{f.status}</b>
+                  <span>{f.path.split("/").pop()}</span>
+                  <small>{f.stat}</small>
+                </button>
               ))}
             </div>
-            <div className="git-diff">
-              <div className="diff-hunk">{active.hunk}</div>
-              {active.lines.map((line, i) => (
-                <div key={i} className={`diff-line diff-${line.kind}`}>
-                  <span className="diff-ln">{line.n1}</span>
-                  <span className="diff-ln">{line.n2}</span>
-                  <span className="diff-sig">
-                    {line.kind === "add" ? "+" : line.kind === "del" ? "-" : " "}
-                  </span>
-                  <code>{line.text}</code>
-                </div>
-              ))}
+            <div className="git-diff-pane">
+              <div className="git-pane-title">
+                <span>{active.files[selectedFile]?.path ?? active.files[0].path}</span>
+                <code>{active.hash}</code>
+              </div>
+              <div className="git-diff">
+                <div className="diff-hunk">{active.hunk}</div>
+                {active.lines.map((line, i) => (
+                  <div key={i} className={`diff-line diff-${line.kind}`}>
+                    <span className="diff-ln">{line.n1}</span>
+                    <span className="diff-ln">{line.n2}</span>
+                    <span className="diff-sig">
+                      {line.kind === "add" ? "+" : line.kind === "del" ? "-" : " "}
+                    </span>
+                    <code>{line.text}</code>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         </div>
@@ -1125,19 +1402,32 @@ function SlackWorkspace({ theme }: { theme: Theme }) {
   const [reactions, setReactions] = useState<Record<string, number>>({
     "🎨": 4,
     "🚀": 2,
+    "✨": 3,
   });
   const [feed, setFeed] = useState([
     {
       initials: "MR",
       author: "Maya Ross",
       time: "10:14 AM",
-      text: `Imported the ${theme.name} 4-color Slack string — sidebar contrast and active pill look crisp.`,
+      accent: 0,
+      text: `Imported the ${theme.name} 4-color Slack string — sidebar contrast, hover highlight, and active pill look super crisp.`,
+      replies: 2,
     },
     {
       initials: "SK",
       author: "Sam Kim",
       time: "10:16 AM",
-      text: "Online presence dots and unread mention badges stand out nicely too.",
+      accent: 1,
+      text: "Online presence dots and unread mention badges stand out cleanly too. Pushed to #releases for QA.",
+      replies: 0,
+    },
+    {
+      initials: "AC",
+      author: "Alex Chen",
+      time: "10:19 AM",
+      accent: 2,
+      text: "Confirmed on macOS & Linux Slack desktop — both dark and light strings pass contrast checks.",
+      replies: 0,
     },
   ]);
   const channels = [
@@ -1145,16 +1435,22 @@ function SlackWorkspace({ theme }: { theme: Theme }) {
     { name: "design-systems", unread: 0 },
     { name: "releases", unread: 3 },
     { name: "engineering", unread: 0 },
+    { name: "themes", unread: 1 },
   ];
   const dms = [
-    { name: "Maya Ross", online: true },
-    { name: "Sam Kim", online: true },
-    { name: "Alex Chen", online: false },
+    { name: "Maya Ross", initials: "MR", online: true },
+    { name: "Sam Kim", initials: "SK", online: true },
+    { name: "Alex Chen", initials: "AC", online: false },
   ];
   return (
     <div className="native-window native-slack">
       <div className="slack-top-nav">
         <Dots />
+        <span className="slack-nav-arrows" aria-hidden="true">
+          <ArrowLeft size={13} />
+          <ArrowRight size={13} />
+          <Clock size={13} />
+        </span>
         <div className="slack-search-bar">
           <Search size={11} />
           <span>Search {theme.name}</span>
@@ -1162,67 +1458,113 @@ function SlackWorkspace({ theme }: { theme: Theme }) {
       </div>
       <div className="slack-shell">
         <nav className="slack-rail" aria-label="Slack workspace rail">
-          <span className="slack-ws-icon">{theme.name.slice(0, 2).toUpperCase()}</span>
-          <span className="slack-rail-item active">Home</span>
-          <span className="slack-rail-item">DMs</span>
-          <span className="slack-rail-item">Activity</span>
+          <span className="slack-ws-icon">
+            {theme.name.slice(0, 2).toUpperCase()}
+          </span>
+          <span className="slack-rail-item active">
+            <Home size={15} />
+            <small>Home</small>
+          </span>
+          <span className="slack-rail-item">
+            <MessageSquare size={15} />
+            <small>DMs</small>
+          </span>
+          <span className="slack-rail-item">
+            <Bell size={15} />
+            <small>Activity</small>
+          </span>
+          <span className="slack-rail-item">
+            <Bookmark size={15} />
+            <small>Later</small>
+          </span>
+          <span className="slack-rail-user">
+            YO<i className="slack-presence online" />
+          </span>
         </nav>
         <aside className="slack-sidebar">
           <div className="slack-ws">
             <b>{theme.name}</b>
             <ChevronDown size={13} />
           </div>
+          <div className="slack-quick-links">
+            <span>
+              <MessageSquare size={12} /> Threads
+            </span>
+            <span>
+              <Bell size={12} /> Unreads
+            </span>
+          </div>
           <div className="slack-section">Channels</div>
           {channels.map((ch) => (
             <button
               key={ch.name}
+              type="button"
               className={`slack-channel ${channel === ch.name ? "active" : ""}`}
               onClick={() => setChannel(ch.name)}
             >
-              <span># {ch.name}</span>
+              <span className="slack-channel-name">
+                <Hash size={12} />
+                {ch.name}
+              </span>
               {ch.unread > 0 && <em className="slack-badge">{ch.unread}</em>}
             </button>
           ))}
           <div className="slack-section">Direct messages</div>
           {dms.map((dm) => (
             <div key={dm.name} className="slack-dm">
-              <i className={`slack-presence ${dm.online ? "online" : ""}`} />
+              <span className="slack-dm-avatar">
+                {dm.initials}
+                <i className={`slack-presence ${dm.online ? "online" : ""}`} />
+              </span>
               <span>{dm.name}</span>
             </div>
           ))}
         </aside>
         <section className="slack-main">
           <div className="slack-header">
-            <b># {channel}</b>
-            <span>12 members</span>
+            <div className="slack-header-left">
+              <b># {channel}</b>
+              <small>Shared color tokens &amp; native exports</small>
+            </div>
+            <span className="slack-members-pill">12 members</span>
           </div>
           <div className="slack-messages">
             {feed.map((m, i) => (
               <div key={i} className="slack-msg">
-                <span className="slack-avatar">{m.initials}</span>
-                <div>
+                <span className={`slack-avatar slack-avatar-${m.accent}`}>
+                  {m.initials}
+                </span>
+                <div className="slack-msg-body">
                   <div className="slack-msg-head">
                     <b>{m.author}</b>
                     <small>{m.time}</small>
                   </div>
                   <p>{m.text}</p>
                   {i === 0 && (
-                    <div className="slack-reactions">
-                      {Object.entries(reactions).map(([emoji, count]) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() =>
-                            setReactions((prev) => ({
-                              ...prev,
-                              [emoji]: prev[emoji] + 1,
-                            }))
-                          }
-                        >
-                          {emoji} {count}
-                        </button>
-                      ))}
-                    </div>
+                    <>
+                      <div className="slack-reactions">
+                        {Object.entries(reactions).map(([emoji, count]) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            className="slack-reaction-pill"
+                            onClick={() =>
+                              setReactions((prev) => ({
+                                ...prev,
+                                [emoji]: prev[emoji] + 1,
+                              }))
+                            }
+                          >
+                            {emoji} {count}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="slack-thread-bar">
+                        <span className="slack-thread-avatars">SK</span>
+                        <b>{m.replies} replies</b>
+                        <small>Last reply 3m ago</small>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -1235,24 +1577,60 @@ function SlackWorkspace({ theme }: { theme: Theme }) {
               if (!draft.trim()) return;
               setFeed((prev) => [
                 ...prev,
-                { initials: "YO", author: "You", time: "Just now", text: draft },
+                {
+                  initials: "YO",
+                  author: "You",
+                  time: "Just now",
+                  accent: 0,
+                  text: draft,
+                  replies: 0,
+                },
               ]);
               setDraft("");
             }}
           >
-            <input
-              aria-label="Preview Slack message"
-              placeholder={`Message #${channel}`}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-            />
+            <div className="slack-composer-box">
+              <div className="slack-composer-fmt" aria-hidden="true">
+                <b>B</b>
+                <i>I</i>
+                <s>S</s>
+                <code>{"</>"}</code>
+              </div>
+              <input
+                aria-label="Preview Slack message"
+                placeholder={`Message #${channel}`}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+              />
+              <div className="slack-composer-foot">
+                <span className="slack-composer-tools" aria-hidden="true">
+                  <Plus size={13} />
+                  <Paperclip size={13} />
+                </span>
+                <button
+                  type="submit"
+                  className="slack-send-btn"
+                  aria-label="Send Slack message"
+                >
+                  <Send size={12} />
+                </button>
+              </div>
+            </div>
           </form>
         </section>
       </div>
     </div>
   );
 }
-function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
+function DesktopScene({
+  theme,
+  mode,
+  target,
+}: {
+  theme: Theme;
+  mode: Appearance;
+  target: string;
+}) {
   const [workspace, setWorkspace] = useState(1);
   const [focusedTile, setFocusedTile] = useState(0);
   const [query, setQuery] = useState("");
@@ -1260,37 +1638,74 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
   const [gtkNav, setGtkNav] = useState("Appearance");
   const [gtkNightLight, setGtkNightLight] = useState(true);
   const [gtkAnimations, setGtkAnimations] = useState(true);
+  const [kdeNav, setKdeNav] = useState("Colors");
   const [batLevel, setBatLevel] = useState<"normal" | "warning" | "critical">(
     "normal",
   );
 
   if (target === "gtk") {
+    const navItems = [
+      { name: "Wi-Fi", Icon: Wifi },
+      { name: "Bluetooth", Icon: Bluetooth },
+      { name: "Appearance", Icon: Palette },
+      { name: "Displays", Icon: Monitor },
+      { name: "Sound", Icon: Volume2 },
+      { name: "Keyboard", Icon: Keyboard },
+      { name: "Multitasking", Icon: Sliders },
+    ];
     return (
       <div className="native-window native-gtk">
         <div className="gtk-split">
           <aside className="gtk-sidebar">
             <div className="gtk-sidebar-top">
-              <Search size={13} />
+              <span className="gtk-tool-circle">
+                <Search size={12} />
+              </span>
               <b>Settings</b>
+              <span className="gtk-tool-circle">
+                <MoreHorizontal size={12} />
+              </span>
             </div>
-            {["Wi-Fi", "Bluetooth", "Appearance", "Displays", "Keyboard"].map(
-              (item) => (
+            <div className="gtk-nav-list">
+              {navItems.map(({ name, Icon }) => (
                 <button
-                  key={item}
-                  className={`gtk-nav-row ${gtkNav === item ? "selected" : ""}`}
-                  onClick={() => setGtkNav(item)}
+                  key={name}
+                  type="button"
+                  className={`gtk-nav-row ${gtkNav === name ? "selected" : ""}`}
+                  onClick={() => setGtkNav(name)}
                 >
-                  {item}
+                  <Icon size={14} />
+                  <span>{name}</span>
                 </button>
-              ),
-            )}
+              ))}
+            </div>
           </aside>
           <section className="gtk-pane">
             <header className="gtk-headerbar">
+              <span className="gtk-header-spacer" />
               <b>{gtkNav}</b>
-              <span className="gtk-close" aria-hidden="true">×</span>
+              <span className="gtk-close" aria-hidden="true">
+                <X size={12} />
+              </span>
             </header>
             <div className="gtk-body">
+              <div className="gtk-group-title">Style</div>
+              <div className="gtk-style-cards">
+                <div className={`gtk-style-card ${mode === "light" ? "active" : ""}`}>
+                  <div className="gtk-thumb gtk-thumb-light">
+                    <span className="gtk-thumb-win" />
+                    <span className="gtk-thumb-win small" />
+                  </div>
+                  <span>Default</span>
+                </div>
+                <div className={`gtk-style-card ${mode === "dark" ? "active" : ""}`}>
+                  <div className="gtk-thumb gtk-thumb-dark">
+                    <span className="gtk-thumb-win" />
+                    <span className="gtk-thumb-win small" />
+                  </div>
+                  <span>Dark</span>
+                </div>
+              </div>
               <div className="gtk-group-title">Preferences · {theme.name}</div>
               <div className="gtk-boxed-list">
                 <div className="gtk-row">
@@ -1311,7 +1726,7 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
                 <div className="gtk-row">
                   <div>
                     <b>Smooth Animations</b>
-                    <small>Use libadwaita transitions</small>
+                    <small>Enable libadwaita spring transitions</small>
                   </div>
                   <button
                     type="button"
@@ -1322,6 +1737,18 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
                   >
                     <i />
                   </button>
+                </div>
+                <div className="gtk-row">
+                  <div>
+                    <b>Accent Palette</b>
+                    <small>Exported via gtk-4.0/gtk.css @define-color</small>
+                  </div>
+                  <div className="gtk-swatches">
+                    <i style={{ background: "var(--gtk-accent-bg-color, var(--ts-accent-fill))" }} />
+                    <i style={{ background: "var(--ts-success)" }} />
+                    <i style={{ background: "var(--ts-warning)" }} />
+                    <i style={{ background: "var(--gtk-destructive-bg-color, var(--ts-error))" }} />
+                  </div>
                 </div>
               </div>
               <div className="gtk-actions">
@@ -1340,12 +1767,22 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
   }
 
   if (target === "kde") {
+    const kdeItems = [
+      { name: "Quick Settings", Icon: Sliders },
+      { name: "Global Theme", Icon: Monitor },
+      { name: "Colors", Icon: Palette },
+      { name: "Application Style", Icon: LayoutGrid },
+      { name: "Window Decorations", Icon: Square },
+    ];
     return (
       <div className="native-window native-kde">
         <div className="kde-stage">
           <div className="kde-window">
             <header className="kde-titlebar">
-              <span>System Settings — Colors ({theme.name})</span>
+              <span className="kde-title-left">
+                <Settings size={12} />
+                <b>{kdeNav} — System Settings</b>
+              </span>
               <span className="kde-wm-btns" aria-hidden="true">
                 <Minus size={11} />
                 <Square size={9} />
@@ -1354,26 +1791,65 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
             </header>
             <div className="kde-body">
               <aside className="kde-sidebar">
-                {["Global Theme", "Colors", "Application Style", "Window Decorations"].map(
-                  (item, i) => (
-                    <div key={item} className={`kde-nav ${i === 1 ? "selected" : ""}`}>
-                      {item}
-                    </div>
-                  ),
-                )}
+                {kdeItems.map(({ name, Icon }) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className={`kde-nav ${kdeNav === name ? "selected" : ""}`}
+                    onClick={() => setKdeNav(name)}
+                  >
+                    <Icon size={13} />
+                    <span>{name}</span>
+                  </button>
+                ))}
               </aside>
               <div className="kde-view">
-                <div className="kde-banner kde-banner-ok">
-                  Installed {theme.name}.colors to ~/.local/share/color-schemes/
+                <div className="kde-scheme-grid">
+                  <div className={`kde-scheme-card ${mode === "dark" ? "active" : ""}`}>
+                    <div className="kde-scheme-preview kde-scheme-dark">
+                      <span className="kde-mini-bar" />
+                      <div className="kde-mini-body">
+                        <i className="kde-mini-pill" />
+                        <i className="kde-mini-line" />
+                      </div>
+                    </div>
+                    <span>{theme.name} Dark</span>
+                  </div>
+                  <div className={`kde-scheme-card ${mode === "light" ? "active" : ""}`}>
+                    <div className="kde-scheme-preview kde-scheme-light">
+                      <span className="kde-mini-bar" />
+                      <div className="kde-mini-body">
+                        <i className="kde-mini-pill" />
+                        <i className="kde-mini-line" />
+                      </div>
+                    </div>
+                    <span>{theme.name} Light</span>
+                  </div>
                 </div>
-                <div className="kde-banner kde-banner-warn">
-                  Logout optional — Qt/Plasma apps update live.
+                <div className="kde-banner kde-banner-ok">
+                  <Check size={12} />
+                  <span>
+                    Installed {theme.name}.colors to ~/.local/share/color-schemes/
+                  </span>
                 </div>
                 <div className="kde-card">
-                  <b>Breeze Widget Preview</b>
+                  <div className="kde-card-head">
+                    <b>Breeze Widget Preview</b>
+                    <small>Qt 6 / Kirigami live palette</small>
+                  </div>
+                  <div className="kde-slider-row">
+                    <span>Accent strength</span>
+                    <div className="kde-slider">
+                      <i />
+                    </div>
+                  </div>
                   <div className="kde-controls">
-                    <button type="button" className="kde-btn-primary">Apply</button>
-                    <button type="button" className="kde-btn">Defaults</button>
+                    <button type="button" className="kde-btn-primary">
+                      Apply
+                    </button>
+                    <button type="button" className="kde-btn">
+                      Defaults
+                    </button>
                     <span className="kde-link">Get New Schemes…</span>
                   </div>
                 </div>
@@ -1382,54 +1858,94 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
           </div>
         </div>
         <footer className="kde-panel">
-          <span className="kde-kickoff">❖</span>
-          <span className="kde-task active">System Settings</span>
-          <span className="kde-task">Konsole</span>
-          <span className="kde-task">Dolphin</span>
-          <span className="kde-tray">Wi-Fi · 92% · 14:20</span>
+          <span className="kde-kickoff" aria-hidden="true">
+            <LayoutGrid size={14} />
+          </span>
+          <span className="kde-task active">
+            <Settings size={11} /> System Settings
+          </span>
+          <span className="kde-task">
+            <Terminal size={11} /> Konsole
+          </span>
+          <span className="kde-task">
+            <Folder size={11} /> Dolphin
+          </span>
+          <span className="kde-tray">
+            <Wifi size={11} />
+            <Volume2 size={11} />
+            <Battery size={11} />
+            <b>14:20</b>
+          </span>
         </footer>
       </div>
     );
   }
 
   if (target === "rofi") {
-    const apps = [
-      { icon: "▸", name: "Ghostty", desc: "GPU-accelerated terminal" },
-      { icon: "▸", name: "Visual Studio Code", desc: "Code editor" },
-      { icon: "▸", name: "Firefox", desc: "Web browser" },
-      { icon: "▸", name: "Obsidian", desc: "Markdown knowledge base" },
-      { icon: "▸", name: "System Settings", desc: "Appearance & display" },
-    ].filter(
+    const allApps = [
+      { Icon: Terminal, name: "Ghostty", desc: "GPU-accelerated terminal emulator" },
+      { Icon: Code2, name: "Visual Studio Code", desc: "Code editing. Redefined." },
+      { Icon: Globe, name: "Firefox", desc: "Web browser" },
+      { Icon: BookOpen, name: "Obsidian", desc: "Markdown knowledge base" },
+      { Icon: GitBranch, name: "GitComet", desc: "Native Git graph & diff client" },
+      { Icon: Sliders, name: "System Settings", desc: "Appearance, displays & themes" },
+    ];
+    const apps = allApps.filter(
       (a) =>
         a.name.toLowerCase().includes(query.toLowerCase()) ||
         a.desc.toLowerCase().includes(query.toLowerCase()),
     );
     return (
       <div className="native-window native-rofi-stage">
+        <div className="rofi-desktop-bg" aria-hidden="true">
+          <div className="rofi-bg-win rofi-bg-left" />
+          <div className="rofi-bg-win rofi-bg-right" />
+        </div>
         <div className="native-rofi rofi-centered" role="region" aria-label="Rofi launcher preview">
           <div className="rofi-inputbar">
-            <span className="rofi-prompt">drun:</span>
+            <span className="rofi-prompt">drun</span>
+            <Search size={13} className="rofi-search-icon" />
             <input
               aria-label="Filter launcher apps"
-              placeholder="Type to filter…"
+              placeholder="Search applications…"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
                 setSelectedApp(0);
               }}
             />
+            <span className="rofi-count">
+              {apps.length}/{allApps.length}
+            </span>
           </div>
-          <div className="rofi-list">
-            {apps.map((app, i) => (
-              <button
-                key={app.name}
-                className={`${selectedApp === i ? "selected" : i % 2 === 1 ? "alt" : ""}`}
-                onClick={() => setSelectedApp(i)}
-              >
-                <b>{app.name}</b>
-                <small>{app.desc}</small>
-              </button>
-            ))}
+          <div className="rofi-list-wrap">
+            <div className="rofi-list">
+              {apps.map(({ Icon, name, desc }, i) => (
+                <button
+                  key={name}
+                  type="button"
+                  className={`rofi-row ${selectedApp === i ? "selected" : i % 2 === 1 ? "alt" : ""}`}
+                  onClick={() => setSelectedApp(i)}
+                >
+                  <span className="rofi-app-icon">
+                    <Icon size={13} />
+                  </span>
+                  <span className="rofi-app-text">
+                    <b>{name}</b>
+                    <small>{desc}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="rofi-scrollbar" aria-hidden="true">
+              <i />
+            </div>
+          </div>
+          <div className="rofi-mode-bar">
+            <span className="active">drun</span>
+            <span>run</span>
+            <span>window</span>
+            <span>ssh</span>
           </div>
         </div>
       </div>
@@ -1437,11 +1953,7 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
   }
 
   if (target === "hyprland") {
-    const tiles = [
-      { title: "ghostty — ~/git/themespace", body: "$ hyprctl reload\nok\n$ echo 'active_border gradient'" },
-      { title: "nvim — hyprland.conf", body: `col.active_border = $ts_accent $ts_accent2 45deg\nrounding = ${Math.min(18, theme.style.radius)}` },
-      { title: "btop — system", body: "CPU 18%  MEM 12.4G / 32G\nClick any window to move focus" },
-    ];
+    const rVal = Math.min(18, theme.style.radius);
     return (
       <div className="native-window native-hyprland">
         <div className="native-waybar">
@@ -1449,6 +1961,7 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
             {[1, 2, 3, 4].map((ws) => (
               <button
                 key={ws}
+                type="button"
                 className={workspace === ws ? "active" : ""}
                 onClick={() => setWorkspace(ws)}
               >
@@ -1463,20 +1976,133 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
           </div>
         </div>
         <div className="hypr-grid">
-          {tiles.map((tile, idx) => (
-            <button
-              key={tile.title}
-              type="button"
-              className={`hypr-tile hypr-tile-${idx} ${focusedTile === idx ? "active" : ""}`}
-              onClick={() => setFocusedTile(idx)}
-            >
-              <span className="hypr-tile-head">
-                <b>{tile.title}</b>
-                <small>{focusedTile === idx ? "focused" : "inactive"}</small>
-              </span>
-              <pre>{tile.body}</pre>
-            </button>
-          ))}
+          <div
+            role="button"
+            tabIndex={0}
+            className={`hypr-tile-frame hypr-tile-0 ${focusedTile === 0 ? "active" : ""}`}
+            onClick={() => setFocusedTile(0)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") setFocusedTile(0);
+            }}
+          >
+            <div className="hypr-tile-inner">
+              <div className="hypr-tile-head">
+                <span className="hypr-tile-title">
+                  <Terminal size={11} /> ghostty — ~/git/themespace
+                </span>
+                <small>{focusedTile === 0 ? "active_border" : "inactive"}</small>
+              </div>
+              <div className="hypr-tile-body">
+                <p>
+                  <span className="syntax-function">~/git/themespace</span>{" "}
+                  <span className="syntax-string">main</span>{" "}
+                  <span className="syntax-keyword">❯</span> hyprctl reload
+                </p>
+                <p className="hypr-ok">ok · loaded {theme.name} ({mode})</p>
+                <p className="hypr-dim">
+                  # ~/.config/hypr/themes/{theme.name.toLowerCase().replace(/\s+/g, "-")}.conf
+                </p>
+                <p>
+                  <span className="syntax-keyword">general</span> {"{"}
+                </p>
+                <p>
+                  {"  "}border_size = <span className="syntax-number">2</span>
+                </p>
+                <p>
+                  {"  "}col.active_border ={" "}
+                  <span className="syntax-string">$accent $accent2 45deg</span>
+                </p>
+                <p>
+                  {"  "}col.inactive_border ={" "}
+                  <span className="syntax-comment">$ts_border</span>
+                </p>
+                <p>{"}"}</p>
+                <p>
+                  <span className="syntax-keyword">decoration</span> {"{"}{" "}
+                  rounding = <span className="syntax-number">{rVal}</span> {"}"}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div
+            role="button"
+            tabIndex={0}
+            className={`hypr-tile-frame hypr-tile-1 ${focusedTile === 1 ? "active" : ""}`}
+            onClick={() => setFocusedTile(1)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") setFocusedTile(1);
+            }}
+          >
+            <div className="hypr-tile-inner">
+              <div className="hypr-tile-head">
+                <span className="hypr-tile-title">
+                  <Code2 size={11} /> nvim — hyprland.conf
+                </span>
+                <small>{focusedTile === 1 ? "active_border" : "inactive"}</small>
+              </div>
+              <div className="hypr-tile-body">
+                <p>
+                  <span className="hypr-ln">1</span>{" "}
+                  <span className="syntax-keyword">source</span> ={" "}
+                  <span className="syntax-string">~/.config/hypr/theme.conf</span>
+                </p>
+                <p>
+                  <span className="hypr-ln">2</span>{" "}
+                  <span className="syntax-keyword">gaps_in</span> ={" "}
+                  <span className="syntax-number">6</span>
+                </p>
+                <p>
+                  <span className="hypr-ln">3</span>{" "}
+                  <span className="syntax-keyword">gaps_out</span> ={" "}
+                  <span className="syntax-number">12</span>
+                </p>
+                <p>
+                  <span className="hypr-ln">4</span>{" "}
+                  <span className="syntax-keyword">layout</span> ={" "}
+                  <span className="syntax-string">dwindle</span>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div
+            role="button"
+            tabIndex={0}
+            className={`hypr-tile-frame hypr-tile-2 ${focusedTile === 2 ? "active" : ""}`}
+            onClick={() => setFocusedTile(2)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") setFocusedTile(2);
+            }}
+          >
+            <div className="hypr-tile-inner">
+              <div className="hypr-tile-head">
+                <span className="hypr-tile-title">
+                  <Cpu size={11} /> btop — system
+                </span>
+                <small>{focusedTile === 2 ? "active_border" : "inactive"}</small>
+              </div>
+              <div className="hypr-tile-body hypr-bars">
+                <div className="hypr-meter-row">
+                  <span>CPU 18%</span>
+                  <div className="hypr-meter">
+                    <i style={{ width: "36%", background: "var(--ts-accent)" }} />
+                  </div>
+                </div>
+                <div className="hypr-meter-row">
+                  <span>MEM 12.4G</span>
+                  <div className="hypr-meter">
+                    <i style={{ width: "48%", background: "var(--ts-success)" }} />
+                  </div>
+                </div>
+                <div className="hypr-meter-row">
+                  <span>GPU 54°C</span>
+                  <div className="hypr-meter">
+                    <i style={{ width: "54%", background: "var(--ts-warning)" }} />
+                  </div>
+                </div>
+                <p className="hypr-dim">Click any window to move Hyprland focus</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1490,6 +2116,7 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
           {[1, 2, 3, 4, 5].map((ws) => (
             <button
               key={ws}
+              type="button"
               className={workspace === ws ? "active" : ""}
               onClick={() => setWorkspace(ws)}
             >
@@ -1499,10 +2126,17 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
         </div>
         <span className="waybar-clock">Thu 26 Nov · 14:20</span>
         <div className="waybar-modules">
-          <span>CPU 18%</span>
-          <span>Wi-Fi</span>
-          <span>VOL 74%</span>
+          <span>
+            <Cpu size={11} /> 18%
+          </span>
+          <span>
+            <Wifi size={11} /> Wi-Fi
+          </span>
+          <span>
+            <Volume2 size={11} /> 74%
+          </span>
           <button
+            type="button"
             className={`waybar-bat bat-${batLevel}`}
             title="Click to cycle battery warning/critical colors"
             onClick={() =>
@@ -1515,14 +2149,81 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
               )
             }
           >
-            BAT {batLevel === "normal" ? "92%" : batLevel === "warning" ? "18%" : "6%"}
+            <Battery size={11} />
+            {batLevel === "normal"
+              ? "92%"
+              : batLevel === "warning"
+                ? "18%"
+                : "6%"}
           </button>
         </div>
       </div>
       <div className="waybar-backdrop">
-        <div className="waybar-win">
-          <div className="waybar-win-title">ghostty — workspace {workspace}</div>
-          <pre>{`@import "./colors-${theme.defaultAppearance}.css";\nwindow#waybar { background: @surface; color: @foreground; }\n#workspaces button.active { background: @accent-fill; }`}</pre>
+        <div className="waybar-desktop-grid">
+          <div className="waybar-win">
+            <div className="waybar-win-title">
+              <FileCode2 size={12} /> ~/.config/waybar/style.css — workspace {workspace}
+            </div>
+            <pre>
+              <code>
+                <span className="syntax-keyword">@import</span>{" "}
+                <span className="syntax-string">
+                  &quot;./colors-{mode}.css&quot;
+                </span>
+                ;{"\n\n"}
+                <span className="syntax-function">window#waybar</span> {"{\n"}
+                {"  "}background: <span className="syntax-type">@surface</span>;
+                {"\n"}
+                {"  "}color: <span className="syntax-type">@foreground</span>;
+                {"\n"}
+                {"  "}border-bottom: 1px solid{" "}
+                <span className="syntax-type">@border</span>;{"\n"}
+                {"}\n\n"}
+                <span className="syntax-function">
+                  #workspaces button.active
+                </span>{" "}
+                {"{\n"}
+                {"  "}background:{" "}
+                <span className="syntax-type">@accent-fill</span>;{"\n"}
+                {"  "}color:{" "}
+                <span className="syntax-type">@accent-foreground</span>;{"\n"}
+                {"}\n\n"}
+                <span className="syntax-function">#battery.warning</span>{" "}
+                {"{ color: "}
+                <span className="syntax-type">@warning</span>
+                {"; }\n"}
+                <span className="syntax-function">#battery.critical</span>{" "}
+                {"{ color: "}
+                <span className="syntax-type">@error</span>
+                {"; }"}
+              </code>
+            </pre>
+          </div>
+          <div className="waybar-win waybar-win-term">
+            <div className="waybar-win-title">
+              <Terminal size={12} /> ghostty — waybar status
+            </div>
+            <pre>
+              <code>
+                <span className="syntax-function">❯</span> pkill -SIGUSR2 waybar
+                {"\n"}
+                <span className="syntax-string">✓</span> Reloaded style.css (
+                {theme.name}){"\n"}
+                <span className="syntax-comment">
+                  # Click the BAT module in Waybar above
+                </span>
+                {"\n"}
+                <span className="syntax-comment">
+                  # to cycle normal / warn / critical
+                </span>
+                {"\n\n"}
+                active_workspace: <span className="syntax-number">{workspace}</span>
+                {"\n"}
+                battery_state:{" "}
+                <span className="syntax-string">{batLevel}</span>
+              </code>
+            </pre>
+          </div>
         </div>
       </div>
     </div>
@@ -1538,11 +2239,11 @@ function CliScene({
   target: string;
 }) {
   const renderAnsi = useCallback(
-    (cols: number) => tuiAnsi(target, theme, mode, cols),
+    (cols: number, rows: number) => tuiAnsi(target, theme, mode, cols, rows),
     [target, theme, mode],
   );
   return (
-    <div className={`native-window native-terminal cli-${target}`}>
+    <div className={`native-window native-terminal-window cli-tui cli-${target}`}>
       <div className="native-titlebar">
         <Dots />
         <span>
@@ -1687,7 +2388,7 @@ export function IntegrationPreview({
         ) : profile.kind === "slack" ? (
           <SlackWorkspace theme={theme} />
         ) : profile.kind === "desktop" ? (
-          <DesktopScene theme={theme} target={target} />
+          <DesktopScene theme={theme} mode={mode} target={target} />
         ) : profile.kind === "cli" ? (
           <CliScene theme={theme} mode={mode} target={target} />
         ) : (

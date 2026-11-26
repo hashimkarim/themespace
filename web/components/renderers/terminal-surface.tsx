@@ -36,11 +36,11 @@ export function TerminalSurface({
   target: string;
   compact?: boolean;
   windows?: boolean;
-  renderAnsi?: (cols: number) => string;
+  renderAnsi?: (cols: number, rows: number) => string;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const terminal = useRef<TerminalHandle | null>(null);
-  const colsRef = useRef(74);
+  const sizeRef = useRef({ cols: 80, rows: 20 });
   const session = useRef<ReturnType<typeof createTerminalSession> | null>(null);
   const transcript = useRef(createTerminalTranscript());
   const context = useRef({ name: theme.name, windows });
@@ -73,14 +73,15 @@ export function TerminalSurface({
       const fontFamily = windows
         ? '"Cascadia Code", Consolas, monospace'
         : '"JetBrains Mono", "SFMono-Regular", Consolas, monospace';
+      const isTui = Boolean(latest.current.renderAnsi);
       const options = {
         cols: 80,
         rows: compact ? 9 : 20,
-        fontSize: compact ? 12 : 13,
+        fontSize: compact ? 12 : isTui ? 12 : 13,
         fontFamily,
         theme: latest.current.palette,
         cursorBlink: false,
-        scrollback: 300,
+        scrollback: isTui ? 0 : 300,
         convertEol: true,
       };
       let instance:
@@ -141,7 +142,10 @@ export function TerminalSurface({
       terminal.current = instance;
       let subscription: { dispose(): void } = { dispose() {} };
       if (latest.current.renderAnsi) {
-        instance.write(latest.current.renderAnsi(instance.cols));
+        const hideCursor = target !== "starship" ? "\x1b[?25l" : "\x1b[?25h";
+        instance.write(
+          `${hideCursor}${latest.current.renderAnsi(instance.cols, instance.rows)}`,
+        );
       } else {
         if (!session.current) {
           session.current = createTerminalSession((text) => {
@@ -159,11 +163,12 @@ export function TerminalSurface({
           if (cancelled || !element!.clientWidth || !element!.clientHeight)
             return;
           fit.fit();
-          colsRef.current = instance.cols;
+          sizeRef.current = { cols: instance.cols, rows: instance.rows };
           setSize(`${instance.cols} × ${instance.rows}`);
           if (latest.current.renderAnsi) {
+            const hideCursor = target !== "starship" ? "\x1b[?25l" : "\x1b[?25h";
             instance.write(
-              `\x1b[2J\x1b[H${latest.current.renderAnsi(instance.cols)}`,
+              `\x1b[2J\x1b[H${hideCursor}${latest.current.renderAnsi(instance.cols, instance.rows)}`,
             );
           }
         });
@@ -209,9 +214,12 @@ export function TerminalSurface({
   }, [palette, engine]);
   useEffect(() => {
     if (renderAnsi && terminal.current) {
-      terminal.current.write(`\x1b[2J\x1b[H${renderAnsi(colsRef.current)}`);
+      const hideCursor = target !== "starship" ? "\x1b[?25l" : "\x1b[?25h";
+      terminal.current.write(
+        `\x1b[2J\x1b[H${hideCursor}${renderAnsi(sizeRef.current.cols, sizeRef.current.rows)}`,
+      );
     }
-  }, [renderAnsi]);
+  }, [renderAnsi, target]);
   const choose = (next: TerminalScene) => {
     setScene(next);
     session.current?.start(next);
@@ -268,7 +276,7 @@ export function TerminalSurface({
         <div className="engine-terminal-fallback">
           <pre>
             {(renderAnsi
-              ? renderAnsi(74)
+              ? renderAnsi(80, 20)
               : terminalScene("shell", theme.name, windows)
             ).replace(/\x1b\[[\d;]*m/g, "")}
           </pre>

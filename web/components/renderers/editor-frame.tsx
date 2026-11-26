@@ -29,9 +29,16 @@ export function EditorFrame() {
         const { mode, target, file, value, diff } = event.data;
         if (
           !theme.modes[mode as "light" | "dark"] ||
-          !["vscode", "zed", "neovim", "helix", "sublime", "obsidian"].includes(
-            target,
-          ) ||
+          ![
+            "vscode",
+            "zed",
+            "neovim",
+            "helix",
+            "sublime",
+            "obsidian",
+            "jetbrains",
+            "bat",
+          ].includes(target) ||
           typeof file !== "string" ||
           typeof value !== "string" ||
           value.length > 100000

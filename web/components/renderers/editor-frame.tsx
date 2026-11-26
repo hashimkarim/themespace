@@ -120,7 +120,7 @@ export function EditorFrame() {
           automaticLayout: true,
           fontSize: 13,
           fontFamily: '"Cascadia Code", "SFMono-Regular", Consolas, monospace',
-          minimap: { enabled: !isDiff },
+          minimap: { enabled: false },
           scrollBeyondLastLine: false,
           padding: { top: 14, bottom: 14 },
           renderWhitespace: "selection" as const,

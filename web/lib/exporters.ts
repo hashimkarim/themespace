@@ -216,6 +216,7 @@ function vscodeColors(c: Resolved) {
       "sideBarSectionHeader.background",
       "panel.background",
       "peekViewEditor.background",
+      "tab.activeBackground",
     ],
     surface: [
       "sideBar.background",
@@ -279,7 +280,11 @@ function vscodeColors(c: Resolved) {
       "list.inactiveSelectionBackground",
     ],
     selectionForeground: ["list.activeSelectionForeground"],
-    hover: ["list.hoverBackground", "toolbar.hoverBackground"],
+    hover: [
+      "list.hoverBackground",
+      "toolbar.hoverBackground",
+      "editor.lineHighlightBackground",
+    ],
     success: [
       "gitDecoration.addedResourceForeground",
       "gitDecoration.untrackedResourceForeground",
@@ -300,6 +305,10 @@ function vscodeColors(c: Resolved) {
   const out: Record<string, string> = {};
   for (const [role, keys] of Object.entries(groups))
     for (const key of keys) out[key] = c[role];
+  out["editorLineNumber.activeForeground"] = c.foreground;
+  out["editorBracketHighlight.foreground1"] = c.accent;
+  out["editorBracketHighlight.foreground2"] = c.chart2;
+  out["editorBracketHighlight.foreground3"] = c.chart3;
   out["diffEditor.insertedTextBackground"] = c.success + "25";
   out["diffEditor.removedTextBackground"] = c.error + "25";
   for (let i = 0; i < 16; i++)
@@ -419,11 +428,19 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
           semanticTokenColors: syntax(c),
           tokenColors: Object.entries(syntax(c)).map(([scope, color]) => ({
             scope:
-              scope === "function"
-                ? "entity.name.function"
-                : scope === "type"
-                  ? "entity.name.type"
-                  : scope,
+              scope === "keyword"
+                ? "keyword, storage.type, storage.modifier"
+                : scope === "function"
+                  ? "entity.name.function, support.function"
+                  : scope === "type"
+                    ? "entity.name.type, entity.name.class, support.type"
+                    : scope === "number"
+                      ? "constant.numeric"
+                      : scope === "constant"
+                        ? "constant.language, constant.other"
+                        : scope === "operator"
+                          ? "keyword.operator"
+                          : scope,
             settings: { foreground: color },
           })),
         }),
@@ -518,6 +535,7 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
             "button-active": c.accentFill,
             "button-disabled": c.muted,
             tab: c.accent,
+            "tab-active": c.accent,
             notification: c.elevated,
             "notification-error": c.error,
             misc: c.border,
@@ -567,6 +585,10 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               "--text-faint": c.muted,
               "--text-accent": c.accent,
               "--text-on-accent": c.accentForeground,
+              "--link-color": c.accent,
+              "--tag-background": c.selection,
+              "--tag-color": c.accent,
+              "--blockquote-border-color": c.accent,
               "--interactive-accent": c.accentFill,
               "--interactive-accent-hover": c.accentFill,
               "--text-selection": c.selection,
@@ -1196,14 +1218,23 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
         case "neovim": {
           const groups: Record<string, Record<string, string | boolean>> = {
             Normal: { fg: c.foreground, bg: c.background },
+            NormalNC: { fg: c.foreground, bg: c.background },
             NormalFloat: { fg: c.foreground, bg: c.elevated },
             FloatBorder: { fg: c.border, bg: c.elevated },
+            WinSeparator: { fg: c.border },
+            SignColumn: { bg: c.background },
             LineNr: { fg: c.muted },
             CursorLineNr: { fg: c.accent },
             CursorLine: { bg: c.hover },
             Visual: { bg: c.selection, fg: c.selectionForeground },
             Search: { bg: c.accentFill, fg: c.accentForeground },
+            IncSearch: { bg: c.accentFill, fg: c.accentForeground },
+            CurSearch: { bg: c.accentFill, fg: c.accentForeground },
             StatusLine: { bg: c.surface, fg: c.foreground },
+            StatusLineNC: { bg: c.surface, fg: c.muted },
+            TabLine: { bg: c.surface, fg: c.muted },
+            TabLineSel: { bg: c.background, fg: c.foreground },
+            TabLineFill: { bg: c.surface },
             Pmenu: { bg: c.elevated, fg: c.foreground },
             PmenuSel: { bg: c.selection, fg: c.selectionForeground },
             Comment: { fg: c.syntaxComment, italic: true },
@@ -1219,6 +1250,7 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
             DiagnosticError: { fg: c.error },
             DiagnosticWarn: { fg: c.warning },
             DiagnosticInfo: { fg: c.info },
+            DiagnosticHint: { fg: c.muted },
             DiffAdd: { bg: c.surface, fg: c.success },
             DiffDelete: { fg: c.error },
             DiffChange: { fg: c.warning },
@@ -1251,11 +1283,18 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
             `${file}.toml`,
             Object.entries({
               "ui.background": { bg: c.background },
+              "ui.window": { fg: c.border },
               "ui.text": { fg: c.foreground },
               "ui.cursor": { fg: c.accentForeground, bg: c.accentFill },
+              "ui.cursorline.primary": { bg: c.hover },
               "ui.selection": { bg: c.selection },
               "ui.linenr": { fg: c.muted },
+              "ui.linenr.selected": { fg: c.foreground },
               "ui.statusline": { fg: c.foreground, bg: c.surface },
+              "ui.statusline.inactive": { fg: c.muted, bg: c.surface },
+              "ui.statusline.normal": { fg: c.accentForeground, bg: c.accentFill },
+              "ui.statusline.insert": { fg: contrastForeground(c.success), bg: c.success },
+              "ui.statusline.select": { fg: c.selectionForeground, bg: c.selection },
               "ui.popup": { fg: c.foreground, bg: c.elevated },
               "ui.menu": { fg: c.foreground, bg: c.elevated },
               "ui.menu.selected": {
@@ -1264,9 +1303,13 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               },
               "diagnostic.error": { fg: c.error },
               "diagnostic.warning": { fg: c.warning },
+              "diagnostic.info": { fg: c.info },
+              "diff.plus": { fg: c.success },
+              "diff.minus": { fg: c.error },
+              "diff.delta": { fg: c.warning },
               ...Object.fromEntries(
                 Object.entries(syntax(c)).map(([key, color]) => [
-                  key,
+                  key === "number" ? "constant.numeric" : key,
                   { fg: color },
                 ]),
               ),
@@ -1296,7 +1339,20 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
                 gutter_foreground: c.muted,
               },
               rules: Object.entries(syntax(c)).map(([scope, foreground]) => ({
-                scope: scope === "function" ? "entity.name.function" : scope,
+                scope:
+                  scope === "keyword"
+                    ? "keyword, storage.type, storage.modifier"
+                    : scope === "function"
+                      ? "entity.name.function, support.function"
+                      : scope === "type"
+                        ? "entity.name.type, entity.name.class, support.type"
+                        : scope === "number"
+                          ? "constant.numeric"
+                          : scope === "constant"
+                            ? "constant.language, constant.other"
+                            : scope === "operator"
+                              ? "keyword.operator"
+                              : scope,
                 foreground,
               })),
             }),

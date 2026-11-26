@@ -282,7 +282,9 @@ export function integrationThemeFromFiles(
       elevated: data["ui.popup"].bg,
     });
     for (const [key, value] of Object.entries(data))
-      if (!key.startsWith("ui.") && value.fg) result.syntax[key] = value.fg;
+      if (!key.startsWith("ui.") && value.fg) {
+        result.syntax[key === "constant.numeric" ? "number" : key] = value.fg;
+      }
   } else if (target === "sublime") {
     const data = JSON.parse(named(".sublime-color-scheme"));
     const g = data.globals;
@@ -303,9 +305,16 @@ export function integrationThemeFromFiles(
       tabs: mode === "dark" ? "#303030" : "#e5e5e5",
       status: mode === "dark" ? "#303030" : "#e5e5e5",
     });
+    const scopeKey = (scope: string) => {
+      const first = scope.split(",")[0].trim();
+      if (first === "constant.numeric") return "number";
+      if (first === "keyword.operator") return "operator";
+      if (first.startsWith("constant.")) return "constant";
+      return first.replace("entity.name.", "");
+    };
     result.syntax = Object.fromEntries(
       data.rules.map((rule: { scope: string; foreground: string }) => [
-        rule.scope.replace("entity.name.", ""),
+        scopeKey(rule.scope),
         rule.foreground,
       ]),
     );

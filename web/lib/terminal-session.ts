@@ -62,7 +62,7 @@ export function terminalScene(
   if (scene === "build")
     return (
       heading +
-      `${prompt} npm run build\r\n\r\n${esc}36m> themespace build${esc}0m\r\n${esc}90m  compiling theme adapters…${esc}0m\r\n${esc}32m✓${esc}0m 26 integrations generated\r\n${esc}32m✓${esc}0m theme.css                 4.8 kB\r\n${esc}33m!${esc}0m native fonts use the host configuration\r\n${esc}31m✕${esc}0m example validation error: missing title\r\n\r\n${esc}1;32mBuild complete.${esc}0m\r\n`
+      `${prompt} npm run build\r\n\r\n${esc}36m> themespace build${esc}0m\r\n${esc}90m  compiling theme adapters…${esc}0m\r\n${esc}32m✓${esc}0m 47 integrations generated\r\n${esc}32m✓${esc}0m theme.css                 4.8 kB\r\n${esc}33m!${esc}0m native fonts use the host configuration\r\n${esc}31m✕${esc}0m example validation error: missing title\r\n\r\n${esc}1;32mBuild complete.${esc}0m\r\n`
     );
   if (scene === "diff")
     return (
@@ -74,9 +74,19 @@ export function terminalScene(
       heading +
       `┌──────────────────────────────┐\r\n│ A terminal that feels yours.  │\r\n├──────────────────────────────┤\r\n│ arrows   ← ↑ → ↓             │\r\n│ symbols  ✓ ✕ ◆ ●             │\r\n│ accents  café · naïve · Ångström\r\n│ scripts  日本語 · Ελληνικά     │\r\n└──────────────────────────────┘\r\n\r\n${esc}32m████████${esc}90m░░░░░░░░${esc}0m  50%\r\n`
     );
+  const swatchNormal = Array.from(
+    { length: 8 },
+    (_, i) => `${esc}${40 + i}m   ${esc}0m`,
+  ).join("");
+  const swatchBright = Array.from(
+    { length: 8 },
+    (_, i) => `${esc}${100 + i}m   ${esc}0m`,
+  ).join("");
   return (
     heading +
-    `${esc}32m✓${esc}0m Your palette is loaded.\r\nTry ${esc}36mhelp${esc}0m, ${esc}36mcolors${esc}0m, ${esc}36mls${esc}0m, or ${esc}36mecho hello${esc}0m.\r\n\r\n`
+    `${esc}32m✓${esc}0m Your palette is loaded. Try ${esc}36mhelp${esc}0m, ${esc}36mcolors${esc}0m, ${esc}36mls${esc}0m, or ${esc}36mdiff${esc}0m.\r\n\r\n` +
+    `${swatchNormal}  ${esc}34mapps/${esc}0m  ${esc}32m+4${esc}0m ${esc}33m~2${esc}0m ${esc}31m-1${esc}0m\r\n` +
+    `${swatchBright}  ${esc}90mmain · 16 ANSI colors${esc}0m\r\n`
   );
 }
 

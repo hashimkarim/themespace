@@ -49,6 +49,9 @@ export function monacoTheme(contract: IntegrationTheme, mode: Appearance) {
       "editorGutter.background": c.gutter || c.background,
       "editorWidget.background": c.elevated,
       "editorWidget.border": c.border,
+      "editorBracketHighlight.foreground1": c.accent,
+      "editorBracketHighlight.foreground2": c.chart2,
+      "editorBracketHighlight.foreground3": c.chart3,
       ...contract.editorColors,
     },
   };

@@ -340,10 +340,31 @@ body:has(.editor-renderer-page) {
   border: 1px solid var(--browser-toolbar-field-border, transparent);
   border-radius: 22px;
 }
+.integration-renderer .theme-dark .native-browser-toolbar > label {
+  background: var(
+    --browser-toolbar-field,
+    color-mix(in srgb, var(--browser-toolbar, #202124) 70%, #000)
+  );
+  color: var(--browser-toolbar-field-text, var(--browser-toolbar-text, #e8eaed));
+  border-color: var(
+    --browser-toolbar-field-border,
+    color-mix(in srgb, currentColor 14%, transparent)
+  );
+}
 .integration-renderer .native-browser-toolbar > label:focus-within {
   background: var(--browser-toolbar-field-focus, #fff);
   color: var(--browser-toolbar-field-text-focus, #202124);
   border-color: var(--browser-toolbar-field-border-focus, #8ab4f8);
+}
+.integration-renderer .theme-dark .native-browser-toolbar > label:focus-within {
+  background: var(
+    --browser-toolbar-field-focus,
+    color-mix(in srgb, var(--browser-toolbar, #202124) 64%, #000)
+  );
+  color: var(
+    --browser-toolbar-field-text-focus,
+    var(--browser-toolbar-text, #e8eaed)
+  );
 }
 .integration-renderer .native-browser-toolbar input {
   color: inherit;
@@ -2587,6 +2608,225 @@ body:has(.editor-renderer-page) {
 }
 .fitted-preview .native-terminal-window.cli-tui .engine-terminal-canvas {
   height: clamp(340px, calc(var(--scene-height) - 70px), 420px);
+}
+/* Distinct JetBrains, bat, Neovim, Helix, Konsole, and GNOME Terminal chrome */
+.integration-renderer .native-preview .jb-titlebar {
+  gap: 8px;
+  padding: 6px 12px;
+}
+.integration-renderer .native-preview .jb-proj-pill,
+.integration-renderer .native-preview .jb-vcs-pill,
+.integration-renderer .native-preview .jb-config-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--ts-elevated);
+  border: 1px solid var(--ts-border);
+  color: var(--ts-foreground);
+  font-size: 10.5px;
+}
+.integration-renderer .native-preview .jb-proj-badge {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  background: var(--ts-accent-fill);
+  color: var(--ts-accent-foreground);
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 700;
+}
+.integration-renderer .native-preview .jb-run-group {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.integration-renderer .native-preview .jb-run-btn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 22px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ts-success) 20%, transparent);
+  color: var(--ts-success);
+  border: 1px solid color-mix(in srgb, var(--ts-success) 45%, transparent);
+}
+.integration-renderer .native-preview .jb-right-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: 6px;
+  color: var(--ts-muted);
+}
+.integration-renderer .native-preview .jb-tool-stripe {
+  width: 36px;
+}
+.integration-renderer .native-preview .jb-tool-stripe > button {
+  padding: 12px 0;
+}
+.integration-renderer .native-preview .editor-bat {
+  display: flex;
+  flex-direction: column;
+}
+.integration-renderer .native-preview .bat-titlebar {
+  background: #282828;
+  color: #ddd;
+}
+.integration-renderer .native-preview .bat-file-pills {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 4px;
+}
+.integration-renderer .native-preview .bat-file-pills button {
+  padding: 3px 8px;
+  border-radius: 5px;
+  font: 10px var(--ts-font-mono);
+  color: #bbb;
+}
+.integration-renderer .native-preview .bat-file-pills button.selected {
+  background: var(--ts-accent-fill);
+  color: var(--ts-accent-foreground);
+  font-weight: 600;
+}
+.integration-renderer .native-preview .bat-pager-header {
+  background: var(--ts-background);
+  border-bottom: 1px solid var(--ts-border);
+  font: 11px/1.6 var(--ts-font-mono);
+}
+.integration-renderer .native-preview .bat-cmd {
+  padding: 7px 14px 5px;
+  color: var(--ts-foreground);
+  border-bottom: 1px solid var(--ts-border);
+  background: color-mix(in srgb, var(--ts-surface) 55%, var(--ts-background));
+}
+.integration-renderer .native-preview .bat-file-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 14px;
+  color: var(--ts-foreground);
+}
+.integration-renderer .native-preview .bat-gutter-col {
+  color: var(--ts-muted);
+  padding-right: 10px;
+  border-right: 1px solid var(--ts-border);
+}
+.integration-renderer .native-preview .bat-file-banner small {
+  margin-left: auto;
+  color: var(--ts-muted);
+  font-size: 10px;
+}
+.integration-renderer .native-preview .modal-buf-idx {
+  color: var(--ts-muted);
+  font-size: 9px;
+}
+.integration-renderer .native-preview .modal-bottom-stack {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--ts-font-mono);
+}
+.integration-renderer .native-preview .modal-statusline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px 0 0;
+  height: 24px;
+  background: var(--native-status, var(--ts-surface));
+  color: var(--native-status-text, var(--ts-foreground));
+  border-top: 1px solid var(--ts-border);
+  font-size: 10px;
+}
+.integration-renderer .native-preview .modal-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 10px;
+  background: var(--ts-accent-fill);
+  color: var(--ts-accent-foreground);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.integration-renderer .native-preview .modal-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ts-accent);
+}
+.integration-renderer .native-preview .modal-path {
+  color: var(--ts-foreground);
+}
+.integration-renderer .native-preview .modal-right {
+  margin-left: auto;
+  color: var(--ts-muted);
+}
+.integration-renderer .native-preview .modal-cmdline {
+  padding: 4px 10px;
+  background: var(--ts-background);
+  color: var(--ts-muted);
+  font-size: 10px;
+}
+.integration-renderer .native-preview .gnome-term-header {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) 72px;
+  align-items: center;
+  background: #2b2b2b;
+  color: #e6e6e6;
+  padding: 6px 10px;
+}
+.integration-renderer .native-preview .gnome-term-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: rgb(255 255 255 / 0.08);
+}
+.integration-renderer .native-preview .gnome-term-title {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+.integration-renderer .native-preview .gnome-term-right {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+}
+.integration-renderer .native-preview .gnome-term-close {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgb(255 255 255 / 0.12);
+}
+.integration-renderer .native-preview .konsole-titlebar {
+  background: #232629;
+  color: #eff0f1;
+}
+.integration-renderer .native-preview .konsole-tabbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px 8px 0;
+  background: #232629;
+  border-top: 1px solid #383c42;
+}
+.integration-renderer .native-preview .konsole-tabbar button {
+  padding: 5px 11px;
+  font-size: 10px;
+  color: #a1a9b1;
+  border-top: 2px solid transparent;
+  gap: 5px;
+}
+.integration-renderer .native-preview .konsole-tabbar button.active {
+  background: var(--native-terminal-bg);
+  color: var(--ts-foreground);
+  border-top-color: var(--ts-accent);
+  border-radius: 4px 4px 0 0;
 }
 @container appPreview (max-width: 640px) {
   .integration-renderer .native-editor .native-filetree {

@@ -190,9 +190,9 @@ export const previewFidelity: Record<string, PreviewFidelity> = {
     url: "https://github.com/Auto-Explore/GitComet/blob/main/docs/themes.md",
   },
   smartgit: {
-    renderer: "SmartGit · properties-driven Git preview",
+    renderer: "SmartGit · patch-theme Git preview",
     coverage:
-      "Reads window, control, selection, diff, and branch lane values directly from the generated SmartGit .properties file.",
+      "Reads window, control, selection, diff, and branch lane values directly from the generated SmartGit dark-patch.theme and light-patch.theme files.",
     limitations:
       "The Git client UI is reconstructed locally; native Swing/SWT platform chrome and third-party icons can differ on desktop.",
     url: "https://docs.syntevo.com/SmartGit/Latest/Manual/GUI/AdvancedSettings/Theme-Customization",

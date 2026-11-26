@@ -44,6 +44,7 @@ import {
   MoreHorizontal,
   Palette,
   Paperclip,
+  Play,
   Plus,
   RefreshCw,
   Search,
@@ -88,32 +89,121 @@ function Editor({
     [edits, setEdits] = useState<Record<string, string>>({}),
     [search, setSearch] = useState("");
   const files = ["theme.ts", "tokens.css", "README.md"],
-    modal = profile.variant === "modal";
+    modal = profile.variant === "modal",
+    isJetBrains = target === "jetbrains",
+    isBat = target === "bat",
+    isNeovim = target === "neovim",
+    isHelix = target === "helix",
+    isZed = target === "zed",
+    isSublime = target === "sublime",
+    slug = theme.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+  if (isBat) {
+    return (
+      <div className="native-window native-editor editor-bat">
+        <div className="native-titlebar bat-titlebar">
+          <Dots />
+          <span>bat — ~/git/themespace</span>
+          <div className="bat-file-pills" role="tablist" aria-label="bat sample files">
+            {files.map((f) => (
+              <button
+                key={f}
+                type="button"
+                role="tab"
+                aria-selected={file === f}
+                className={file === f ? "selected" : ""}
+                onClick={() => setFile(f)}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="bat-pager-header">
+          <div className="bat-cmd">
+            <span className="syntax-function">❯</span> bat --theme=&quot;{theme.name} {mode}&quot; src/{file}
+          </div>
+          <div className="bat-file-banner">
+            <span className="bat-gutter-col">File</span>
+            <b>src/{file}</b>
+            <small>{file === "tokens.css" ? "CSS" : file === "README.md" ? "Markdown" : "TypeScript"} · TextMate .tmTheme</small>
+          </div>
+        </div>
+        <CodeSurface
+          theme={theme}
+          mode={mode}
+          target={target}
+          file={file}
+          value={edits[file]}
+          onChange={(value) =>
+            setEdits((previous) => ({ ...previous, [file]: value }))
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={`native-window native-editor editor-${target} ${modal ? "modal-editor" : ""}`}
     >
-      <div className="native-titlebar">
-        <Dots />
-        <span>{profile.label}</span>
-        <label className="native-command-search">
-          <Search size={12} />
-          <input
-            aria-label="Search preview files"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPane("search");
-            }}
-            placeholder={`${theme.name} — workspace`}
-          />
-          <kbd>⌘ K</kbd>
-        </label>
-        <MoreHorizontal size={15} />
-      </div>
+      {isJetBrains ? (
+        <div className="native-titlebar jb-titlebar">
+          <Dots />
+          <span className="jb-proj-pill">
+            <i className="jb-proj-badge">TS</i>
+            <b>themespace</b>
+          </span>
+          <span className="jb-vcs-pill">
+            <GitBranch size={11} /> main
+          </span>
+          <div className="jb-run-group">
+            <span className="jb-config-pill">{file}</span>
+            <span className="jb-run-btn" aria-hidden="true">
+              <Play size={11} />
+            </span>
+          </div>
+          <span className="jb-right-icons" aria-hidden="true">
+            <Search size={13} />
+            <Settings size={13} />
+          </span>
+        </div>
+      ) : (
+        <div className="native-titlebar">
+          <Dots />
+          <span>
+            {isNeovim
+              ? `nvim — ~/git/themespace/${file}`
+              : isHelix
+                ? `hx — ~/git/themespace/${file}`
+                : isZed
+                  ? `Zed — themespace · main`
+                  : profile.label}
+          </span>
+          {target === "vscode" && (
+            <label className="native-command-search">
+              <Search size={12} />
+              <input
+                aria-label="Search preview files"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPane("search");
+                }}
+                placeholder={`${theme.name} — workspace`}
+              />
+              <kbd>⌘ K</kbd>
+            </label>
+          )}
+          <MoreHorizontal size={15} />
+        </div>
+      )}
       <div className="native-editor-body">
-        {target === "vscode" && (
-          <aside className="native-activity" aria-label="Editor tools">
+        {(target === "vscode" || isJetBrains) && (
+          <aside
+            className={`native-activity ${isJetBrains ? "jb-tool-stripe" : ""}`}
+            aria-label="Editor tools"
+          >
             {[
               { id: "files", Icon: Files },
               { id: "search", Icon: Search },
@@ -126,15 +216,17 @@ function Editor({
                 aria-pressed={pane === id}
                 onClick={() => setPane(id)}
               >
-                <Icon size={20} />
+                <Icon size={isJetBrains ? 17 : 20} />
               </button>
             ))}
-            <button
-              aria-label="Toggle terminal preview"
-              onClick={() => setTerminal(!terminal)}
-            >
-              <Terminal size={19} />
-            </button>
+            {target === "vscode" && (
+              <button
+                aria-label="Toggle terminal preview"
+                onClick={() => setTerminal(!terminal)}
+              >
+                <Terminal size={19} />
+              </button>
+            )}
           </aside>
         )}
         {!modal && (
@@ -146,7 +238,13 @@ function Editor({
                   ? "SOURCE CONTROL"
                   : pane === "extensions"
                     ? "EXTENSIONS"
-                    : "EXPLORER"}
+                    : isJetBrains
+                      ? "PROJECT"
+                      : isZed
+                        ? "PROJECT"
+                        : isSublime
+                          ? "FOLDERS"
+                          : "EXPLORER"}
               <MoreHorizontal size={13} />
             </div>
             {pane === "extensions" ? (
@@ -211,16 +309,20 @@ function Editor({
             role="tablist"
             aria-label="Preview editor files"
           >
-            {files.map((f) => (
+            {files.map((f, idx) => (
               <button
                 key={f}
                 role="tab"
                 aria-selected={file === f}
                 onClick={() => setFile(f)}
               >
-                <FileCode2 size={12} />
+                {modal ? (
+                  <span className="modal-buf-idx">{idx + 1}</span>
+                ) : (
+                  <FileCode2 size={12} />
+                )}
                 {f}
-                {f === file ? (
+                {modal ? null : f === file ? (
                   <span className="native-modified" />
                 ) : (
                   <X size={10} />
@@ -228,11 +330,13 @@ function Editor({
               </button>
             ))}
           </div>
-          <div className="native-breadcrumb">
-            src <ChevronRight size={11} />
-            {file} <ChevronRight size={11} />
-            {file === "theme.ts" ? "yourTheme" : "preview"}
-          </div>
+          {!modal && !isSublime && (
+            <div className="native-breadcrumb">
+              src <ChevronRight size={11} />
+              {file} <ChevronRight size={11} />
+              {file === "theme.ts" ? "yourTheme" : "preview"}
+            </div>
+          )}
           <CodeSurface
             theme={theme}
             mode={mode}
@@ -270,32 +374,63 @@ function Editor({
           )}
         </section>
       </div>
-      <div className="native-statusbar">
-        <span>
-          <GitBranch size={11} />
-          main*
-        </span>
-        <span>⊗ 0 △ 0</span>
-        {["vscode", "zed"].includes(target) ? (
-          <button
-            onClick={() => setTerminal(!terminal)}
-            aria-pressed={terminal}
-          >
-            Terminal
-          </button>
-        ) : (
-          <span>{modal ? "EDIT · browser keymap" : "Editing"}</span>
-        )}
-        <span>UTF-8</span>
-        <span>
-          {file === "tokens.css"
-            ? "CSS"
-            : file === "README.md"
-              ? "Markdown"
-              : "TypeScript"}
-        </span>
-        <Check size={11} />
-      </div>
+      {isNeovim ? (
+        <div className="modal-bottom-stack">
+          <div className="modal-statusline nvim-statusline">
+            <span className="modal-mode-pill">NORMAL</span>
+            <span className="modal-branch">
+              <GitBranch size={10} /> main
+            </span>
+            <span className="modal-path">src/{file}</span>
+            <span className="modal-right">
+              utf-8 · {file === "tokens.css" ? "css" : file === "README.md" ? "md" : "ts"} · 1:1
+            </span>
+          </div>
+          <div className="modal-cmdline">:colorscheme {slug}-{mode}</div>
+        </div>
+      ) : isHelix ? (
+        <div className="modal-bottom-stack">
+          <div className="modal-statusline helix-statusline">
+            <span className="modal-mode-pill">NOR</span>
+            <span className="modal-path">src/{file}</span>
+            <span className="modal-right">
+              1 sel · 1:1 · utf-8 · {file === "tokens.css" ? "css" : file === "README.md" ? "md" : "ts"}
+            </span>
+          </div>
+          <div className="modal-cmdline">:theme {slug}-{mode}</div>
+        </div>
+      ) : (
+        <div className="native-statusbar">
+          <span>
+            <GitBranch size={11} />
+            main*
+          </span>
+          <span>⊗ 0 △ 0</span>
+          {["vscode", "zed"].includes(target) ? (
+            <button
+              onClick={() => setTerminal(!terminal)}
+              aria-pressed={terminal}
+            >
+              Terminal
+            </button>
+          ) : isJetBrains ? (
+            <span>LF · 2 spaces</span>
+          ) : isSublime ? (
+            <span>Line 1, Col 1 · Spaces: 2</span>
+          ) : (
+            <span>Editing</span>
+          )}
+          <span>UTF-8</span>
+          <span>
+            {file === "tokens.css"
+              ? "CSS"
+              : file === "README.md"
+                ? "Markdown"
+                : "TypeScript"}
+          </span>
+          <Check size={11} />
+        </div>
+      )}
     </div>
   );
 }
@@ -310,7 +445,10 @@ function TerminalWindow({
 }) {
   const profile = previewProfiles[target];
   const windows = target === "windows-terminal",
-    mobile = target === "termux";
+    mobile = target === "termux",
+    konsole = target === "konsole",
+    gnomeTerm = target === "gnome-terminal",
+    linuxMinimal = target === "foot" || target === "xresources";
   const tabs = [
     "ghostty",
     "kitty",
@@ -333,9 +471,25 @@ function TerminalWindow({
           <span>12:34</span>
           <span>Termux · ▰ 100%</span>
         </div>
+      ) : gnomeTerm ? (
+        <div className="native-titlebar gnome-term-header">
+          <span className="gnome-term-btn" aria-hidden="true">
+            <Plus size={13} />
+          </span>
+          <span className="gnome-term-title">~/themes — GNOME Terminal</span>
+          <span className="gnome-term-right" aria-hidden="true">
+            <Search size={12} />
+            <MoreHorizontal size={13} />
+            <span className="gnome-term-close">
+              <X size={11} />
+            </span>
+          </span>
+        </div>
       ) : (
-        <div className={`native-titlebar ${windows ? "windows-titlebar" : ""}`}>
-          {!windows && <Dots />}
+        <div
+          className={`native-titlebar ${windows ? "windows-titlebar" : konsole ? "konsole-titlebar" : ""}`}
+        >
+          {!windows && !konsole && !linuxMinimal && <Dots />}
           {tabs ? (
             <div
               className="native-terminal-tabs"
@@ -371,10 +525,15 @@ function TerminalWindow({
             </button>
           )}
           <span className="native-window-label">{profile.label}</span>
-          {windows && (
+          {(windows || konsole) && (
             <span className="native-window-controls" aria-hidden="true">
               <Minus size={12} />
               <Square size={10} />
+              <X size={12} />
+            </span>
+          )}
+          {linuxMinimal && (
+            <span className="native-window-controls" aria-hidden="true">
               <X size={12} />
             </span>
           )}
@@ -402,6 +561,22 @@ function TerminalWindow({
           />
         )}
       </div>
+      {konsole && (
+        <div className="konsole-tabbar" role="tablist" aria-label="Konsole tabs">
+          {["zsh · ~/themes", "git · ~/projects"].map((label, idx) => (
+            <button
+              key={label}
+              type="button"
+              role="tab"
+              aria-selected={tab === idx}
+              className={tab === idx ? "active" : ""}
+              onClick={() => setTab(idx)}
+            >
+              <Terminal size={11} /> {label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

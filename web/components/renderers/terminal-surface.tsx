@@ -109,6 +109,7 @@ export function TerminalSurface({
         if (cancelled) return;
         instance = new api.Terminal({
           ...options,
+          cursorInactiveStyle: "block",
           screenReaderMode: true,
           allowProposedApi: false,
         });

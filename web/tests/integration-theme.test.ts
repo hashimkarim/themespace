@@ -206,35 +206,39 @@ test("workspace, git, slack, browser, and desktop adapters read independently ch
   assert.equal(t3.roles.accent, "#abcdef");
 
   const gcFiles = generateTarget(theme, "gitcomet");
-  const gcFile = gcFiles.find((f) => f.path.endsWith("-dark.json"))!;
-  const gcData = JSON.parse(gcFile.content);
-  gcData.diff.added = "#11aa22";
-  gcData.graph[0] = "#334455";
-  gcFile.content = JSON.stringify(gcData);
+  const gcFile = gcFiles.find((f) => f.path.endsWith(".json"))!;
+  const gcBundle = JSON.parse(gcFile.content);
+  const gcDark = gcBundle.themes.find(
+    (t: { appearance: string }) => t.appearance === "dark",
+  );
+  gcDark.colors.diff.added.foreground = "#11aa22ff";
+  gcDark.colors.graph_lane_palette[0] = "#334455ff";
+  gcFile.content = JSON.stringify(gcBundle);
   const gc = integrationThemeFromFiles(theme, "dark", "gitcomet", gcFiles);
   assert.equal(gc.roles.success, "#11aa22");
   assert.equal(gc.roles.chart1, "#334455");
 
   const sgFiles = generateTarget(theme, "smartgit");
-  const sgFile = sgFiles.find((f) => f.path.endsWith("-dark.properties"))!;
+  const sgFile = sgFiles.find((f) => f.path === "dark-patch.theme")!;
   sgFile.content = sgFile.content.replace(
-    /accent\.color=#[0-9a-f]{6}/i,
-    "accent.color=#223344",
+    /background2=#[0-9a-f]{6}/i,
+    "background2=#223344",
   );
   assert.equal(
-    integrationThemeFromFiles(theme, "dark", "smartgit", sgFiles).roles.accent,
+    integrationThemeFromFiles(theme, "dark", "smartgit", sgFiles).roles
+      .background,
     "#223344",
   );
 
   const slackFiles = generateTarget(theme, "slack");
   const slackFile = slackFiles.find((f) => f.path.endsWith("-dark.txt"))!;
   slackFile.content = slackFile.content.replace(
-    /column_bg=#[0-9a-f]{6}/i,
-    "column_bg=#1a1b1c",
+    /^#[0-9a-f]{6},#[0-9a-f]{6},#[0-9a-f]{6},#[0-9a-f]{6}$/im,
+    "#1a1b1c,#2a2b2c,#3a3b3c,#4a4b4c",
   );
   assert.equal(
-    integrationThemeFromFiles(theme, "dark", "slack", slackFiles).roles.sidebar,
-    "#1a1b1c",
+    integrationThemeFromFiles(theme, "dark", "slack", slackFiles).roles.accent,
+    "#2a2b2c",
   );
 
   const gtkFiles = generateTarget(theme, "gtk");
@@ -251,8 +255,8 @@ test("workspace, git, slack, browser, and desktop adapters read independently ch
   const kdeFiles = generateTarget(theme, "kde");
   const kdeFile = kdeFiles.find((f) => f.path.endsWith("-dark.colors"))!;
   kdeFile.content = kdeFile.content.replace(
-    /\[Colors:View\]\nBackgroundNormal=\d+,\d+,\d+/,
-    "[Colors:View]\nBackgroundNormal=16,32,48",
+    /(\[Colors:View\][\s\S]*?\nBackgroundNormal=)\d+,\d+,\d+/,
+    "$116,32,48",
   );
   assert.equal(
     integrationThemeFromFiles(theme, "dark", "kde", kdeFiles).roles.background,
@@ -317,8 +321,8 @@ test("workspace, git, slack, browser, and desktop adapters read independently ch
   const zellijFiles = generateTarget(theme, "zellij");
   const zellijFile = zellijFiles.find((f) => f.path.endsWith("-dark.kdl"))!;
   zellijFile.content = zellijFile.content.replace(
-    /blue "#[0-9a-f]{6}"/i,
-    'blue "#445566"',
+    /frame_selected \{\n\s*base \d+ \d+ \d+/,
+    "frame_selected {\n            base 68 85 102",
   );
   assert.equal(
     integrationThemeFromFiles(theme, "dark", "zellij", zellijFiles).roles.accent,

@@ -69,7 +69,7 @@ export const previewProfiles: Record<
   zellij: { kind: "cli", label: "Zellij", variant: "zellij" },
   starship: { kind: "cli", label: "Starship", variant: "starship" },
   btop: { kind: "cli", label: "btop", variant: "btop" },
-  lazygit: { kind: "git", label: "Lazygit" },
+  lazygit: { kind: "cli", label: "Lazygit", variant: "lazygit" },
   hyprland: { kind: "desktop", label: "Hyprland", variant: "hyprland" },
 };
 export function previewStyle(

@@ -122,6 +122,24 @@ test("all 47 export targets generate parseable files and reject unknown targets"
           ],
           { input: file.content },
         );
+      if (file.path.endsWith(".tmTheme"))
+        execFileSync(
+          "python3",
+          [
+            "-c",
+            'import plistlib,sys; p=plistlib.loads(sys.stdin.buffer.read()); assert p["name"] and len(p["settings"]) >= 8',
+          ],
+          { input: file.content },
+        );
+      if (file.path.endsWith(".icls"))
+        execFileSync(
+          "python3",
+          [
+            "-c",
+            'import xml.etree.ElementTree as ET,sys; root=ET.fromstring(sys.stdin.read()); assert root.tag == "scheme" and root.find("colors") is not None and root.find("attributes") is not None',
+          ],
+          { input: file.content },
+        );
     }
   }
   for (const target of targets.filter((t) => t.status === "planned"))
@@ -239,6 +257,8 @@ test("terminal and browser exports preserve native data shapes and all ANSI colo
 
   const stylus = mainFile("stylus", ".user.css");
   assert.match(stylus, /==UserStyle==/);
+  assert.match(stylus, /@preprocessor\s+default/);
+  assert.match(stylus, /@var color/);
   assert.match(stylus, /--ts-accent: #123abc/);
   assert.match(stylus, /--ts-accent: #874201/);
 
@@ -247,10 +267,13 @@ test("terminal and browser exports preserve native data shapes and all ANSI colo
       (f) => f.path === "dark/settings.json",
     )!.content,
   );
-  assert.equal(vivaldi.colors.colorHi, "#123abc");
+  assert.equal(vivaldi.colorHighlightBg, "#123abc");
+  assert.equal(vivaldi.engineVersion, 1);
 
-  const zen = mainFile("zen", "dark/userChrome.css");
-  assert.match(zen, /--zen-primary-color: #123abc/);
+  const zenChrome = mainFile("zen", "dark/userChrome.css");
+  assert.match(zenChrome, /--zen-primary-color: #123abc !important;/);
+  const zenContent = mainFile("zen", "dark/userContent.css");
+  assert.match(zenContent, /--color-accent-primary: #123abc !important;/);
 
   const konsole = mainFile("konsole", "-dark.colorscheme");
   assert.match(konsole, /\[Color7Intense\]\nColor=238,221,255/);
@@ -259,22 +282,35 @@ test("terminal and browser exports preserve native data shapes and all ANSI colo
   assert.match(gnome, /use-theme-colors=false/);
   assert.match(gnome, /'#eeddff'/);
 
-  const gitcomet = JSON.parse(mainFile("gitcomet", "-dark.json"));
-  assert.equal(gitcomet.colors.accent, "#123abc");
-  assert.equal(gitcomet.syntax.keyword, "#ab12cd");
+  const gitcomet = JSON.parse(mainFile("gitcomet", ".json"));
+  assert.equal(gitcomet.schema_version, 2);
+  const gcDark = gitcomet.themes.find(
+    (t: { appearance: string }) => t.appearance === "dark",
+  );
+  assert.equal(gcDark.colors.accent.foreground, "#123abcff");
+  assert.equal(gcDark.syntax.keyword, "#ab12cdff");
+  assert.ok(gcDark.radii.panel >= 0);
 
-  const smartgit = mainFile("smartgit", "-dark.properties");
-  assert.match(smartgit, /accent\.color=#123abc/);
+  const smartgit = generateTarget(source, "smartgit").find(
+    (f) => f.path === "dark-patch.theme",
+  )!.content;
+  assert.match(smartgit, /extends=smartgit-dark-theme\.properties/);
+  assert.match(smartgit, /background2=#/);
 
   const slack = mainFile("slack", "-dark.txt");
-  assert.match(slack, /#123abc/);
+  assert.match(slack, /#[0-9a-f]{6},#123abc,#[0-9a-f]{6},#[0-9a-f]{6}/i);
 
-  const gtk = generateTarget(source, "gtk").find(
+  const gtk4 = generateTarget(source, "gtk").find(
     (f) => f.path === "dark/gtk-4.0/gtk.css",
   )!.content;
-  assert.match(gtk, /@define-color accent_bg_color #123abc;/);
+  assert.match(gtk4, /@define-color accent_bg_color #123abc;/);
+  const gtk3 = generateTarget(source, "gtk").find(
+    (f) => f.path === "dark/gtk-3.0/gtk.css",
+  )!.content;
+  assert.match(gtk3, /@define-color theme_selected_bg_color #123abc;/);
 
   const kde = mainFile("kde", "-dark.colors");
+  assert.match(kde, /\[ColorEffects:Disabled\]/);
   assert.match(kde, /\[Colors:Selection\]/);
   assert.match(kde, /BackgroundNormal=18,58,188/);
 
@@ -283,10 +319,12 @@ test("terminal and browser exports preserve native data shapes and all ANSI colo
 
   const rofi = mainFile("rofi", "-dark.rasi");
   assert.match(rofi, /accent: #123abc;/);
+  assert.match(rofi, /element selected\.normal/);
 
   const jetbrains = mainFile("jetbrains", "-dark.icls");
   assert.match(jetbrains, /name="CARET_COLOR" value="123abc"/);
   assert.match(jetbrains, /name="DEFAULT_KEYWORD"[\s\S]*value="ab12cd"/);
+  assert.match(jetbrains, /name="CONSOLE_WHITE_OUTPUT"[\s\S]*value="eeddff"/);
 
   const bat = mainFile("bat", "-dark.tmTheme");
   assert.match(bat, /<key>caret<\/key><string>#123abc<\/string>/);
@@ -296,16 +334,19 @@ test("terminal and browser exports preserve native data shapes and all ANSI colo
   assert.match(tmux, /window-status-current-style "bg=#123abc/);
 
   const zellij = mainFile("zellij", "-dark.kdl");
-  assert.match(zellij, /blue "#123abc"/);
+  assert.match(zellij, /frame_selected \{[\s\S]*base 18 58 188/);
 
   const starship = mainFile("starship", "-dark.toml");
   assert.match(starship, /accent = "#123abc"/);
 
   const btop = mainFile("btop", "-dark.theme");
   assert.match(btop, /theme\[hi_fg\]="#123abc"/);
+  assert.match(btop, /theme\[cached_start\]="#/);
+  assert.match(btop, /theme\[process_start\]="#/);
 
   const lazygit = mainFile("lazygit", "-dark.yaml");
   assert.match(lazygit, /activeBorderColor:\n\s+- "#123abc"/);
+  assert.match(lazygit, /selectedLineFgColor:/);
 
   const hyprland = mainFile("hyprland", "-dark.conf");
   assert.match(hyprland, /\$ts_accent = rgba\(123abcff\)/);

@@ -185,6 +185,85 @@ function tryJsonImport(raw: string, fileName?: string): ImportResult | null {
     }
   }
 
+  // 2b. GitComet schema_version 2 theme bundle JSON
+  if (
+    data.schema_version === 2 &&
+    Array.isArray(data.themes) &&
+    data.themes.length > 0
+  ) {
+    type GcEntry = {
+      name?: string;
+      appearance?: string;
+      colors?: {
+        surface?: Record<string, string>;
+        foreground?: Record<string, string | { hex: string }>;
+        accent?: Record<string, string>;
+        status?: Record<string, Record<string, string>>;
+      };
+    };
+    const entries = data.themes as GcEntry[];
+    const h = (v?: string | { hex: string }) =>
+      cleanHex(typeof v === "string" ? v : v?.hex);
+    const toPal = (e?: GcEntry): Palette | null => {
+      const bg = h(e?.colors?.surface?.canvas);
+      const fg = h(e?.colors?.foreground?.primary);
+      if (!bg || !fg) return null;
+      return {
+        background: bg,
+        surface: h(e?.colors?.surface?.chrome) ?? mix(bg, fg, 0.06),
+        foreground: fg,
+        muted: h(e?.colors?.foreground?.secondary) ?? mix(fg, bg, 0.36),
+        accent: h(e?.colors?.accent?.foreground) ?? "#7aa2f7",
+        success: h(e?.colors?.status?.success?.foreground) ?? "#9ece6a",
+        warning: h(e?.colors?.status?.warning?.foreground) ?? "#e0af68",
+        error: h(e?.colors?.status?.danger?.foreground) ?? "#f7768e",
+        overrides: {},
+      };
+    };
+    const primary = entries.find((e) => e.appearance === "dark") ?? entries[0];
+    const primaryPal = toPal(primary);
+    if (primaryPal) {
+      const primaryApp: Appearance =
+        primary.appearance === "light" ? "light" : "dark";
+      const otherApp: Appearance = primaryApp === "dark" ? "light" : "dark";
+      const otherPal = toPal(entries.find((e) => e.appearance === otherApp));
+      return buildThemeFromColors({
+        name:
+          typeof data.name === "string" && data.name.trim()
+            ? data.name.trim()
+            : nameFromFile(fileName),
+        format: "GitComet v2 JSON",
+        ...primaryPal,
+        secondMode: otherPal
+          ? { appearance: otherApp, palette: otherPal }
+          : undefined,
+      });
+    }
+  }
+
+  // 2c. Vivaldi settings.json
+  if (
+    typeof data.colorBg === "string" &&
+    typeof data.colorFg === "string" &&
+    typeof data.colorHighlightBg === "string"
+  ) {
+    const bg = cleanHex(data.colorBg);
+    const fg = cleanHex(data.colorFg);
+    if (bg && fg) {
+      return buildThemeFromColors({
+        name:
+          typeof data.name === "string" && data.name.trim()
+            ? data.name.trim()
+            : nameFromFile(fileName),
+        format: "Vivaldi JSON",
+        background: bg,
+        foreground: fg,
+        surface: cleanHex(String(data.colorWindowBg ?? data.colorAccentBg ?? "")),
+        accent: cleanHex(data.colorHighlightBg),
+      });
+    }
+  }
+
   // 3. VS Code theme JSON
   if (data.colors && typeof data.colors === "object") {
     const colors = data.colors as Record<string, string>;

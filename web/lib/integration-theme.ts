@@ -526,17 +526,19 @@ export function integrationThemeFromFiles(
     });
     ansi(ansiKeys.map((_, index) => c[`ansi${index}`]));
   } else if (target === "vivaldi") {
-    const data = JSON.parse(read((f) => f.path === `${mode}/settings.json`));
-    const vc = data.colors as Record<string, string>;
+    const vc = JSON.parse(read((f) => f.path === `${mode}/settings.json`)) as Record<
+      string,
+      string
+    >;
     result.variables = {
       "--browser-frame": vc.colorWindowBg,
       "--browser-toolbar": vc.colorBg,
       "--browser-tab-selected": vc.colorBg,
       "--browser-tab-text": vc.colorFg,
       "--browser-tab-background-text": c.muted,
-      "--browser-tab-line": vc.colorHi,
+      "--browser-tab-line": vc.colorHighlightBg,
       "--browser-toolbar-text": vc.colorFg,
-      "--browser-toolbar-field": vc.colorAc,
+      "--browser-toolbar-field": vc.colorAccentBg,
       "--browser-toolbar-field-text": vc.colorFg,
       "--browser-ntp-background": vc.colorBg,
       "--browser-ntp-text": vc.colorFg,
@@ -544,43 +546,41 @@ export function integrationThemeFromFiles(
     apply({
       title: vc.colorWindowBg,
       tabs: vc.colorWindowBg,
-      surface: vc.colorAc,
+      surface: vc.colorAccentBg,
       background: vc.colorBg,
       foreground: vc.colorFg,
-      accent: vc.colorHi,
-      accentFill: vc.colorHi,
-      success: vc.colorSuccessBg,
-      warning: vc.colorWarningBg,
-      error: vc.colorErrorBg,
+      accent: vc.colorHighlightBg,
+      accentFill: vc.colorHighlightBg,
     });
   } else if (target === "zen") {
-    const v = cssDeclarations(
-      read((f) => f.path === `${mode}/userChrome.css`),
-      ":root",
+    const raw = read((f) => f.path === `${mode}/userChrome.css`).replaceAll(
+      /\s*!important/gi,
+      "",
     );
+    const v = cssDeclarations(raw, ":root");
     result.variables = {
       ...v,
       "--browser-frame": v["--zen-main-browser-background"],
       "--browser-toolbar": v["--zen-themed-toolbar-bg"],
-      "--browser-tab-selected": v["--tab-selected-bgcolor"],
+      "--browser-tab-selected": v["--zen-colors-primary"],
       "--browser-tab-text": v["--tab-selected-textcolor"],
       "--browser-tab-background-text": c.muted,
       "--browser-tab-line": v["--zen-primary-color"],
       "--browser-toolbar-text": v["--toolbar-color"],
-      "--browser-toolbar-field": v["--urlbar-box-bgcolor"],
-      "--browser-toolbar-field-text": v["--urlbar-box-text-color"],
+      "--browser-toolbar-field": v["--zen-colors-tertiary"],
+      "--browser-toolbar-field-text": v["--toolbar-field-color"],
       "--browser-toolbar-bottom-separator": v["--zen-colors-border"],
-      "--browser-sidebar": v["--zen-colors-secondary"],
-      "--browser-sidebar-text": v["--toolbar-color"],
+      "--browser-sidebar": v["--lwt-sidebar-background-color"],
+      "--browser-sidebar-text": v["--lwt-sidebar-text-color"],
       "--browser-sidebar-border": v["--zen-colors-border"],
-      "--browser-ntp-background": v["--zen-themed-toolbar-bg"],
-      "--browser-ntp-text": v["--toolbar-color"],
+      "--browser-ntp-background": v["--newtab-background-color"],
+      "--browser-ntp-text": v["--newtab-text-primary-color"],
     };
     apply({
       title: v["--zen-main-browser-background"],
       surface: v["--zen-colors-secondary"],
-      elevated: v["--zen-colors-tertiary"],
-      background: v["--zen-themed-toolbar-bg"],
+      elevated: v["--zen-colors-primary"],
+      background: v["--newtab-background-color"],
       foreground: v["--toolbar-color"],
       accent: v["--zen-primary-color"],
       accentFill: v["--zen-primary-color"],
@@ -614,83 +614,120 @@ export function integrationThemeFromFiles(
       border: v["--ts-border"],
     });
   } else if (target === "gitcomet") {
-    const data = JSON.parse(named(".json"));
-    const gc = data.colors as Record<string, string>;
+    const bundle = JSON.parse(read((f) => f.path.endsWith(".json"))) as {
+      themes: Array<{
+        appearance: string;
+        colors: {
+          surface: Record<string, string>;
+          foreground: Record<string, string | { hex: string }>;
+          stroke: Record<string, string | { hex: string }>;
+          interaction: Record<string, string | { hex: string }>;
+          accent: Record<string, string>;
+          diff: Record<string, Record<string, string>>;
+          graph_lane_palette?: string[];
+        };
+        syntax?: Record<string, string>;
+      }>;
+    };
+    const entry =
+      bundle.themes.find((t) => t.appearance === mode) ?? bundle.themes[0];
+    const h6 = (v?: string | { hex: string }) => {
+      const s = typeof v === "string" ? v : v?.hex;
+      return s ? s.slice(0, 7).toLowerCase() : undefined;
+    };
+    const gc = entry.colors;
     apply({
-      background: gc.background,
-      surface: gc.surface,
-      elevated: gc.elevated,
-      foreground: gc.foreground,
-      muted: gc.muted,
-      border: gc.border,
-      input: gc.input,
-      accent: gc.accent,
-      accentFill: gc.accentFill,
-      accentForeground: gc.accentForeground,
-      selection: gc.selection,
-      selectionForeground: gc.selectionForeground,
-      hover: gc.hover,
-      success: data.diff.added,
-      error: data.diff.removed,
-      warning: data.diff.modified,
-      chart1: data.graph[0],
-      chart2: data.graph[1],
-      chart3: data.graph[2],
-      chart4: data.graph[3],
-      chart5: data.graph[4],
+      background: h6(gc.surface.canvas),
+      surface: h6(gc.surface.chrome),
+      elevated: h6(gc.surface.raised),
+      input: h6(gc.surface.input),
+      foreground: h6(gc.foreground.primary),
+      muted: h6(gc.foreground.secondary),
+      border: h6(gc.stroke.default),
+      accent: h6(gc.accent.foreground),
+      accentFill: h6(gc.accent.solid),
+      accentForeground: h6(gc.accent.on_solid),
+      selection: h6(gc.interaction.selected_background),
+      selectionForeground: h6(gc.interaction.selected_foreground),
+      hover: h6(gc.interaction.hover_background),
+      success: h6(gc.diff.added.foreground),
+      error: h6(gc.diff.removed.foreground),
+      warning: h6(gc.diff.modified.foreground),
+      chart1: h6(gc.graph_lane_palette?.[0]),
+      chart2: h6(gc.graph_lane_palette?.[1]),
+      chart3: h6(gc.graph_lane_palette?.[2]),
+      chart4: h6(gc.graph_lane_palette?.[3]),
+      chart5: h6(gc.graph_lane_palette?.[4]),
     });
-    result.syntax = data.syntax;
+    if (entry.syntax) {
+      result.syntax = {
+        comment: h6(entry.syntax.comment) ?? c.syntaxComment,
+        keyword: h6(entry.syntax.keyword) ?? c.syntaxKeyword,
+        string: h6(entry.syntax.string) ?? c.syntaxString,
+        number: h6(entry.syntax.number) ?? c.syntaxNumber,
+        function: h6(entry.syntax.function) ?? c.syntaxFunction,
+        type: h6(entry.syntax.type) ?? c.syntaxType,
+      };
+    }
   } else if (target === "smartgit") {
-    const p = section(named(".properties"));
+    const p = section(read((f) => f.path === `${mode}-patch.theme`));
+    const refVal = (v?: string) => (v && p[v] ? p[v] : v);
     apply({
-      surface: p["window.background"],
-      background: p["control.background"],
-      elevated: p["elevated.background"],
-      foreground: p["window.foreground"],
-      muted: p["muted.foreground"],
-      border: p["border.color"],
-      accent: p["accent.color"],
-      accentFill: p["accent.color"],
-      accentForeground: p["accent.foreground"],
-      selection: p["selection.background"],
-      selectionForeground: p["selection.foreground"],
-      hover: p["hover.background"],
-      success: p["diff.added"],
-      error: p["diff.removed"],
-      warning: p["diff.modified"],
-      chart1: p["graph.branch.0"],
-      chart2: p["graph.branch.1"],
-      chart3: p["graph.branch.2"],
-      chart4: p["graph.branch.3"],
-      chart5: p["graph.branch.4"],
+      surface: refVal(p.background1),
+      background: refVal(p.background2),
+      elevated: refVal(p["selection.background.unfocused"]),
+      foreground: refVal(p.foreground1),
+      border: refVal(p["composite.background#border"]),
+      selection: refVal(p["selection.background"]),
+      selectionForeground: refVal(p["selection.foreground"]),
+      hover: refVal(p["toolBar.background.hover"]),
+      success: refVal(p["branches#approved"]),
+      error: refVal(p["branches#rejected"]),
+      warning: refVal(p["branches#ahead"]),
+      info: refVal(p["branches#behind"]),
+      chart1: refVal(p["branches#approved"]),
+      chart2: refVal(p["branches#behind"]),
+      chart3: refVal(p["branches#ahead"]),
+      chart4: refVal(p["branches#rejected"]),
     });
   } else if (target === "slack") {
-    const p = section(named(".txt"));
+    const lines = named(".txt")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => /^#[0-9a-f]{6}(,#[0-9a-f]{6})+$/i.test(l));
+    const modern4 = lines[0]?.split(",") ?? [];
+    const legacy8 = lines[1]?.split(",") ?? [];
+    const colBg = legacy8[0] ?? modern4[0];
+    const menuHover = legacy8[1] ?? c.elevated;
+    const activeItem = modern4[1] ?? legacy8[2];
+    const activeText = legacy8[3] ?? c.accentForeground;
+    const hoverItem = legacy8[4] ?? c.hover;
+    const textCol = legacy8[5] ?? c.foreground;
+    const presence = modern4[2] ?? legacy8[6];
+    const mention = modern4[3] ?? legacy8[7];
     result.variables = {
-      "--slack-column-bg": p.column_bg,
-      "--slack-menu-hover": p.menu_bg_hover,
-      "--slack-active-item": p.active_item,
-      "--slack-active-text": p.active_item_text,
-      "--slack-hover-item": p.hover_item,
-      "--slack-text": p.text_color,
-      "--slack-presence": p.active_presence,
-      "--slack-mention": p.mention_badge,
-      "--slack-window-bg": p.window_bg,
-      "--slack-border": p.border,
+      "--slack-column-bg": colBg,
+      "--slack-menu-hover": menuHover,
+      "--slack-active-item": activeItem,
+      "--slack-active-text": activeText,
+      "--slack-hover-item": hoverItem,
+      "--slack-text": textCol,
+      "--slack-presence": presence,
+      "--slack-mention": mention,
+      "--slack-window-bg": c.background,
+      "--slack-border": c.border,
     };
     apply({
-      sidebar: p.column_bg,
-      surface: p.column_bg,
-      background: p.window_bg,
-      elevated: p.menu_bg_hover,
-      foreground: p.text_color,
-      accent: p.active_item,
-      accentFill: p.active_item,
-      accentForeground: p.active_item_text,
-      hover: p.hover_item,
-      success: p.active_presence,
-      error: p.mention_badge,
-      border: p.border,
+      sidebar: colBg,
+      surface: colBg,
+      elevated: menuHover,
+      foreground: textCol,
+      accent: activeItem,
+      accentFill: activeItem,
+      accentForeground: activeText,
+      hover: hoverItem,
+      success: presence,
+      error: mention,
     });
   } else if (target === "gtk") {
     const v = defineColors(read((f) => f.path === `${mode}/gtk-4.0/gtk.css`));
@@ -878,23 +915,38 @@ export function integrationThemeFromFiles(
       selection: styleVal("mode-style", "bg"),
       selectionForeground: styleVal("mode-style", "fg"),
     });
+    Object.assign(terminal, {
+      background: c.background,
+      foreground: styleVal("status-style", "fg") ?? c.foreground,
+    });
   } else if (target === "zellij") {
     const content = named(".kdl");
-    const kdl = (k: string) =>
-      content.match(
-        new RegExp(`^\\s*${k}\\s+"(#[0-9a-fA-F]{6})"`, "im"),
-      )?.[1]?.toLowerCase();
+    const blockHex = (blockName: string, prop: string) => {
+      const m = content.match(
+        new RegExp(
+          `${blockName}\\s*\\{[\\s\\S]*?${prop}\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)`,
+          "i",
+        ),
+      );
+      return m ? csvHex(`${m[1]},${m[2]},${m[3]}`) : undefined;
+    };
     apply({
-      foreground: kdl("fg"),
-      background: kdl("bg"),
-      surface: kdl("black"),
-      error: kdl("red"),
-      success: kdl("green"),
-      warning: kdl("yellow"),
-      accent: kdl("blue"),
-      chart5: kdl("magenta"),
-      info: kdl("cyan"),
-      accentFill: kdl("orange"),
+      foreground: blockHex("text_unselected", "base"),
+      background: blockHex("text_unselected", "background"),
+      selection: blockHex("text_selected", "background"),
+      selectionForeground: blockHex("text_selected", "base"),
+      surface: blockHex("ribbon_unselected", "background"),
+      accentFill: blockHex("ribbon_selected", "background"),
+      accentForeground: blockHex("ribbon_selected", "base"),
+      accent: blockHex("frame_selected", "base"),
+      border: blockHex("frame_unselected", "base"),
+      warning: blockHex("frame_highlight", "base"),
+      success: blockHex("exit_code_success", "base"),
+      error: blockHex("exit_code_error", "base"),
+    });
+    Object.assign(terminal, {
+      background: result.roles.background,
+      foreground: result.roles.foreground,
     });
   } else if (target === "starship") {
     const data = parseToml(named(".toml")) as unknown as {
@@ -915,6 +967,10 @@ export function integrationThemeFromFiles(
       error: p.error,
       info: p.info,
     });
+    Object.assign(terminal, {
+      background: p.background,
+      foreground: p.foreground,
+    });
   } else if (target === "btop") {
     const content = named(".theme");
     const btop = (k: string) =>
@@ -930,7 +986,7 @@ export function integrationThemeFromFiles(
       selectionForeground: btop("selected_fg"),
       muted: btop("inactive_fg"),
       surface: btop("meter_bg"),
-      border: btop("cpu_box"),
+      border: btop("div_line"),
       success: btop("temp_start"),
       warning: btop("temp_mid"),
       error: btop("temp_end"),
@@ -941,21 +997,35 @@ export function integrationThemeFromFiles(
       chart4: btop("used_end"),
       chart5: btop("download_end"),
     });
+    Object.assign(terminal, {
+      background: btop("main_bg"),
+      foreground: btop("main_fg"),
+    });
   } else if (target === "lazygit") {
     const data = parseYaml(named(".yaml")) as {
-      gui?: { theme?: Record<string, string[]> };
+      gui?: { theme?: Record<string, string[] | Record<string, string>> };
     };
     const t = data.gui?.theme ?? {};
-    const first = (k: string) => t[k]?.[0];
+    const first = (k: string) => {
+      const v = t[k];
+      return Array.isArray(v) ? v[0] : undefined;
+    };
     apply({
       accent: first("activeBorderColor"),
       border: first("inactiveBorderColor"),
       warning: first("searchingActiveBorderColor"),
       selection: first("selectedLineBgColor"),
+      selectionForeground: first("selectedLineFgColor"),
+      hover: first("selectedRangeBgColor"),
+      elevated: first("inactiveViewSelectedLineBgColor"),
       accentFill: first("cherryPickedCommitBgColor"),
       accentForeground: first("cherryPickedCommitFgColor"),
       error: first("unstagedChangesColor"),
       foreground: first("defaultFgColor"),
+    });
+    Object.assign(terminal, {
+      background: c.background,
+      foreground: first("defaultFgColor") ?? c.foreground,
     });
   } else if (target === "hyprland") {
     const content = named(".conf");
@@ -1083,9 +1153,20 @@ export function integrationThemeFromFiles(
 
   apply({ terminalBackground: terminal.background });
   if (
-    !["vscode", "zed", "neovim", "helix", "sublime", "t3-code"].includes(
-      target,
-    ) &&
+    ![
+      "vscode",
+      "zed",
+      "neovim",
+      "helix",
+      "sublime",
+      "t3-code",
+      "jetbrains",
+      "tmux",
+      "zellij",
+      "starship",
+      "btop",
+      "lazygit",
+    ].includes(target) &&
     terminal.background
   ) {
     apply({

@@ -254,43 +254,43 @@ export const previewFidelity: Record<string, PreviewFidelity> = {
     url: "https://github.com/sharkdp/bat#adding-new-themes",
   },
   tmux: {
-    renderer: "tmux · multiplexer status & pane preview",
+    renderer: "xterm.js · truecolor tmux preview",
     coverage:
-      "Reads status-style, window-status-current-style, pane-border-style, pane-active-border-style, and mode-style directly from the generated .conf file.",
+      "Renders real 24-bit ANSI escape sequences inside xterm.js using status-style, window-status-current-style, pane-border-style, pane-active-border-style, and mode-style parsed from the exported .conf file.",
     limitations:
-      "Runs as a local interactive pane mockup; real tmux plugins and terminal ANSI sequences remain controlled by your terminal emulator.",
+      "Shows a real xterm.js rendering of tmux's panes and status bar; live shell multiplexing and tmux plugins are not executed in the browser.",
     url: "https://github.com/tmux/tmux/wiki/Getting-Started",
   },
   zellij: {
-    renderer: "Zellij · multiplexer KDL theme preview",
+    renderer: "xterm.js · truecolor Zellij 0.40+ preview",
     coverage:
-      "Reads fg, bg, black, red, green, yellow, blue, magenta, cyan, and orange directly from the generated Zellij KDL theme block.",
+      "Renders real 24-bit ANSI escape sequences inside xterm.js using the text_unselected, ribbon_selected, frame_selected, and exit_code RGB triplets parsed from the exported .kdl file.",
     limitations:
-      "Reconstructs Zellij's tab bar, stacked panes, and keybind footer locally; native Zellij plugins and custom layouts are not executed.",
+      "Shows a real xterm.js rendering of Zellij's frames and tab ribbon; native Zellij plugins and custom layouts are not executed in the browser.",
     url: "https://zellij.dev/documentation/themes",
   },
   starship: {
-    renderer: "Starship · prompt palette TOML preview",
+    renderer: "xterm.js · truecolor Starship prompt preview",
     coverage:
-      "Reads the named [palettes.*] table directly from the generated Starship TOML config for directory, git branch, prompt symbol, and status modules.",
+      "Renders real 24-bit ANSI escape sequences inside xterm.js using the named [palettes.*] table parsed from the exported Starship TOML config.",
     limitations:
-      "Shows representative prompt segments; Nerd Font icons and your local Starship module order depend on your shell environment.",
+      "Shows representative prompt segments inside xterm.js; Nerd Font glyphs and your local Starship module order depend on your shell environment.",
     url: "https://starship.rs/config/#palettes",
   },
   btop: {
-    renderer: "btop++ · system monitor theme preview",
+    renderer: "xterm.js · truecolor btop++ preview",
     coverage:
-      "Reads main_bg, main_fg, hi_fg, selected_bg, box borders, and CPU/memory/network gradient stops directly from the generated .theme file.",
+      "Renders real 24-bit ANSI escape sequences and Unicode Braille graphs inside xterm.js using main_bg, main_fg, hi_fg, selected_bg, box borders, and gradient stops parsed from the exported .theme file.",
     limitations:
-      "Displays sample telemetry curves and process rows locally; live OS metrics and Braille graph density depend on your terminal.",
+      "Displays realistic Braille CPU/memory curves and process rows inside xterm.js; live OS telemetry is simulated locally.",
     url: "https://github.com/aristocratos/btop#themes",
   },
   lazygit: {
-    renderer: "Lazygit · TUI Git client YAML preview",
+    renderer: "xterm.js · truecolor Lazygit TUI preview",
     coverage:
-      "Reads activeBorderColor, inactiveBorderColor, selectedLineBgColor, unstagedChangesColor, and defaultFgColor directly from the exported YAML config.",
+      "Renders real 24-bit ANSI escape sequences inside xterm.js using activeBorderColor, inactiveBorderColor, selectedLineBgColor, unstagedChangesColor, and defaultFgColor parsed from the exported YAML config.",
     limitations:
-      "Uses a local interactive Git repository preview; native terminal borders and custom keybindings depend on your Lazygit installation.",
+      "Displays a real xterm.js rendering of Lazygit's multi-panel TUI layout; live Git commands and custom keybindings run locally on your machine.",
     url: "https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md#color-attributes",
   },
   hyprland: {

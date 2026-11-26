@@ -29,12 +29,14 @@ export function TerminalSurface({
   target,
   compact = false,
   windows = false,
+  staticAnsi,
 }: {
   theme: Theme;
   mode: Appearance;
   target: string;
   compact?: boolean;
   windows?: boolean;
+  staticAnsi?: string;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const terminal = useRef<TerminalHandle | null>(null);
@@ -50,16 +52,16 @@ export function TerminalSurface({
     [theme, mode, target],
   );
   const engine = terminalEngine(target, palette);
-  const latest = useRef({ palette, name: theme.name, scene });
+  const latest = useRef({ palette, name: theme.name, scene, staticAnsi });
   // ghostty-web 0.4 does not apply options.theme after open(). Recreate its
   // renderer for a changed palette and replay ANSI, retaining the local session.
   const ghosttyPaletteKey =
     engine === "ghostty-web" ? JSON.stringify(palette) : "";
   useEffect(() => {
-    latest.current = { palette, name: theme.name, scene };
+    latest.current = { palette, name: theme.name, scene, staticAnsi };
     context.current.name = theme.name;
     context.current.windows = windows;
-  }, [palette, theme.name, scene, windows]);
+  }, [palette, theme.name, scene, windows, staticAnsi]);
   useEffect(() => {
     const element = host.current;
     if (!element) return;
@@ -136,15 +138,20 @@ export function TerminalSurface({
         else instance.textarea?.blur();
       }
       terminal.current = instance;
-      if (!session.current) {
-        session.current = createTerminalSession((text) => {
-          transcript.current.append(text);
-          terminal.current?.write(text);
-        }, context.current);
-        session.current.start(latest.current.scene);
-      } else instance.write(transcript.current.replay());
-      const input = session.current;
-      const subscription = instance.onData((data) => input.input(data));
+      let subscription: { dispose(): void } = { dispose() {} };
+      if (latest.current.staticAnsi !== undefined) {
+        instance.write(latest.current.staticAnsi);
+      } else {
+        if (!session.current) {
+          session.current = createTerminalSession((text) => {
+            transcript.current.append(text);
+            terminal.current?.write(text);
+          }, context.current);
+          session.current.start(latest.current.scene);
+        } else instance.write(transcript.current.replay());
+        const input = session.current;
+        subscription = instance.onData((data) => input.input(data));
+      }
       const resize = () => {
         cancelAnimationFrame(frame);
         frame = requestAnimationFrame(() => {
@@ -193,6 +200,11 @@ export function TerminalSurface({
     if (terminal.current && engine !== "ghostty-web")
       terminal.current.options.theme = palette;
   }, [palette, engine]);
+  useEffect(() => {
+    if (staticAnsi !== undefined && terminal.current) {
+      terminal.current.write(`\x1b[2J\x1b[H${staticAnsi}`);
+    }
+  }, [staticAnsi]);
   const choose = (next: TerminalScene) => {
     setScene(next);
     session.current?.start(next);
@@ -203,17 +215,19 @@ export function TerminalSurface({
       data-renderer={engine}
       data-engine-state={state}
     >
-      <div className="engine-scenes" aria-label="Terminal sample output">
-        {terminalScenes.map((item) => (
-          <button
-            key={item.id}
-            aria-pressed={scene === item.id}
-            onClick={() => choose(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      {staticAnsi === undefined && (
+        <div className="engine-scenes" aria-label="Terminal sample output">
+          {terminalScenes.map((item) => (
+            <button
+              key={item.id}
+              aria-pressed={scene === item.id}
+              onClick={() => choose(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
       <div
         ref={host}
         className="engine-terminal-canvas"
@@ -246,7 +260,7 @@ export function TerminalSurface({
       {state !== "ready" && (
         <div className="engine-terminal-fallback">
           <pre>
-            {terminalScene("shell", theme.name, windows).replace(
+            {(staticAnsi ?? terminalScene("shell", theme.name, windows)).replace(
               /\x1b\[[\d;]*m/g,
               "",
             )}

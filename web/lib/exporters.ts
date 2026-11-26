@@ -1,4 +1,5 @@
 import {
+  mix,
   parseTheme,
   resolve,
   rgb,
@@ -672,20 +673,22 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
       }),
     );
   } else if (targetId === "stylus") {
+    const primary = resolve(theme, theme.defaultAppearance);
     const blocks = modes
       .map((mode) => {
-        const c = resolve(theme, mode);
-        const sel =
-          modes.length > 1
-            ? `@media (prefers-color-scheme: ${mode}) {\n` +
-              `  :root {\n` +
-              Object.entries(cssVariables(theme, mode))
-                .map(([k, v]) => `    ${k}: ${v};`)
-                .join("\n") +
-              `\n  }\n  html, body { background-color: ${c.background}; color: ${c.foreground}; }\n  a { color: ${c.accent}; }\n  hr, border, input, textarea, select { border-color: ${c.border}; }\n}`
-            : cssBlock(":root", cssVariables(theme, mode)) +
-              `\nhtml, body { background-color: ${c.background}; color: ${c.foreground}; }\na { color: ${c.accent}; }\n`;
-        return sel;
+        const rules =
+          `  :root {\n` +
+          Object.entries(cssVariables(theme, mode))
+            .map(([k, v]) => `    ${k}: ${v};`)
+            .join("\n") +
+          `\n  }\n` +
+          `  html, body { background-color: var(--ts-background); color: var(--ts-foreground); }\n` +
+          `  a { color: var(--ts-accent); }\n` +
+          `  hr, input, textarea, select, pre, code { border-color: var(--ts-border); }\n` +
+          `  pre, code { background-color: var(--ts-surface); }`;
+        return modes.length > 1
+          ? `@media (prefers-color-scheme: ${mode}) {\n${rules}\n}`
+          : rules.replace(/^  /gm, "");
       })
       .join("\n\n");
     add(
@@ -697,10 +700,242 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
         `@description    ${clean(theme.description || theme.name)}\n` +
         `@author         ${clean(theme.author)}\n` +
         `@license        ${clean(theme.license)}\n` +
+        `@preprocessor   default\n` +
+        `@var color      tsBg "Background" ${primary.background}\n` +
+        `@var color      tsSurface "Surface" ${primary.surface}\n` +
+        `@var color      tsFg "Foreground" ${primary.foreground}\n` +
+        `@var color      tsAccent "Accent" ${primary.accent}\n` +
+        `@var color      tsBorder "Border" ${primary.border}\n` +
         `==/UserStyle== */\n\n` +
         `@-moz-document regexp("https?://.*") {\n` +
         `${blocks}\n` +
         `}\n`,
+    );
+  } else if (targetId === "gitcomet") {
+    const reserved = new Set([
+      "gitcomet",
+      "github",
+      "nord",
+      "catppuccin",
+      "eldritch",
+      "tokyo-night",
+      "solarized",
+      "gruvbox",
+      "one-dark-pro",
+      "monokai",
+      "night-owl",
+    ]);
+    const fileBase = reserved.has(slug) ? `themespace-${slug}` : slug;
+    const rgba = (hex: string, alpha = "ff") =>
+      `${hex.toLowerCase()}${alpha}`;
+    const entryFor = (mode: Appearance) => {
+      const c = resolve(theme, mode);
+      const syn = syntax(c);
+      const dark = mode === "dark";
+      return {
+        key: `${fileBase.replaceAll("-", "_")}_${mode}`,
+        name: `${theme.name} ${mode === "dark" ? "Dark" : "Light"}`,
+        appearance: mode,
+        graph_fade_opacity: 0.1,
+        colors: {
+          surface: {
+            canvas: rgba(c.background),
+            chrome: rgba(c.surface),
+            panel: rgba(c.surface),
+            raised: rgba(c.elevated),
+            input: rgba(c.input),
+          },
+          foreground: {
+            primary: rgba(c.foreground),
+            secondary: rgba(c.muted),
+            disabled: { hex: rgba(c.muted), alpha: 0.62 },
+            placeholder: { hex: rgba(c.muted), alpha: 0.72 },
+            emphasis: rgba(dark ? "#ffffff" : "#0b0e14"),
+          },
+          stroke: {
+            subtle: { hex: rgba(c.border), alpha: 0.45 },
+            default: rgba(c.border),
+            control: rgba(mix(c.border, c.foreground, 0.2)),
+          },
+          interaction: {
+            hover_overlay: { hex: rgba(c.foreground), alpha: 0.07 },
+            pressed_overlay: { hex: rgba(c.foreground), alpha: 0.11 },
+            hover_background: rgba(c.hover),
+            pressed_background: rgba(c.selection),
+            selected_background: rgba(c.selection),
+            selected_foreground: rgba(c.selectionForeground),
+            selected_indicator: rgba(c.accent),
+            focus_ring: rgba(c.focus),
+            focus_background: { hex: rgba(c.focus), alpha: 0.16 },
+          },
+          accent: {
+            foreground: rgba(c.accent),
+            solid: rgba(c.accentFill),
+            on_solid: rgba(c.accentForeground),
+            subtle_background: rgba(mix(c.background, c.accent, 0.18)),
+          },
+          status: {
+            info: {
+              foreground: rgba(c.info),
+              background: rgba(mix(c.background, c.info, 0.16)),
+              border: rgba(mix(c.border, c.info, 0.45)),
+            },
+            success: {
+              foreground: rgba(c.success),
+              background: rgba(mix(c.background, c.success, 0.16)),
+              border: rgba(mix(c.border, c.success, 0.45)),
+            },
+            warning: {
+              foreground: rgba(c.warning),
+              background: rgba(mix(c.background, c.warning, 0.16)),
+              border: rgba(mix(c.border, c.warning, 0.45)),
+            },
+            danger: {
+              foreground: rgba(c.error),
+              background: rgba(mix(c.background, c.error, 0.16)),
+              border: rgba(mix(c.border, c.error, 0.45)),
+            },
+          },
+          editor: {
+            background: rgba(c.background),
+            foreground: rgba(c.foreground),
+            gutter_background: rgba(c.background),
+            line_number: rgba(c.muted),
+            cursor: rgba(c.accent, "e0"),
+            selection_background: rgba(c.selection, "99"),
+            search_match_background: rgba(mix(c.background, c.warning, 0.25)),
+            search_match_foreground: rgba(c.warning),
+            bracket_match_background: { hex: rgba(c.accent), alpha: 0.22 },
+            indent_guide: { hex: rgba(c.border), alpha: 0.55 },
+          },
+          diff: {
+            added: {
+              foreground: rgba(c.success),
+              background: rgba(mix(c.background, c.success, 0.14)),
+              word_background: rgba(c.success, "38"),
+              focused_background: rgba(c.success, "33"),
+            },
+            removed: {
+              foreground: rgba(c.error),
+              background: rgba(mix(c.background, c.error, 0.14)),
+              word_background: rgba(c.error, "38"),
+              focused_background: rgba(c.error, "33"),
+            },
+            modified: {
+              foreground: rgba(c.warning),
+              background: rgba(mix(c.background, c.warning, 0.14)),
+              word_background: rgba(c.warning, "38"),
+              focused_background: rgba(c.warning, "33"),
+            },
+          },
+          tooltip: {
+            background: rgba(c.elevated),
+            foreground: rgba(c.foreground),
+          },
+          scrollbar: {
+            thumb: { hex: rgba(c.muted), alpha: 0.3 },
+            thumb_hover: { hex: rgba(c.muted), alpha: 0.45 },
+            thumb_pressed: { hex: rgba(c.muted), alpha: 0.6 },
+          },
+          notice: {
+            background: { hex: rgba(c.warning), alpha: 0.13 },
+            border: { hex: rgba(c.warning), alpha: 0.3 },
+            foreground: rgba(c.foreground),
+            secondary: rgba(c.muted),
+          },
+          interstitial: {
+            text: rgba(c.foreground),
+            muted: rgba(c.muted),
+            primary: {
+              text: rgba(c.accentForeground),
+              background: rgba(c.accentFill),
+              background_hover: rgba(mix(c.accentFill, c.foreground, 0.1)),
+              background_active: rgba(mix(c.accentFill, c.background, 0.1)),
+              border: rgba(c.accentFill),
+              border_hover: rgba(mix(c.accentFill, c.foreground, 0.1)),
+              border_active: rgba(mix(c.accentFill, c.background, 0.1)),
+            },
+            secondary: {
+              text: rgba(c.foreground),
+              background: rgba(c.elevated),
+              background_hover: rgba(c.hover),
+              background_active: rgba(c.selection),
+              border: rgba(c.border),
+              border_hover: rgba(c.accent),
+              border_active: rgba(c.accent),
+            },
+          },
+          shadow: "#000000ff",
+          graph_lane_palette: [
+            rgba(c.chart1),
+            rgba(c.chart2),
+            rgba(c.chart3),
+            rgba(c.chart4),
+            rgba(c.chart5),
+          ],
+        },
+        syntax: {
+          comment: rgba(syn.comment),
+          comment_doc: rgba(mix(syn.comment, c.foreground, 0.15)),
+          string: rgba(syn.string),
+          string_escape: rgba(c.info),
+          string_regex: rgba(c.error),
+          string_special: rgba(syn.string),
+          keyword: rgba(syn.keyword),
+          keyword_control: rgba(syn.keyword),
+          preproc: rgba(c.info),
+          number: rgba(syn.number),
+          boolean: rgba(syn.number),
+          function: rgba(syn.function),
+          function_method: rgba(syn.function),
+          function_special: rgba(syn.function),
+          constructor: rgba(syn.type),
+          type: rgba(syn.type),
+          type_builtin: rgba(syn.type),
+          type_interface: rgba(syn.type),
+          namespace: rgba(c.accent),
+          variable: rgba(c.foreground),
+          variable_parameter: rgba(mix(c.foreground, c.muted, 0.3)),
+          variable_special: rgba(c.accent),
+          variable_builtin: rgba(c.info),
+          property: rgba(syn.function),
+          label: rgba(c.chart5),
+          constant: rgba(syn.number),
+          constant_builtin: rgba(syn.number),
+          operator: rgba(c.foreground),
+          punctuation: rgba(c.muted),
+          punctuation_bracket: rgba(c.muted),
+          punctuation_delimiter: rgba(c.muted),
+          punctuation_special: rgba(c.accent),
+          punctuation_list_marker: rgba(c.error),
+          tag: rgba(syn.type),
+          attribute: rgba(syn.function),
+          markup_heading: rgba(syn.keyword),
+          markup_link: rgba(c.accent),
+          text_literal: rgba(syn.string),
+          diff_plus: rgba(c.success),
+          diff_minus: rgba(c.error),
+          diff_delta: rgba(c.warning),
+          lifetime: rgba(c.info),
+        },
+        radii: {
+          panel: Math.min(18, theme.style.radius),
+          pill: 999.0,
+          row: Math.min(12, Math.max(4, theme.style.radius * 0.7)),
+          control: Math.min(12, Math.max(4, theme.style.radius * 0.7)),
+          popover: Math.min(16, theme.style.radius),
+          window: Math.min(18, theme.style.radius),
+        },
+      };
+    };
+    add(
+      `${fileBase}.json`,
+      json({
+        schema_version: 2,
+        name: theme.name,
+        author: theme.author,
+        themes: modes.map(entryFor),
+      }),
     );
   } else if (targetId === "waybar") {
     for (const mode of modes) {
@@ -1071,80 +1306,95 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
           add(
             `${mode}/settings.json`,
             json({
-              version: 1,
+              accentFromPage: false,
+              accentOnWindow: true,
+              accentSaturationLimit: 1,
+              alpha: 1,
+              backgroundPosition: "stretch",
+              blur: 0,
+              colorAccentBg: c.surface,
+              colorBg: c.background,
+              colorFg: c.foreground,
+              colorHighlightBg: c.accentFill,
+              colorWindowBg: c.surface,
+              contrast: 0,
+              dimBlurred: false,
+              engineVersion: 1,
               id: `${slug}-${mode}`,
               name,
-              colors: {
-                colorBg: c.background,
-                colorFg: c.foreground,
-                colorHi: c.accentFill,
-                colorAc: c.surface,
-                colorWindowBg: c.surface,
-                colorSuccessBg: c.success,
-                colorWarningBg: c.warning,
-                colorErrorBg: c.error,
-              },
-              settings: {
-                accentFromPage: false,
-                accentOnWindow: false,
-                accentSaturationLimit: 1,
-                alpha: 1,
-                backgroundPosition: "stretch",
-                blur: 0,
-                contrast: 0,
-                dimBlurred: false,
-                engineVersion: 1,
-                id: `${slug}-${mode}`,
-                name,
-                preferSystemAccent: false,
-                radius: Math.min(14, theme.style.radius),
-                simpleScrollbar: true,
-                tabsTransparent: false,
-              },
+              preferSystemAccent: false,
+              radius: Math.min(14, theme.style.radius),
+              simpleScrollbar: false,
+              transparencyTabBar: false,
+              transparencyTabs: false,
+              url: "",
+              version: 1,
             }),
           );
           break;
         case "zen":
           add(
             `${mode}/userChrome.css`,
-            comment(theme) +
-              cssBlock(":root", {
-                "--zen-primary-color": c.accentFill,
-                "--zen-main-browser-background": c.surface,
-                "--zen-themed-toolbar-bg": c.background,
-                "--zen-colors-primary": c.accentFill,
-                "--zen-colors-secondary": c.surface,
-                "--zen-colors-tertiary": c.elevated,
-                "--zen-colors-border": c.border,
-                "--toolbar-bgcolor": c.background,
-                "--toolbar-color": c.foreground,
-                "--lwt-accent-color": c.surface,
-                "--lwt-text-color": c.foreground,
-                "--tab-selected-bgcolor": c.elevated,
-                "--tab-selected-textcolor": c.foreground,
-                "--urlbar-box-bgcolor": c.input,
-                "--urlbar-box-text-color": c.foreground,
-              }),
+            `/* ${name} for Zen Browser · Generated with ThemeSpace ${generatorVersion} */\n\n` +
+              `@media (prefers-color-scheme: ${mode}) {\n` +
+              `  :root {\n` +
+              `    --zen-colors-primary: ${c.elevated} !important;\n` +
+              `    --zen-primary-color: ${c.accentFill} !important;\n` +
+              `    --zen-colors-secondary: ${c.surface} !important;\n` +
+              `    --zen-colors-tertiary: ${c.background} !important;\n` +
+              `    --zen-colors-border: ${c.border} !important;\n` +
+              `    --toolbarbutton-icon-fill: ${c.accent} !important;\n` +
+              `    --lwt-text-color: ${c.foreground} !important;\n` +
+              `    --toolbar-field-color: ${c.foreground} !important;\n` +
+              `    --toolbar-field-focus-color: ${c.foreground} !important;\n` +
+              `    --tab-selected-textcolor: ${c.foreground} !important;\n` +
+              `    --toolbar-color: ${c.foreground} !important;\n` +
+              `    --newtab-text-primary-color: ${c.foreground} !important;\n` +
+              `    --arrowpanel-color: ${c.foreground} !important;\n` +
+              `    --arrowpanel-background: ${c.elevated} !important;\n` +
+              `    --sidebar-text-color: ${c.foreground} !important;\n` +
+              `    --lwt-sidebar-text-color: ${c.foreground} !important;\n` +
+              `    --lwt-sidebar-background-color: ${c.surface} !important;\n` +
+              `    --toolbar-bgcolor: ${c.elevated} !important;\n` +
+              `    --newtab-background-color: ${c.background} !important;\n` +
+              `    --zen-themed-toolbar-bg: ${c.surface} !important;\n` +
+              `    --zen-main-browser-background: ${c.surface} !important;\n` +
+              `    --toolbox-bgcolor-inactive: ${c.surface} !important;\n` +
+              `  }\n\n` +
+              `  #TabsToolbar, hbox#titlebar, #zen-appcontent-navbar-container {\n` +
+              `    background-color: ${c.surface} !important;\n` +
+              `  }\n` +
+              `  .sidebar-placesTree, #zen-workspaces-button, .urlbar-background {\n` +
+              `    background-color: ${c.background} !important;\n` +
+              `  }\n` +
+              `  .urlbarView-url {\n` +
+              `    color: ${c.accent} !important;\n` +
+              `  }\n` +
+              `}\n`,
           );
           add(
-            `${mode}/theme.json`,
-            json({
-              id: `${slug}-${mode}`,
-              name,
-              description: theme.description,
-              author: theme.author,
-              version: generatorVersion,
-              style: "userChrome.css",
-              colors: {
-                primary: c.accentFill,
-                background: c.background,
-                surface: c.surface,
-                elevated: c.elevated,
-                foreground: c.foreground,
-                muted: c.muted,
-                border: c.border,
-              },
-            }),
+            `${mode}/userContent.css`,
+            `/* ${name} for Zen Browser about: pages · Generated with ThemeSpace ${generatorVersion} */\n\n` +
+              `@media (prefers-color-scheme: ${mode}) {\n` +
+              `  @-moz-document url-prefix("about:") {\n` +
+              `    :root {\n` +
+              `      --in-content-page-color: ${c.foreground} !important;\n` +
+              `      --in-content-page-background: ${c.background} !important;\n` +
+              `      --color-accent-primary: ${c.accentFill} !important;\n` +
+              `      background-color: ${c.background} !important;\n` +
+              `    }\n` +
+              `  }\n` +
+              `  @-moz-document url("about:newtab"), url("about:home") {\n` +
+              `    :root {\n` +
+              `      --newtab-background-color: ${c.background} !important;\n` +
+              `      --newtab-background-color-secondary: ${c.surface} !important;\n` +
+              `      --newtab-element-hover-color: ${c.hover} !important;\n` +
+              `      --newtab-text-primary-color: ${c.foreground} !important;\n` +
+              `      --newtab-wordmark-color: ${c.foreground} !important;\n` +
+              `      --newtab-primary-action-background: ${c.accentFill} !important;\n` +
+              `    }\n` +
+              `  }\n` +
+              `}\n`,
           );
           break;
         case "konsole":
@@ -1188,76 +1438,53 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
             `${mode}/install.sh`,
             `#!/usr/bin/env bash\nset -euo pipefail\n` +
               `# Installs ${name} as a new GNOME Terminal profile via dconf.\n` +
+              `command -v dconf >/dev/null || { echo "dconf is required."; exit 1; }\n` +
               `UUID=$(uuidgen)\n` +
               `DIR=$(cd "$(dirname "$0")/.." && pwd)\n` +
               `dconf load "/org/gnome/terminal/legacy/profiles:/:$UUID/" < "$DIR/${file}.dconf"\n` +
-              `EXISTING=$(dconf read /org/gnome/terminal/legacy/profiles:/list || echo "[]")\n` +
-              `echo "Loaded profile $UUID. Add '$UUID' to your GNOME Terminal profiles list (current: $EXISTING)."\n`,
-          );
-          break;
-        case "gitcomet":
-          add(
-            `${file}.json`,
-            json({
-              name,
-              author: theme.author,
-              appearance: mode,
-              colors: {
-                background: c.background,
-                surface: c.surface,
-                elevated: c.elevated,
-                foreground: c.foreground,
-                muted: c.muted,
-                border: c.border,
-                input: c.input,
-                accent: c.accent,
-                accentFill: c.accentFill,
-                accentForeground: c.accentForeground,
-                selection: c.selection,
-                selectionForeground: c.selectionForeground,
-                hover: c.hover,
-              },
-              diff: {
-                added: c.success,
-                removed: c.error,
-                modified: c.warning,
-              },
-              graph: [c.chart1, c.chart2, c.chart3, c.chart4, c.chart5],
-              syntax: syntax(c),
-            }),
+              `EXISTING=$(dconf read /org/gnome/terminal/legacy/profiles:/list 2>/dev/null || echo "[]")\n` +
+              `if [ "$EXISTING" = "[]" ] || [ -z "$EXISTING" ]; then\n` +
+              `  NEW_LIST="['$UUID']"\n` +
+              `else\n` +
+              `  NEW_LIST="\${EXISTING%]}, '$UUID']"\n` +
+              `fi\n` +
+              `dconf write /org/gnome/terminal/legacy/profiles:/list "$NEW_LIST"\n` +
+              `echo "Installed GNOME Terminal profile '${name.replace(/'/g, "")}' ($UUID)."\n`,
           );
           break;
         case "smartgit":
           add(
-            `${file}.properties`,
+            `${mode}-patch.theme`,
             `# ${name} for SmartGit · Generated with ThemeSpace ${generatorVersion}\n` +
-              `theme.name=${name}\n` +
-              `theme.dark=${mode === "dark"}\n` +
-              `window.background=${c.surface}\n` +
-              `window.foreground=${c.foreground}\n` +
-              `control.background=${c.background}\n` +
-              `control.foreground=${c.foreground}\n` +
-              `elevated.background=${c.elevated}\n` +
-              `muted.foreground=${c.muted}\n` +
-              `border.color=${c.border}\n` +
-              `accent.color=${c.accentFill}\n` +
-              `accent.foreground=${c.accentForeground}\n` +
+              `# Place in SmartGit's Settings Directory and restart SmartGit.\n` +
+              `extends=smartgit-${mode}-theme.properties\n` +
+              `preferredEditorTheme=${mode}\n\n` +
+              `background1=${c.surface}\n` +
+              `background2=${c.background}\n` +
+              `foreground1=${c.foreground}\n` +
+              `foreground2=${c.foreground}\n` +
               `selection.background=${c.selection}\n` +
               `selection.foreground=${c.selectionForeground}\n` +
-              `hover.background=${c.hover}\n` +
-              `diff.added=${c.success}\n` +
-              `diff.removed=${c.error}\n` +
-              `diff.modified=${c.warning}\n` +
-              `graph.branch.0=${c.chart1}\n` +
-              `graph.branch.1=${c.chart2}\n` +
-              `graph.branch.2=${c.chart3}\n` +
-              `graph.branch.3=${c.chart4}\n` +
-              `graph.branch.4=${c.chart5}\n`,
+              `selection.background.unfocused=${c.elevated}\n` +
+              `composite.background=background1\n` +
+              `composite.background#border=${c.border}\n` +
+              `composite.background#list=background2\n` +
+              `composite.background#notification=${c.elevated}\n` +
+              `composite.foreground#notification=${c.foreground}\n` +
+              `toolBar.background.hover=${c.hover}\n` +
+              `branches#ahead=${c.warning}\n` +
+              `branches#approved=${c.success}\n` +
+              `branches#behind=${c.info}\n` +
+              `branches#rejected=${c.error}\n`,
           );
           break;
         case "slack": {
-          // Slack custom theme string: Column BG, Menu BG Hover, Active Item, Active Item Text,
-          // Hover Item, Text Color, Active Presence, Mention Badge, Top Nav BG, Top Nav Text
+          const modern4 = [
+            c.surface,
+            c.accentFill,
+            c.success,
+            c.error,
+          ].join(",");
           const legacy8 = [
             c.surface,
             c.elevated,
@@ -1268,33 +1495,17 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
             c.success,
             c.error,
           ].join(",");
-          const modern = [
-            c.surface,
-            c.accentFill,
-            c.foreground,
-            c.error,
-          ].join(",");
           add(
             `${file}.txt`,
             `# ${name} for Slack\n` +
-              `# Paste into Slack → Preferences → Themes → Custom theme\n\n` +
-              `# 8-color sidebar theme string:\n${legacy8}\n\n` +
-              `# 4-color Slack theme values (System Nav, Selected Items, Presence, Notifications):\n${modern}\n\n` +
-              `column_bg=${c.surface}\n` +
-              `menu_bg_hover=${c.elevated}\n` +
-              `active_item=${c.accentFill}\n` +
-              `active_item_text=${c.accentForeground}\n` +
-              `hover_item=${c.hover}\n` +
-              `text_color=${c.foreground}\n` +
-              `active_presence=${c.success}\n` +
-              `mention_badge=${c.error}\n` +
-              `window_bg=${c.background}\n` +
-              `border=${c.border}\n`,
+              `# Open Slack → Preferences → Appearance → Custom theme → Import\n\n` +
+              `# Modern 4-color import string (System Nav, Selected Items, Presence, Notifications):\n${modern4}\n\n` +
+              `# Legacy 8-color import string:\n${legacy8}\n`,
           );
           break;
         }
         case "gtk": {
-          const gtkVars = Object.entries({
+          const gtk4Map = {
             window_bg_color: c.background,
             window_fg_color: c.foreground,
             view_bg_color: c.background,
@@ -1320,24 +1531,64 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
             warning_bg_color: c.warning,
             warning_fg_color: contrastForeground(c.warning),
             borders: c.border,
-          })
+          };
+          const gtk4Defines = Object.entries(gtk4Map)
             .map(([k, v]) => `@define-color ${k} ${v};`)
             .join("\n");
-          add(`${mode}/gtk-4.0/gtk.css`, comment(theme) + gtkVars + "\n");
-          add(`${mode}/gtk-3.0/gtk.css`, comment(theme) + gtkVars + "\n");
+          const gtk4Root =
+            `:root {\n` +
+            Object.entries(gtk4Map)
+              .map(([k, v]) => `  --${k.replaceAll("_", "-")}: ${v};`)
+              .join("\n") +
+            `\n}\n`;
+          const gtk3Map = {
+            theme_bg_color: c.surface,
+            theme_fg_color: c.foreground,
+            theme_base_color: c.background,
+            theme_text_color: c.foreground,
+            theme_selected_bg_color: c.accentFill,
+            theme_selected_fg_color: c.accentForeground,
+            insensitive_bg_color: c.surface,
+            insensitive_fg_color: c.muted,
+            insensitive_base_color: c.background,
+            theme_unfocused_bg_color: c.surface,
+            theme_unfocused_fg_color: c.muted,
+            theme_unfocused_base_color: c.background,
+            theme_unfocused_selected_bg_color: c.selection,
+            theme_unfocused_selected_fg_color: c.selectionForeground,
+            content_view_bg: c.background,
+            borders: c.border,
+            warning_color: c.warning,
+            error_color: c.error,
+            success_color: c.success,
+            wm_bg: c.surface,
+            wm_title: c.foreground,
+          };
+          const gtk3Defines = Object.entries(gtk3Map)
+            .map(([k, v]) => `@define-color ${k} ${v};`)
+            .join("\n");
+          add(
+            `${mode}/gtk-4.0/gtk.css`,
+            comment(theme) + gtk4Defines + "\n\n" + gtk4Root,
+          );
+          add(`${mode}/gtk-3.0/gtk.css`, comment(theme) + gtk3Defines + "\n");
           break;
         }
         case "kde":
           add(
             `${file}.colors`,
-            `[General]\nColorScheme=${slug}-${mode}\nName=${name}\n\n` +
-              `[Colors:Window]\nBackgroundNormal=${rgbCsv(c.surface)}\nBackgroundAlternate=${rgbCsv(c.elevated)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundInactive=${rgbCsv(c.muted)}\nForegroundActive=${rgbCsv(c.accent)}\nForegroundLink=${rgbCsv(c.accent)}\nForegroundPositive=${rgbCsv(c.success)}\nForegroundNeutral=${rgbCsv(c.warning)}\nForegroundNegative=${rgbCsv(c.error)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\n\n` +
-              `[Colors:View]\nBackgroundNormal=${rgbCsv(c.background)}\nBackgroundAlternate=${rgbCsv(c.surface)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundInactive=${rgbCsv(c.muted)}\nForegroundActive=${rgbCsv(c.accent)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\n\n` +
-              `[Colors:Button]\nBackgroundNormal=${rgbCsv(c.elevated)}\nBackgroundAlternate=${rgbCsv(c.surface)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundInactive=${rgbCsv(c.muted)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\n\n` +
-              `[Colors:Selection]\nBackgroundNormal=${rgbCsv(c.accentFill)}\nBackgroundAlternate=${rgbCsv(c.selection)}\nForegroundNormal=${rgbCsv(c.accentForeground)}\nForegroundInactive=${rgbCsv(c.selectionForeground)}\n\n` +
-              `[Colors:Header]\nBackgroundNormal=${rgbCsv(c.surface)}\nBackgroundAlternate=${rgbCsv(c.background)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundInactive=${rgbCsv(c.muted)}\n\n` +
-              `[Colors:Tooltip]\nBackgroundNormal=${rgbCsv(c.elevated)}\nForegroundNormal=${rgbCsv(c.foreground)}\n\n` +
-              `[WM]\nactiveBackground=${rgbCsv(c.surface)}\nactiveForeground=${rgbCsv(c.foreground)}\ninactiveBackground=${rgbCsv(c.background)}\ninactiveForeground=${rgbCsv(c.muted)}\n`,
+            `[ColorEffects:Disabled]\nColor=${rgbCsv(c.muted)}\nColorAmount=0\nColorEffect=0\nContrastAmount=0.5\nContrastEffect=1\nIntensityAmount=0.05\nIntensityEffect=2\n\n` +
+              `[ColorEffects:Inactive]\nChangeSelectionColor=true\nColor=${rgbCsv(c.surface)}\nColorAmount=0.025\nColorEffect=2\nContrastAmount=0.1\nContrastEffect=2\nEnable=false\nIntensityAmount=0\nIntensityEffect=0\n\n` +
+              `[Colors:Button]\nBackgroundAlternate=${rgbCsv(c.surface)}\nBackgroundNormal=${rgbCsv(c.elevated)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\nForegroundActive=${rgbCsv(c.accent)}\nForegroundInactive=${rgbCsv(c.muted)}\nForegroundLink=${rgbCsv(c.accent)}\nForegroundNegative=${rgbCsv(c.error)}\nForegroundNeutral=${rgbCsv(c.warning)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundPositive=${rgbCsv(c.success)}\nForegroundVisited=${rgbCsv(c.chart5)}\n\n` +
+              `[Colors:Complementary]\nBackgroundAlternate=${rgbCsv(c.elevated)}\nBackgroundNormal=${rgbCsv(c.surface)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\nForegroundActive=${rgbCsv(c.accent)}\nForegroundInactive=${rgbCsv(c.muted)}\nForegroundLink=${rgbCsv(c.accent)}\nForegroundNegative=${rgbCsv(c.error)}\nForegroundNeutral=${rgbCsv(c.warning)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundPositive=${rgbCsv(c.success)}\nForegroundVisited=${rgbCsv(c.chart5)}\n\n` +
+              `[Colors:Header]\nBackgroundAlternate=${rgbCsv(c.background)}\nBackgroundNormal=${rgbCsv(c.surface)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\nForegroundActive=${rgbCsv(c.accent)}\nForegroundInactive=${rgbCsv(c.muted)}\nForegroundLink=${rgbCsv(c.accent)}\nForegroundNegative=${rgbCsv(c.error)}\nForegroundNeutral=${rgbCsv(c.warning)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundPositive=${rgbCsv(c.success)}\nForegroundVisited=${rgbCsv(c.chart5)}\n\n` +
+              `[Colors:Header][Inactive]\nBackgroundAlternate=${rgbCsv(c.background)}\nBackgroundNormal=${rgbCsv(c.surface)}\nForegroundInactive=${rgbCsv(c.muted)}\nForegroundNormal=${rgbCsv(c.muted)}\n\n` +
+              `[Colors:Selection]\nBackgroundAlternate=${rgbCsv(c.selection)}\nBackgroundNormal=${rgbCsv(c.accentFill)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\nForegroundActive=${rgbCsv(c.accentForeground)}\nForegroundInactive=${rgbCsv(c.selectionForeground)}\nForegroundLink=${rgbCsv(c.accentForeground)}\nForegroundNegative=${rgbCsv(c.error)}\nForegroundNeutral=${rgbCsv(c.warning)}\nForegroundNormal=${rgbCsv(c.accentForeground)}\nForegroundPositive=${rgbCsv(c.success)}\nForegroundVisited=${rgbCsv(c.chart5)}\n\n` +
+              `[Colors:Tooltip]\nBackgroundAlternate=${rgbCsv(c.surface)}\nBackgroundNormal=${rgbCsv(c.elevated)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\nForegroundActive=${rgbCsv(c.accent)}\nForegroundInactive=${rgbCsv(c.muted)}\nForegroundLink=${rgbCsv(c.accent)}\nForegroundNegative=${rgbCsv(c.error)}\nForegroundNeutral=${rgbCsv(c.warning)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundPositive=${rgbCsv(c.success)}\nForegroundVisited=${rgbCsv(c.chart5)}\n\n` +
+              `[Colors:View]\nBackgroundAlternate=${rgbCsv(c.surface)}\nBackgroundNormal=${rgbCsv(c.background)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\nForegroundActive=${rgbCsv(c.accent)}\nForegroundInactive=${rgbCsv(c.muted)}\nForegroundLink=${rgbCsv(c.accent)}\nForegroundNegative=${rgbCsv(c.error)}\nForegroundNeutral=${rgbCsv(c.warning)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundPositive=${rgbCsv(c.success)}\nForegroundVisited=${rgbCsv(c.chart5)}\n\n` +
+              `[Colors:Window]\nBackgroundAlternate=${rgbCsv(c.elevated)}\nBackgroundNormal=${rgbCsv(c.surface)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\nForegroundActive=${rgbCsv(c.accent)}\nForegroundInactive=${rgbCsv(c.muted)}\nForegroundLink=${rgbCsv(c.accent)}\nForegroundNegative=${rgbCsv(c.error)}\nForegroundNeutral=${rgbCsv(c.warning)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundPositive=${rgbCsv(c.success)}\nForegroundVisited=${rgbCsv(c.chart5)}\n\n` +
+              `[General]\nColorScheme=${slug}-${mode}\nName=${name}\nshadeSortColumn=true\n\n` +
+              `[WM]\nactiveBackground=${rgbCsv(c.surface)}\nactiveBlend=${rgbCsv(c.foreground)}\nactiveForeground=${rgbCsv(c.foreground)}\ninactiveBackground=${rgbCsv(c.background)}\ninactiveBlend=${rgbCsv(c.muted)}\ninactiveForeground=${rgbCsv(c.muted)}\n`,
           );
           break;
         case "rofi":
@@ -1352,6 +1603,7 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               `  fg-alt: ${c.muted};\n` +
               `  accent: ${c.accentFill};\n` +
               `  accent-fg: ${c.accentForeground};\n` +
+              `  urgent: ${c.error};\n` +
               `  border-col: ${c.border};\n` +
               `  selection: ${c.selection};\n` +
               `  selection-fg: ${c.selectionForeground};\n` +
@@ -1361,10 +1613,19 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               `  font: "${theme.fonts.sans} ${theme.fonts.size}";\n` +
               `}\n\n` +
               `window {\n  background-color: @bg;\n  border: 1px solid;\n  border-color: @border-col;\n  border-radius: @radius;\n  padding: 16px;\n}\n\n` +
-              `inputbar {\n  background-color: @bg-alt;\n  border: 1px solid;\n  border-color: @border-col;\n  border-radius: @radius;\n  padding: 10px 12px;\n}\n\n` +
-              `listview {\n  lines: 6;\n  spacing: 4px;\n}\n\n` +
+              `mainbox {\n  spacing: 10px;\n}\n\n` +
+              `inputbar {\n  background-color: @bg-alt;\n  border: 1px solid;\n  border-color: @border-col;\n  border-radius: @radius;\n  padding: 10px 12px;\n  spacing: 8px;\n  children: [ "prompt", "entry" ];\n}\n\n` +
+              `prompt {\n  text-color: @accent;\n}\n\n` +
+              `entry {\n  text-color: @fg;\n  placeholder-color: @fg-alt;\n}\n\n` +
+              `listview {\n  lines: 6;\n  spacing: 4px;\n  scrollbar: true;\n}\n\n` +
+              `scrollbar {\n  width: 4px;\n  handle-width: 6px;\n  handle-color: @fg-alt;\n}\n\n` +
               `element {\n  padding: 8px 10px;\n  border-radius: @radius;\n}\n\n` +
-              `element selected {\n  background-color: @accent;\n  text-color: @accent-fg;\n}\n`,
+              `element normal.normal {\n  background-color: transparent;\n  text-color: @fg;\n}\n\n` +
+              `element alternate.normal {\n  background-color: @bg-alt;\n  text-color: @fg;\n}\n\n` +
+              `element normal.urgent {\n  background-color: transparent;\n  text-color: @urgent;\n}\n\n` +
+              `element selected.normal {\n  background-color: @accent;\n  text-color: @accent-fg;\n}\n\n` +
+              `element-text {\n  background-color: transparent;\n  text-color: inherit;\n}\n\n` +
+              `element-icon {\n  background-color: transparent;\n  size: 1.1em;\n}\n`,
           );
           break;
         case "jetbrains": {
@@ -1377,31 +1638,64 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               .replaceAll('"', "&quot;");
           const parentScheme = mode === "dark" ? "Darcula" : "Default";
           const syn = syntax(c);
+          const consoleNames = [
+            "CONSOLE_BLACK_OUTPUT",
+            "CONSOLE_RED_OUTPUT",
+            "CONSOLE_GREEN_OUTPUT",
+            "CONSOLE_YELLOW_OUTPUT",
+            "CONSOLE_BLUE_OUTPUT",
+            "CONSOLE_MAGENTA_OUTPUT",
+            "CONSOLE_CYAN_OUTPUT",
+            "CONSOLE_GRAY_OUTPUT",
+            "CONSOLE_DARKGRAY_OUTPUT",
+            "CONSOLE_RED_BRIGHT_OUTPUT",
+            "CONSOLE_GREEN_BRIGHT_OUTPUT",
+            "CONSOLE_YELLOW_BRIGHT_OUTPUT",
+            "CONSOLE_BLUE_BRIGHT_OUTPUT",
+            "CONSOLE_MAGENTA_BRIGHT_OUTPUT",
+            "CONSOLE_CYAN_BRIGHT_OUTPUT",
+            "CONSOLE_WHITE_OUTPUT",
+          ];
           add(
             `${file}.icls`,
-            `<scheme name="${escXml(name)}" version="142" parent_scheme="${parentScheme}">\n` +
+            `<?xml version="1.0" encoding="UTF-8"?>\n` +
+              `<scheme name="${escXml(name)}" version="142" parent_scheme="${parentScheme}">\n` +
               `  <metaInfo>\n    <property name="created">ThemeSpace ${generatorVersion}</property>\n  </metaInfo>\n` +
               `  <colors>\n` +
               `    <option name="CARET_COLOR" value="${hexNoHash(c.accent)}" />\n` +
               `    <option name="CARET_ROW_COLOR" value="${hexNoHash(c.hover)}" />\n` +
               `    <option name="CONSOLE_BACKGROUND_KEY" value="${hexNoHash(c.background)}" />\n` +
               `    <option name="GUTTER_BACKGROUND" value="${hexNoHash(c.surface)}" />\n` +
+              `    <option name="INDENT_GUIDE" value="${hexNoHash(c.border)}" />\n` +
               `    <option name="LINE_NUMBERS_COLOR" value="${hexNoHash(c.muted)}" />\n` +
+              `    <option name="RIGHT_MARGIN_COLOR" value="${hexNoHash(c.border)}" />\n` +
               `    <option name="SELECTION_BACKGROUND" value="${hexNoHash(c.selection)}" />\n` +
               `    <option name="SELECTION_FOREGROUND" value="${hexNoHash(c.selectionForeground)}" />\n` +
               `    <option name="TEARLINE_COLOR" value="${hexNoHash(c.border)}" />\n` +
               `  </colors>\n` +
               `  <attributes>\n` +
               `    <option name="TEXT">\n      <value>\n        <option name="FOREGROUND" value="${hexNoHash(c.foreground)}" />\n        <option name="BACKGROUND" value="${hexNoHash(c.background)}" />\n      </value>\n    </option>\n` +
-              `    <option name="DEFAULT_KEYWORD">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.keyword)}" /></value>\n    </option>\n` +
+              `    <option name="DEFAULT_IDENTIFIER">\n      <value><option name="FOREGROUND" value="${hexNoHash(c.foreground)}" /></value>\n    </option>\n` +
+              `    <option name="DEFAULT_KEYWORD">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.keyword)}" /><option name="FONT_TYPE" value="1" /></value>\n    </option>\n` +
               `    <option name="DEFAULT_STRING">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.string)}" /></value>\n    </option>\n` +
               `    <option name="DEFAULT_NUMBER">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.number)}" /></value>\n    </option>\n` +
+              `    <option name="DEFAULT_CONSTANT">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.number)}" /></value>\n    </option>\n` +
               `    <option name="DEFAULT_FUNCTION_DECLARATION">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.function)}" /></value>\n    </option>\n` +
               `    <option name="DEFAULT_CLASS_NAME">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.type)}" /></value>\n    </option>\n` +
               `    <option name="DEFAULT_LINE_COMMENT">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.comment)}" /><option name="FONT_TYPE" value="2" /></value>\n    </option>\n` +
+              `    <option name="DEFAULT_BLOCK_COMMENT">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.comment)}" /><option name="FONT_TYPE" value="2" /></value>\n    </option>\n` +
+              `    <option name="DIFF_INSERTED">\n      <value><option name="BACKGROUND" value="${hexNoHash(mix(c.background, c.success, 0.16))}" /></value>\n    </option>\n` +
+              `    <option name="DIFF_DELETED">\n      <value><option name="BACKGROUND" value="${hexNoHash(mix(c.background, c.error, 0.16))}" /></value>\n    </option>\n` +
+              `    <option name="DIFF_MODIFIED">\n      <value><option name="BACKGROUND" value="${hexNoHash(mix(c.background, c.warning, 0.16))}" /></value>\n    </option>\n` +
               `    <option name="ERRORS_ATTRIBUTES">\n      <value><option name="EFFECT_COLOR" value="${hexNoHash(c.error)}" /><option name="EFFECT_TYPE" value="2" /></value>\n    </option>\n` +
               `    <option name="WARNING_ATTRIBUTES">\n      <value><option name="EFFECT_COLOR" value="${hexNoHash(c.warning)}" /><option name="EFFECT_TYPE" value="2" /></value>\n    </option>\n` +
-              `  </attributes>\n</scheme>\n`,
+              consoleNames
+                .map(
+                  (key, idx) =>
+                    `    <option name="${key}">\n      <value><option name="FOREGROUND" value="${hexNoHash(ansi[idx])}" /></value>\n    </option>`,
+                )
+                .join("\n") +
+              `\n  </attributes>\n</scheme>\n`,
           );
           break;
         }
@@ -1461,27 +1755,63 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               `set -g status-right "#[fg=${c.muted}]%H:%M #[fg=${c.success}]● #[fg=${c.foreground}]#h "\n`,
           );
           break;
-        case "zellij":
+        case "zellij": {
+          const rgbSp = (color: string) => rgb(color).join(" ");
+          const block = (
+            key: string,
+            baseCol: string,
+            bgCol: string,
+            e0: string,
+            e1: string,
+            e2: string,
+            e3: string,
+          ) =>
+            `        ${key} {\n` +
+            `            base ${rgbSp(baseCol)}\n` +
+            `            background ${rgbSp(bgCol)}\n` +
+            `            emphasis_0 ${rgbSp(e0)}\n` +
+            `            emphasis_1 ${rgbSp(e1)}\n` +
+            `            emphasis_2 ${rgbSp(e2)}\n` +
+            `            emphasis_3 ${rgbSp(e3)}\n` +
+            `        }`;
           add(
             `${file}.kdl`,
-            `// ${name} for Zellij · Generated with ThemeSpace ${generatorVersion}\n` +
+            `// ${name} for Zellij 0.40+ · Generated with ThemeSpace ${generatorVersion}\n` +
               `themes {\n` +
               `    ${file} {\n` +
-              `        fg "${c.foreground}"\n` +
-              `        bg "${c.background}"\n` +
-              `        black "${c.surface}"\n` +
-              `        red "${c.error}"\n` +
-              `        green "${c.success}"\n` +
-              `        yellow "${c.warning}"\n` +
-              `        blue "${c.accent}"\n` +
-              `        magenta "${c.chart5}"\n` +
-              `        cyan "${c.info}"\n` +
-              `        white "${c.foreground}"\n` +
-              `        orange "${c.accentFill}"\n` +
+              [
+                block("text_unselected", c.foreground, c.background, c.warning, c.info, c.success, c.chart5),
+                block("text_selected", c.selectionForeground, c.selection, c.warning, c.info, c.success, c.chart5),
+                block("ribbon_unselected", c.foreground, c.surface, c.error, c.foreground, c.accent, c.chart5),
+                block("ribbon_selected", c.accentForeground, c.accentFill, c.error, c.warning, c.chart5, c.info),
+                block("table_title", c.accent, c.background, c.warning, c.info, c.success, c.chart5),
+                block("table_cell_selected", c.selectionForeground, c.selection, c.warning, c.info, c.success, c.chart5),
+                block("table_cell_unselected", c.foreground, c.background, c.warning, c.info, c.success, c.chart5),
+                block("list_selected", c.selectionForeground, c.selection, c.warning, c.info, c.success, c.chart5),
+                block("list_unselected", c.foreground, c.background, c.warning, c.info, c.success, c.chart5),
+                block("frame_selected", c.accent, c.background, c.warning, c.info, c.success, c.chart5),
+                block("frame_unselected", c.border, c.background, c.muted, c.muted, c.muted, c.muted),
+                block("frame_highlight", c.warning, c.background, c.warning, c.warning, c.warning, c.warning),
+                block("exit_code_success", c.success, c.background, c.info, c.surface, c.chart5, c.accent),
+                block("exit_code_error", c.error, c.background, c.warning, c.surface, c.chart5, c.accent),
+              ].join("\n") +
+              `\n        multiplayer_user_colors {\n` +
+              `            player_1 ${rgbSp(c.chart1)}\n` +
+              `            player_2 ${rgbSp(c.chart2)}\n` +
+              `            player_3 ${rgbSp(c.chart3)}\n` +
+              `            player_4 ${rgbSp(c.chart4)}\n` +
+              `            player_5 ${rgbSp(c.chart5)}\n` +
+              `            player_6 ${rgbSp(c.info)}\n` +
+              `            player_7 ${rgbSp(c.error)}\n` +
+              `            player_8 ${rgbSp(c.warning)}\n` +
+              `            player_9 ${rgbSp(c.success)}\n` +
+              `            player_10 ${rgbSp(c.accent)}\n` +
+              `        }\n` +
               `    }\n` +
               `}\n`,
           );
           break;
+        }
         case "starship": {
           const palName = `${slug.replaceAll("-", "_")}_${mode}`;
           add(
@@ -1517,13 +1847,13 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               `theme[selected_bg]="${c.selection}"\n` +
               `theme[selected_fg]="${c.selectionForeground}"\n` +
               `theme[inactive_fg]="${c.muted}"\n` +
-              `theme[graph_text]="${c.muted}"\n` +
+              `theme[graph_text]="${c.foreground}"\n` +
               `theme[meter_bg]="${c.surface}"\n` +
               `theme[proc_misc]="${c.info}"\n` +
-              `theme[cpu_box]="${c.border}"\n` +
-              `theme[mem_box]="${c.border}"\n` +
-              `theme[net_box]="${c.border}"\n` +
-              `theme[proc_box]="${c.border}"\n` +
+              `theme[cpu_box]="${c.accent}"\n` +
+              `theme[mem_box]="${c.success}"\n` +
+              `theme[net_box]="${c.error}"\n` +
+              `theme[proc_box]="${c.info}"\n` +
               `theme[div_line]="${c.border}"\n` +
               `theme[temp_start]="${c.success}"\n` +
               `theme[temp_mid]="${c.warning}"\n` +
@@ -1534,6 +1864,12 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               `theme[free_start]="${c.success}"\n` +
               `theme[free_mid]="${c.info}"\n` +
               `theme[free_end]="${c.accent}"\n` +
+              `theme[cached_start]="${c.info}"\n` +
+              `theme[cached_mid]="${c.accent}"\n` +
+              `theme[cached_end]="${c.chart5}"\n` +
+              `theme[available_start]="${c.warning}"\n` +
+              `theme[available_mid]="${c.chart3}"\n` +
+              `theme[available_end]="${c.error}"\n` +
               `theme[used_start]="${c.warning}"\n` +
               `theme[used_mid]="${c.chart5}"\n` +
               `theme[used_end]="${c.error}"\n` +
@@ -1542,7 +1878,10 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               `theme[download_end]="${c.chart5}"\n` +
               `theme[upload_start]="${c.success}"\n` +
               `theme[upload_mid]="${c.warning}"\n` +
-              `theme[upload_end]="${c.error}"\n`,
+              `theme[upload_end]="${c.error}"\n` +
+              `theme[process_start]="${c.success}"\n` +
+              `theme[process_mid]="${c.info}"\n` +
+              `theme[process_end]="${c.accent}"\n`,
           );
           break;
         case "lazygit":
@@ -1556,12 +1895,16 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               `    searchingActiveBorderColor:\n      - "${c.warning}"\n      - bold\n` +
               `    optionsTextColor:\n      - "${c.accent}"\n` +
               `    selectedLineBgColor:\n      - "${c.selection}"\n` +
+              `    selectedLineFgColor:\n      - "${c.selectionForeground}"\n` +
+              `    selectedRangeBgColor:\n      - "${c.hover}"\n` +
+              `    inactiveViewSelectedLineBgColor:\n      - "${c.elevated}"\n` +
               `    cherryPickedCommitFgColor:\n      - "${c.accentForeground}"\n` +
               `    cherryPickedCommitBgColor:\n      - "${c.accentFill}"\n` +
               `    markedBaseCommitFgColor:\n      - "${c.accentForeground}"\n` +
               `    markedBaseCommitBgColor:\n      - "${c.warning}"\n` +
               `    unstagedChangesColor:\n      - "${c.error}"\n` +
-              `    defaultFgColor:\n      - "${c.foreground}"\n`,
+              `    defaultFgColor:\n      - "${c.foreground}"\n` +
+              `    authorColors:\n      "*": "${c.chart5}"\n`,
           );
           break;
         case "hyprland": {

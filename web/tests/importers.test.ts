@@ -36,6 +36,22 @@ test("universal importer round-trips native exports from 11 formats", () => {
       expectedFormat: /T3 Code/,
     },
     {
+      name: "GitComet v2 JSON",
+      content: generateTarget(sample, "gitcomet").find((f) =>
+        f.path.endsWith(".json"),
+      )!.content,
+      fileName: "import-fixture.json",
+      expectedFormat: /GitComet/,
+    },
+    {
+      name: "Vivaldi JSON",
+      content: generateTarget(sample, "vivaldi").find((f) =>
+        f.path === "dark/settings.json",
+      )!.content,
+      fileName: "settings.json",
+      expectedFormat: /Vivaldi/,
+    },
+    {
       name: "VS Code JSON",
       content: generateTarget(sample, "vscode").find((f) =>
         f.path.endsWith("-dark.json"),

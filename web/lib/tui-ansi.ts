@@ -12,9 +12,73 @@ const bg = (hex: string) => {
   return `\x1b[48;2;${r};${g};${b}m`;
 };
 
-export function tuiAnsi(target: string, theme: Theme, mode: Appearance): string {
+const ANSI_RE = /\x1b\[[0-9;]*m/g;
+const visLen = (s: string) => s.replace(ANSI_RE, "").length;
+
+function fit(s: string, width: number, fillBg?: string): string {
+  const len = visLen(s);
+  if (len <= width) {
+    const pad = " ".repeat(width - len);
+    return fillBg ? `${s}${bg(fillBg)}${pad}${RST}` : `${s}${pad}`;
+  }
+  let out = "";
+  let vis = 0;
+  let i = 0;
+  while (i < s.length && vis < width) {
+    if (s[i] === "\x1b") {
+      const m = s.slice(i).match(/^\x1b\[[0-9;]*m/);
+      if (m) {
+        out += m[0];
+        i += m[0].length;
+        continue;
+      }
+    }
+    out += s[i++];
+    vis++;
+  }
+  return out + RST;
+}
+
+function boxTop(
+  borderColor: string,
+  title: string,
+  right: string,
+  width: number,
+  rounded = false,
+): string {
+  const tl = rounded ? "╭" : "┌";
+  const tr = rounded ? "╮" : "┐";
+  const left = `${fg(borderColor)}${tl}─${RST}${title}`;
+  const tail = right ? `${right}${fg(borderColor)}─${tr}${RST}` : `${fg(borderColor)}${tr}${RST}`;
+  const fill = Math.max(0, width - visLen(left) - visLen(tail));
+  return `${left}${fg(borderColor)}${"─".repeat(fill)}${RST}${tail}`;
+}
+
+function boxRow(
+  borderColor: string,
+  content: string,
+  width: number,
+  rowBg?: string,
+): string {
+  const inner = Math.max(1, width - 2);
+  const body = fit(content, inner, rowBg);
+  return `${fg(borderColor)}│${RST}${body}${fg(borderColor)}│${RST}`;
+}
+
+function boxBottom(borderColor: string, width: number, rounded = false): string {
+  const bl = rounded ? "╰" : "└";
+  const br = rounded ? "╯" : "┘";
+  return `${fg(borderColor)}${bl}${"─".repeat(Math.max(0, width - 2))}${br}${RST}`;
+}
+
+export function tuiAnsi(
+  target: string,
+  theme: Theme,
+  mode: Appearance,
+  cols = 74,
+): string {
+  const W = Math.max(50, Math.min(96, cols - 1));
   const r = integrationTheme(theme, mode, target).roles;
-  const B = r.background;
   const S = r.surface;
   const F = r.foreground;
   const M = r.muted;
@@ -33,78 +97,120 @@ export function tuiAnsi(target: string, theme: Theme, mode: Appearance): string 
   const C3 = r.chart3;
 
   if (target === "btop") {
+    const leftW = Math.floor((W - 1) / 2);
+    const rightW = W - 1 - leftW;
+    const spark = `${fg(C1)}⣀⣤⣶${fg(C2)}⣿⣷⣤${fg(ERR)}⣿⣿⣷${fg(C2)}⣶⣤${fg(C1)}⣀⣤⣶${fg(C2)}⣿⣿${fg(C1)}⣤⣀`;
+    const spark2 = `${fg(C1)}⣿⣿⣿⣿${fg(C2)}⣿⣿⣿${fg(ERR)}⣿⣿⣿${fg(C2)}⣿⣿${fg(C1)}⣿⣿⣿⣿${fg(C2)}⣿⣿${fg(C1)}⣿⣿`;
     return [
-      `${fg(A)}┌─${BOLD}¹ cpu${RST}${fg(A)}─────────────────────────────────────────────────────────── 38% 54°C ─┐${RST}`,
-      `${fg(A)}│${RST} ${fg(C1)}⣀⣤⣶${fg(C2)}⣿⣷⣤${fg(ERR)}⣿⣿⣷${fg(C2)}⣶⣤${fg(C1)}⣀⣤⣶${fg(C2)}⣿⣿${fg(C1)}⣤⣀  ${fg(M)}C0 ${fg(C1)}█████${fg(S)}░░░░░ ${fg(F)}44%   ${fg(M)}Load  ${fg(F)}1.42 1.18 0.96 ${fg(A)}│${RST}`,
-      `${fg(A)}│${RST} ${fg(C1)}⣿⣿⣿⣿${fg(C2)}⣿⣿⣿${fg(ERR)}⣿⣿⣿${fg(C2)}⣿⣿${fg(C1)}⣿⣿⣿⣿${fg(C2)}⣿⣿${fg(C1)}⣿⣿  ${fg(M)}C1 ${fg(C2)}███████${fg(S)}░░░ ${fg(F)}68%   ${fg(M)}Up    ${fg(F)}6d 14:22:08    ${fg(A)}│${RST}`,
-      `${fg(A)}└────────────────────────────────────────────────────────────────────────────┘${RST}`,
-      `${fg(OK)}┌─${BOLD}² mem${RST}${fg(OK)}──────────────────────────────┐${RST} ${fg(ERR)}┌─${BOLD}³ net${RST}${fg(ERR)}───────────────────────────────┐${RST}`,
-      `${fg(OK)}│${RST} ${fg(M)}Used ${fg(C3)}████████${fg(S)}░░░░░░░░░░ ${fg(F)}12.4 GiB   ${fg(OK)}│${RST} ${fg(ERR)}│${RST} ${fg(INFO)}▼ DL 42.8 Mbps  ${fg(C1)}⣀▄▆█▇▅▃▂          ${fg(ERR)}│${RST}`,
-      `${fg(OK)}│${RST} ${fg(M)}Free ${fg(OK)}███████████${fg(S)}░░░░░░░ ${fg(F)}19.6 GiB   ${fg(OK)}│${RST} ${fg(ERR)}│${RST} ${fg(OK)}▲ UL  9.4 Mbps  ${fg(WARN)}⣀▂▃▄▃▂▁           ${fg(ERR)}│${RST}`,
-      `${fg(OK)}└────────────────────────────────────┘${RST} ${fg(ERR)}└─────────────────────────────────────┘${RST}`,
-      `${fg(INFO)}┌─${BOLD}⁴ proc${RST}${fg(INFO)}──────────────────────────────────────────────────────── filter: / ─┐${RST}`,
-      `${fg(INFO)}│${RST} ${fg(M)}PID    Program                 Threads     Mem%      CPU%                  ${fg(INFO)}│${RST}`,
-      `${fg(INFO)}│${RST}${bg(SEL)}${fg(SELFG)}${BOLD} 4102   themespace-web               12      1.8%     14.2%                 ${RST}${fg(INFO)}│${RST}`,
-      `${fg(INFO)}│${RST} ${fg(F)}3891   ghostty                       8      0.9%      4.8%                 ${fg(INFO)}│${RST}`,
-      `${fg(INFO)}│${RST} ${fg(F)}2910   rust-analyzer                16      5.1%     21.6%                 ${fg(INFO)}│${RST}`,
-      `${fg(INFO)}│${RST} ${fg(M)}1420   waybar                        3      0.2%      0.7%                 ${fg(INFO)}│${RST}`,
-      `${fg(INFO)}└────────────────────────────────────────────────────────────────────────────┘${RST}`,
+      boxTop(A, `${fg(A)}${BOLD}¹ cpu${RST}`, `${fg(F)} 38% ${fg(WARN)}54°C `, W),
+      boxRow(
+        A,
+        ` ${spark}  ${fg(M)}C0 ${fg(C1)}█████${fg(S)}░░░░░ ${fg(F)}44%  ${fg(M)}Load ${fg(F)}1.42`,
+        W,
+      ),
+      boxRow(
+        A,
+        ` ${spark2}  ${fg(M)}C1 ${fg(C2)}███████${fg(S)}░░░ ${fg(F)}68%  ${fg(M)}Up   ${fg(F)}6d 14h`,
+        W,
+      ),
+      boxBottom(A, W),
+      `${boxTop(OK, `${fg(OK)}${BOLD}² mem${RST}`, `${fg(M)} 32 GiB `, leftW)} ${boxTop(ERR, `${fg(ERR)}${BOLD}³ net${RST}`, `${fg(M)} eth0 `, rightW)}`,
+      `${boxRow(OK, ` ${fg(M)}Used ${fg(C3)}██████${fg(S)}░░░░░░ ${fg(F)}12.4G`, leftW)} ${boxRow(ERR, ` ${fg(INFO)}▼ 42.8 Mbps ${fg(C1)}⣀▄▆█▇▅▃`, rightW)}`,
+      `${boxRow(OK, ` ${fg(M)}Free ${fg(OK)}████████${fg(S)}░░░░ ${fg(F)}19.6G`, leftW)} ${boxRow(ERR, ` ${fg(OK)}▲  9.4 Mbps ${fg(WARN)}⣀▂▃▄▃▂▁`, rightW)}`,
+      `${boxBottom(OK, leftW)} ${boxBottom(ERR, rightW)}`,
+      boxTop(INFO, `${fg(INFO)}${BOLD}⁴ proc${RST}`, `${fg(M)} filter: / `, W),
+      boxRow(INFO, ` ${fg(M)}PID    Program             Thr    Mem%     CPU%`, W),
+      boxRow(
+        INFO,
+        `${bg(SEL)}${fg(SELFG)}${BOLD} 4102   themespace-web       12    1.8%    14.2%`,
+        W,
+        SEL,
+      ),
+      boxRow(INFO, ` ${fg(F)}3891   ghostty               8    0.9%     4.8%`, W),
+      boxRow(INFO, ` ${fg(F)}2910   rust-analyzer        16    5.1%    21.6%`, W),
+      boxRow(INFO, ` ${fg(M)}1420   waybar                3    0.2%     0.7%`, W),
+      boxBottom(INFO, W),
     ].join("\r\n");
   }
 
   if (target === "lazygit") {
+    const leftW = Math.min(30, Math.floor(W * 0.42));
+    const rightW = W - 1 - leftW;
     return [
-      `${fg(A)}${BOLD}┌─[2] Files ───────────────────────┐${RST} ${fg(BRD)}┌─ Diff: web/lib/exporters.ts ──────────┐${RST}`,
-      `${fg(A)}│${RST}${bg(SEL)}${fg(SELFG)}${BOLD} ${fg(ERR)}M${fg(SELFG)} web/lib/exporters.ts           ${RST}${fg(A)}│${RST} ${fg(BRD)}│${RST} ${fg(INFO)}@@ -680,4 +680,6 @@ case "gitcomet":    ${fg(BRD)}│${RST}`,
-      `${fg(A)}│${RST} ${fg(OK)}A${fg(F)} web/lib/color-tools.ts         ${fg(A)}│${RST} ${fg(BRD)}│${RST} ${fg(M)}   schema_version: 2,                   ${fg(BRD)}│${RST}`,
-      `${fg(A)}│${RST} ${fg(ERR)}M${fg(F)} extension/src/background.ts    ${fg(A)}│${RST} ${fg(BRD)}│${RST} ${fg(ERR)}-  colors: { background: c.background } ${fg(BRD)}│${RST}`,
-      `${fg(A)}│${RST} ${fg(WARN)}?${fg(F)} web/tests/importers.test.ts    ${fg(A)}│${RST} ${fg(BRD)}│${RST} ${fg(OK)}+  colors: { surface: { canvas } }      ${fg(BRD)}│${RST}`,
-      `${fg(A)}└──────────────────────────────────┘${RST} ${fg(BRD)}│${RST} ${fg(OK)}+  radii: { panel, pill, row }          ${fg(BRD)}│${RST}`,
-      `${fg(BRD)}┌─[3] Local Branches ──────────────┐${RST} ${fg(BRD)}│${RST} ${fg(F)}   themes: modes.map(entryFor)          ${fg(BRD)}│${RST}`,
-      `${fg(BRD)}│${RST} ${fg(OK)}* main${fg(M)}      ↑2  ${theme.name.slice(0, 14).padEnd(14)} ${fg(BRD)}│${RST} ${fg(BRD)}│${RST}                                         ${fg(BRD)}│${RST}`,
-      `${fg(BRD)}│${RST} ${fg(F)}  feat/tui  ${fg(M)}12m ago            ${fg(BRD)}│${RST} ${fg(BRD)}│${RST} ${bg(AF)}${fg(AFG)} cherry-pick ${RST} ${fg(M)}commit ready              ${fg(BRD)}│${RST}`,
-      `${fg(BRD)}└──────────────────────────────────┘${RST} ${fg(BRD)}└───────────────────────────────────────┘${RST}`,
-      `${fg(A)}space${fg(M)}: stage  ${fg(A)}c${fg(M)}: commit  ${fg(A)}P${fg(M)}: push  ${fg(A)}/${fg(M)}: search  ${fg(A)}?${fg(M)}: keybindings${RST}`,
+      `${boxTop(A, `${fg(A)}${BOLD}[2] Files${RST}`, "", leftW)} ${boxTop(BRD, `${fg(F)}Patch: exporters.ts`, "", rightW)}`,
+      `${boxRow(A, `${bg(SEL)}${fg(ERR)} M ${fg(SELFG)}${BOLD}web/lib/exporters.ts`, leftW, SEL)} ${boxRow(BRD, ` ${fg(INFO)}@@ -680,4 +680,6 @@ gitcomet`, rightW)}`,
+      `${boxRow(A, ` ${fg(OK)}A ${fg(F)}web/lib/color-tools.ts`, leftW)} ${boxRow(BRD, ` ${fg(M)}  schema_version: 2,`, rightW)}`,
+      `${boxRow(A, ` ${fg(ERR)}M ${fg(F)}extension/background.ts`, leftW)} ${boxRow(BRD, ` ${fg(ERR)}- colors: { bg: c.background }`, rightW)}`,
+      `${boxRow(A, ` ${fg(WARN)}? ${fg(F)}web/tests/importers.ts`, leftW)} ${boxRow(BRD, ` ${fg(OK)}+ colors: { surface: { canvas } }`, rightW)}`,
+      `${boxBottom(A, leftW)} ${boxRow(BRD, ` ${fg(OK)}+ radii: { panel, pill, row }`, rightW)}`,
+      `${boxTop(BRD, `${fg(F)}[3] Branches`, "", leftW)} ${boxRow(BRD, ` ${fg(F)}  themes: modes.map(entryFor)`, rightW)}`,
+      `${boxRow(BRD, ` ${fg(OK)}* main ${fg(M)}↑2`, leftW)} ${boxRow(BRD, ` `, rightW)}`,
+      `${boxRow(BRD, ` ${fg(F)}  feat/real-tui ${fg(M)}12m`, leftW)} ${boxRow(BRD, ` ${bg(AF)}${fg(AFG)} cherry-pick ${RST} ${fg(M)}ready`, rightW)}`,
+      `${boxRow(BRD, ` ${fg(M)}  release/v0.2`, leftW)} ${boxRow(BRD, ` ${fg(M)}Author: ${fg(r.chart5)}${theme.author}`, rightW)}`,
+      `${boxBottom(BRD, leftW)} ${boxBottom(BRD, rightW)}`,
+      fit(
+        `${fg(A)}space${fg(M)}:stage  ${fg(A)}c${fg(M)}:commit  ${fg(A)}P${fg(M)}:push  ${fg(A)}/${fg(M)}:search  ${fg(A)}?${fg(M)}:help`,
+        W,
+      ),
     ].join("\r\n");
   }
 
   if (target === "starship") {
     return [
-      `${fg(A)}${BOLD}~/git/themespace${RST} ${fg(M)}on${RST} ${fg(OK)}${BOLD}⎇ main${RST} ${fg(WARN)}[+4 ~2]${RST} ${fg(INFO)}via ⬢ v22.14${RST}`,
-      `${fg(A)}${BOLD}❯${RST} ${fg(F)}npm test && npm run build${RST}`,
-      `${fg(OK)}✓${RST} ${fg(F)}47 exporters validated · ${theme.name} (${mode})${RST}`,
+      fit(`${fg(A)}${BOLD}~/git/themespace${RST} ${fg(M)}on${RST} ${fg(OK)}${BOLD}⎇ main${RST} ${fg(WARN)}[+4 ~2]${RST} ${fg(INFO)}via ⬢ v22.14${RST}`, W),
+      fit(`${fg(A)}${BOLD}❯${RST} ${fg(F)}npm test && npm run build${RST}`, W),
+      fit(`${fg(OK)}✓${RST} ${fg(F)}50 tests passed · 47 exporters (${theme.name} ${mode})${RST}`, W),
       ``,
-      `${fg(A)}${BOLD}~/git/themespace${RST} ${fg(M)}on${RST} ${fg(OK)}${BOLD}⎇ main${RST} ${fg(ERR)}${BOLD}✘ 1${RST}`,
-      `${fg(ERR)}${BOLD}❯${RST} ${fg(F)}git push --force${RST}`,
-      `${fg(M)}hint: Starship palette colors read directly from [palettes.*] in your TOML.${RST}`,
+      fit(`${fg(A)}${BOLD}~/git/themespace${RST} ${fg(M)}on${RST} ${fg(OK)}${BOLD}⎇ main${RST} ${fg(ERR)}${BOLD}✘ 1${RST}`, W),
+      fit(`${fg(ERR)}${BOLD}❯${RST} ${fg(F)}git push --force origin main${RST}`, W),
+      fit(`${fg(ERR)}! [rejected]${RST} ${fg(M)}main -> main (protected branch)${RST}`, W),
       ``,
-      `${fg(A)}${BOLD}~/git/themespace${RST} ${fg(M)}on${RST} ${fg(OK)}${BOLD}⎇ main${RST}`,
-      `${fg(A)}${BOLD}❯${RST} ${bg(AF)}${fg(AFG)} ${RST}`,
+      fit(`${fg(A)}${BOLD}~/git/themespace${RST} ${fg(M)}on${RST} ${fg(OK)}${BOLD}⎇ main${RST} ${fg(INFO)}took 2s${RST}`, W),
+      fit(`${fg(A)}${BOLD}❯${RST} ${bg(AF)}${fg(AFG)} ${RST}`, W),
     ].join("\r\n");
   }
 
   if (target === "zellij") {
+    const leftW = Math.floor((W - 1) / 2);
+    const rightW = W - 1 - leftW;
+    const topBar = fit(
+      `${bg(S)}${fg(F)} Zellij ${RST}${bg(AF)}${fg(AFG)}${BOLD} Tab #1 ${RST}${bg(S)}${fg(M)} Tab #2  Tab #3`,
+      W,
+      S,
+    );
+    const botBar = fit(
+      `${bg(AF)}${fg(AFG)}${BOLD} NORMAL ${RST}${bg(S)}${fg(F)}  ^p Pane  ^t Tab  ^n Resize  ^s Search`,
+      W,
+      S,
+    );
     return [
-      `${bg(S)}${fg(F)} Zellij ${RST}${bg(AF)}${fg(AFG)}${BOLD} Tab #1 ${RST}${bg(S)}${fg(M)} Tab #2  Tab #3 ${" ".repeat(44)}${RST}`,
-      `${fg(A)}╭─ nvim ──────────────────────────────╮${RST} ${fg(BRD)}╭─ dev server ───────────────────────╮${RST}`,
-      `${fg(A)}│${RST} ${fg(A)}export const${fg(F)} theme = {              ${fg(A)}│${RST} ${fg(BRD)}│${RST} ${fg(OK)}✓${fg(F)} ready in 210ms                   ${fg(BRD)}│${RST}`,
-      `${fg(A)}│${RST}   ${fg(F)}name: ${fg(WARN)}"${theme.name.slice(0, 18)}"${fg(F)},`.padEnd(65) + `${fg(A)}│${RST} ${fg(BRD)}│${RST} ${fg(INFO)}➜${fg(F)} http://127.0.0.1:5173/           ${fg(BRD)}│${RST}`,
-      `${fg(A)}│${RST} ${bg(SEL)}${fg(SELFG)}  mode: "${mode}",  // selected     ${RST} ${fg(A)}│${RST} ${fg(BRD)}│${RST} ${fg(OK)}200${fg(M)} GET /api/themes 4ms            ${fg(BRD)}│${RST}`,
-      `${fg(A)}│${RST} ${fg(F)}};                                  ${fg(A)}│${RST} ${fg(BRD)}│${RST} ${fg(ERR)}ERR${fg(M)} exit_code_error preview        ${fg(BRD)}│${RST}`,
-      `${fg(A)}╰─────────────────────────────────────╯${RST} ${fg(BRD)}╰────────────────────────────────────╯${RST}`,
-      `${bg(AF)}${fg(AFG)}${BOLD} NORMAL ${RST}${bg(S)}${fg(F)}  ^p Pane  ^t Tab  ^n Resize  ^s Search  ^q Quit ${" ".repeat(22)}${RST}`,
+      topBar,
+      `${boxTop(A, `${fg(A)}${BOLD} nvim `, "", leftW, true)} ${boxTop(BRD, `${fg(M)} dev server `, "", rightW, true)}`,
+      `${boxRow(A, ` ${fg(A)}export const ${fg(F)}theme = {`, leftW)} ${boxRow(BRD, ` ${fg(OK)}✓ ${fg(F)}ready in 210ms`, rightW)}`,
+      `${boxRow(A, `   ${fg(F)}name: ${fg(WARN)}"${theme.name.slice(0, 14)}"${fg(F)},`, leftW)} ${boxRow(BRD, ` ${fg(INFO)}➜ ${fg(F)}http://127.0.0.1:5173`, rightW)}`,
+      `${boxRow(A, `${bg(SEL)}${fg(SELFG)}   mode: "${mode}",`, leftW, SEL)} ${boxRow(BRD, ` ${fg(OK)}200 ${fg(M)}GET /api/themes 4ms`, rightW)}`,
+      `${boxRow(A, ` ${fg(F)}};`, leftW)} ${boxRow(BRD, ` ${fg(ERR)}ERR ${fg(M)}exit code 1`, rightW)}`,
+      `${boxRow(A, ` ${fg(M)}~`, leftW)} ${boxRow(BRD, ` `, rightW)}`,
+      `${boxBottom(A, leftW, true)} ${boxBottom(BRD, rightW, true)}`,
+      botBar,
     ].join("\r\n");
   }
 
   // tmux
+  const leftW = Math.floor(W / 2);
+  const rightW = W - leftW;
+  const statusLeft = `${bg(AF)}${fg(AFG)}${BOLD} main ${RST}${bg(S)}${fg(F)} ${bg(AF)}${fg(AFG)}${BOLD} 1:code* ${RST}${bg(S)}${fg(M)} 2:server  3:git`;
+  const statusRight = `${bg(S)}${fg(M)}14:20 ${fg(OK)}● ${fg(F)}host ${RST}`;
+  const gap = Math.max(1, W - visLen(statusLeft) - visLen(statusRight));
+  const statusLine = `${statusLeft}${bg(S)}${" ".repeat(gap)}${RST}${statusRight}`;
   return [
-    `${fg(A)}┌─ pane 0: nvim ──────────────────────┐${RST}${fg(BRD)}┌─ pane 1: server ────────────────────┐${RST}`,
-    `${fg(A)}│${RST} ${fg(M)}1 ${fg(A)}export const${fg(F)} name = "${theme.name.slice(0, 10)}";`.padEnd(60) + `${fg(A)}│${RST}${fg(BRD)}│${RST} ${fg(OK)}●${fg(F)} listening on :5173                 ${fg(BRD)}│${RST}`,
-    `${fg(A)}│${RST} ${fg(M)}2 ${bg(SEL)}${fg(SELFG)} -- COPY MODE (mode-style) --   ${RST} ${fg(A)}│${RST}${fg(BRD)}│${RST} ${fg(INFO)}GET${fg(F)} /integrations 200 (8ms)          ${fg(BRD)}│${RST}`,
-    `${fg(A)}│${RST} ${fg(M)}3 ${fg(F)}return resolve(theme, "${mode}");`.padEnd(57) + `${fg(A)}│${RST}${fg(BRD)}│${RST} ${fg(M)}watching 47 integration targets…     ${fg(BRD)}│${RST}`,
-    `${fg(A)}│${RST} ${fg(M)}~                                   ${fg(A)}│${RST}${fg(BRD)}│${RST} ${fg(M)}                                     ${fg(BRD)}│${RST}`,
-    `${fg(A)}└─────────────────────────────────────┘${RST}${fg(BRD)}└─────────────────────────────────────┘${RST}`,
-    `${bg(S)}${fg(F)} ${bg(AF)}${fg(AFG)}${BOLD} main ${RST}${bg(S)}${fg(F)} ${bg(AF)}${fg(AFG)}${BOLD} 1:code* ${RST}${bg(S)}${fg(M)} 2:server  3:git${" ".repeat(25)}${fg(M)}14:20 ${fg(OK)}● ${fg(F)}host ${RST}`,
-    `${bg(B)}${RST}`,
+    `${boxTop(A, `${fg(A)} 0: nvim `, "", leftW)}${boxTop(BRD, `${fg(M)} 1: server `, "", rightW)}`,
+    `${boxRow(A, ` ${fg(M)}1 ${fg(A)}export const ${fg(F)}palette = {`, leftW)}${boxRow(BRD, ` ${fg(OK)}● ${fg(F)}listening on :5173`, rightW)}`,
+    `${boxRow(A, `${bg(SEL)}${fg(SELFG)} 2 -- COPY MODE --`, leftW, SEL)}${boxRow(BRD, ` ${fg(INFO)}GET ${fg(F)}/integrations 200`, rightW)}`,
+    `${boxRow(A, ` ${fg(M)}3   ${fg(F)}mode: ${fg(WARN)}"${mode}"`, leftW)}${boxRow(BRD, ` ${fg(M)}47 exporters ready`, rightW)}`,
+    `${boxRow(A, ` ${fg(M)}4 ${fg(F)}};`, leftW)}${boxRow(BRD, ` `, rightW)}`,
+    `${boxRow(A, ` ${fg(M)}~`, leftW)}${boxRow(BRD, ` `, rightW)}`,
+    `${boxBottom(A, leftW)}${boxBottom(BRD, rightW)}`,
+    statusLine,
   ].join("\r\n");
 }

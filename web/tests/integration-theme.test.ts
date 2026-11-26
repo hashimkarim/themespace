@@ -8,6 +8,7 @@ import {
 } from "../lib/integration-theme";
 import { previewProfiles } from "../lib/preview-targets";
 import { previewFidelity } from "../lib/preview-fidelity";
+import { tuiAnsi } from "../lib/tui-ansi";
 import { exportTargets } from "../lib/targets";
 import { presets, resolve } from "../lib/theme";
 import { monacoTheme } from "../lib/editor-preview";
@@ -373,4 +374,22 @@ test("workspace, git, slack, browser, and desktop adapters read independently ch
     integrationThemeFromFiles(theme, "dark", "hyprland", hyprFiles).roles.accent,
     "#8899aa",
   );
+});
+
+test("xterm.js TUI ANSI scenes fit exact column widths without wrapping", () => {
+  const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
+  for (const target of ["btop", "lazygit", "tmux", "zellij", "starship"]) {
+    for (const cols of [56, 74, 90]) {
+      const frame = tuiAnsi(target, theme, "dark", cols);
+      const lines = frame.split("\r\n");
+      assert.ok(lines.length >= 6, `${target} has TUI lines`);
+      for (const line of lines) {
+        const visible = stripAnsi(line).length;
+        assert.ok(
+          visible <= cols,
+          `${target} at ${cols} cols overflowed (${visible} chars): ${stripAnsi(line)}`,
+        );
+      }
+    }
+  }
 });

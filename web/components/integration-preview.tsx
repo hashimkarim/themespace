@@ -1,5 +1,5 @@
 "use client";
-import { useState, type CSSProperties } from "react";
+import { useCallback, useState, type CSSProperties } from "react";
 import ReactMarkdown from "react-markdown";
 import { CodeSurface } from "./renderers/code-surface";
 import { TerminalSurface } from "./renderers/terminal-surface";
@@ -381,15 +381,99 @@ function TerminalWindow({
     </div>
   );
 }
-function Browser({ theme, target }: { theme: Theme; target: string }) {
+function Browser({
+  theme,
+  mode,
+  target,
+}: {
+  theme: Theme;
+  mode: Appearance;
+  target: string;
+}) {
   const [tab, setTab] = useState(target === "stylus" ? 1 : 0),
     [url, setUrl] = useState(
-      target === "stylus" ? "workspace.example" : "New Tab",
+      target === "stylus" ? "docs.themespace.app" : "New Tab",
     ),
     [search, setSearch] = useState(""),
     [result, setResult] = useState(""),
     [menu, setMenu] = useState(false),
-    [sidebar, setSidebar] = useState(target === "zen");
+    [sidebar, setSidebar] = useState(target === "firefox" ? false : false);
+  const c = integrationTheme(theme, mode, target).roles;
+  if (target === "zen") {
+    const zenTabs = [
+      { title: "New Tab", url: "about:newtab" },
+      { title: "ThemeSpace Studio", url: "themespace.app" },
+      { title: "Zen Mods Docs", url: "docs.zen-browser.app" },
+    ];
+    return (
+      <div className="native-window native-browser zen zen-vertical">
+        <aside className="zen-rail">
+          <div className="zen-rail-top">
+            <Dots />
+            <span className="zen-ws-pill">Work</span>
+          </div>
+          <label className="zen-urlbar">
+            <Lock size={11} />
+            <input
+              aria-label="Preview address bar"
+              value={zenTabs[tab]?.url ?? url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+          </label>
+          <div className="zen-pinned">
+            {["G", "M", "D"].map((k) => (
+              <span key={k}>{k}</span>
+            ))}
+          </div>
+          <div className="zen-tab-list" role="tablist" aria-label="Zen vertical tabs">
+            {zenTabs.map((item, i) => (
+              <button
+                key={item.title}
+                role="tab"
+                aria-selected={tab === i}
+                className={tab === i ? "selected" : ""}
+                onClick={() => {
+                  setTab(i);
+                  setUrl(item.url);
+                }}
+              >
+                <Globe size={12} />
+                <span>{item.title}</span>
+              </button>
+            ))}
+          </div>
+          <div className="zen-rail-foot">
+            <span>Zen Browser</span>
+            <Plus size={13} />
+          </div>
+        </aside>
+        <div className="native-browser-page native-new-tab zen-page">
+          <small>{tab === 0 ? "ZEN · ABOUT:NEWTAB" : zenTabs[tab]?.url.toUpperCase()}</small>
+          <h2>{tab === 0 ? `${theme.name} on Zen` : zenTabs[tab]?.title}</h2>
+          <p>
+            Vertical sidebar, URL bar, and built-in <code>about:</code> pages
+            styled via <code>userChrome.css</code> and <code>userContent.css</code>.
+          </p>
+          <div className="native-browser-shortcuts">
+            {[
+              ["◇", "Projects"],
+              ["☷", "Reading list"],
+              ["✳", "ThemeSpace"],
+            ].map(([icon, label]) => (
+              <button
+                key={label}
+                onClick={() => setResult(`Opened ${label} in Zen preview.`)}
+              >
+                <span>{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+          {result && <p aria-live="polite">{result}</p>}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={`native-window native-browser ${target}`}>
       <div className="native-browser-tabs">
@@ -400,7 +484,7 @@ function Browser({ theme, target }: { theme: Theme; target: string }) {
             key={t}
             onClick={() => {
               setTab(i);
-              setUrl(i ? "workspace.example" : "New Tab");
+              setUrl(i ? "docs.themespace.app" : "New Tab");
             }}
           >
             <Globe size={12} />
@@ -447,7 +531,7 @@ function Browser({ theme, target }: { theme: Theme; target: string }) {
                 {label}
               </button>
             ))}
-            {(target === "firefox" || target === "zen") && (
+            {target === "firefox" && (
               <button
                 onClick={() => {
                   setSidebar(!sidebar);
@@ -466,9 +550,9 @@ function Browser({ theme, target }: { theme: Theme; target: string }) {
         <span>◇ Reading list</span>
         <span>◇ Design inspiration</span>
       </div>
-      {sidebar && (target === "firefox" || target === "zen") && (
+      {sidebar && target === "firefox" && (
         <aside className="native-browser-sidebar">
-          <b>{target === "zen" ? "Workspaces" : "Bookmarks"}</b>
+          <b>Bookmarks</b>
           {["Your projects", "Reading list", "Design inspiration"].map(
             (name) => (
               <button
@@ -482,61 +566,97 @@ function Browser({ theme, target }: { theme: Theme; target: string }) {
           <button onClick={() => setSidebar(false)}>Close sidebar</button>
         </aside>
       )}
-      <div
-        className={`native-browser-page ${tab === 0 || target === "stylus" ? "native-new-tab" : ""}`}
-      >
-        <small>
-          {tab === 0
-            ? previewProfiles[target].label.toUpperCase()
-            : target === "stylus"
-              ? "STYLED WEBSITE (USERCSS)"
-              : "EXAMPLE WEBSITE"}
-        </small>
-        <h2>{tab ? "A place to create." : "A fresh perspective."}</h2>
-        <p>
-          {tab === 0
-            ? `A new tab in ${theme.name}.`
-            : target === "stylus"
-              ? `Stylus UserCSS applies ${theme.name} tokens directly to website surfaces and links.`
-              : `The browser wears ${theme.name}. Websites keep their own styles.`}
-        </p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setResult(
-              search
-                ? `Example search for “${search}”`
-                : "Type something to search this example.",
-            );
-          }}
+      <div className={target === "vivaldi" ? "vivaldi-body" : ""}>
+        {target === "vivaldi" && (
+          <aside className="vivaldi-panel-rail" aria-label="Vivaldi web panels">
+            <span>★</span>
+            <span>↓</span>
+            <span>✎</span>
+            <span>⏱</span>
+            <span>⚙</span>
+          </aside>
+        )}
+        <div
+          className={`native-browser-page ${tab === 0 || target === "stylus" ? "native-new-tab" : ""}`}
         >
-          <label>
-            <Search size={17} />
-            <input
-              aria-label="Demo website search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Where will today take you?"
-            />
-          </label>
-        </form>
-        <div className="native-browser-shortcuts">
-          {[
-            ["◇", "Your projects"],
-            ["☷", "Reading list"],
-            ["✳", "Inspiration"],
-          ].map(([i, t]) => (
-            <button
-              key={t}
-              onClick={() => setResult(`${t} selected in the example website.`)}
-            >
-              <span>{i}</span>
-              {t}
-            </button>
-          ))}
+          {target === "stylus" && (
+            <div className="stylus-popup-strip">
+              <b>Stylus UserCSS · {theme.name}</b>
+              <div className="stylus-vars">
+                {[
+                  ["tsBg", c.background],
+                  ["tsSurface", c.surface],
+                  ["tsFg", c.foreground],
+                  ["tsAccent", c.accent],
+                  ["tsBorder", c.border],
+                ].map(([name, val]) => (
+                  <span key={name}>
+                    <i style={{ background: val }} />
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <small>
+            {tab === 0
+              ? previewProfiles[target].label.toUpperCase()
+              : target === "stylus"
+                ? "STYLED PAGE · USERCSS ACTIVE"
+                : "EXAMPLE WEBSITE"}
+          </small>
+          <h2>{tab ? "A place to create." : "A fresh perspective."}</h2>
+          <p>
+            {tab === 0
+              ? `A new tab in ${theme.name}.`
+              : target === "stylus"
+                ? `Custom properties and @var color pickers from ${theme.name}.user.css style the page.`
+                : `The browser wears ${theme.name}. Websites keep their own styles.`}
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setResult(
+                search
+                  ? `Example search for “${search}”`
+                  : "Type something to search this example.",
+              );
+            }}
+          >
+            <label>
+              <Search size={17} />
+              <input
+                aria-label="Demo website search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Where will today take you?"
+              />
+            </label>
+          </form>
+          <div className="native-browser-shortcuts">
+            {[
+              ["◇", "Your projects"],
+              ["☷", "Reading list"],
+              ["✳", "Inspiration"],
+            ].map(([i, t]) => (
+              <button
+                key={t}
+                onClick={() => setResult(`${t} selected in the example website.`)}
+              >
+                <span>{i}</span>
+                {t}
+              </button>
+            ))}
+          </div>
+          <p aria-live="polite">{result}</p>
         </div>
-        <p aria-live="polite">{result}</p>
       </div>
+      {target === "vivaldi" && (
+        <div className="vivaldi-status">
+          <span>Vivaldi · {theme.name}</span>
+          <span>100% · Page Actions</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -670,64 +790,93 @@ function T3CodeWorkspace({
   theme: Theme;
   mode: Appearance;
 }) {
+  const r = integrationTheme(theme, mode, "t3-code").roles;
   const [thread, setThread] = useState(0);
   const [showTerm, setShowTerm] = useState(false);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState([
     {
       role: "user",
-      text: `Apply ${theme.name} across our workspace, sidebar, and terminal.`,
+      text: `Export ${theme.name} to T3 Code and verify terminal contrast.`,
+    },
+    {
+      role: "work",
+      text: "Edited web/lib/exporters.ts · +64 -0 · 50 tests passed",
     },
     {
       role: "assistant",
-      text: "Updated color roles and verified contrast across messages, code blocks, and terminal surfaces.",
+      text: `Generated ${theme.name} (${mode}) with all 65 T3 Code color roles and integrated terminal palette.`,
     },
   ]);
   const threads = [
-    { name: "Theme workspace tokens", time: "2m" },
-    { name: "Fix terminal contrast", time: "18m" },
-    { name: "Export native presets", time: "1h" },
+    { name: "Export T3 Code theme", time: "2m", status: "done" },
+    { name: "Fix xterm ANSI wrapping", time: "18m", status: "active" },
+    { name: "Release v0.2 checklist", time: "1h", status: "done" },
   ];
   return (
     <div className="native-window native-t3code">
-      <div className="native-titlebar">
-        <Dots />
-        <span>T3 Code — {theme.name}</span>
-        <button
-          className="native-pill-btn"
-          aria-pressed={showTerm}
-          onClick={() => setShowTerm(!showTerm)}
-        >
-          <Terminal size={12} /> Terminal
-        </button>
-      </div>
       <div className="t3-layout">
         <aside className="t3-sidebar">
-          <div className="native-section-label">THREADS</div>
-          {threads.map((item, idx) => (
-            <button
-              key={item.name}
-              className={`t3-thread ${thread === idx ? "selected" : ""}`}
-              onClick={() => setThread(idx)}
-            >
-              <span>{item.name}</span>
-              <small>{item.time}</small>
-            </button>
-          ))}
+          <div className="t3-project-head">
+            <span className="t3-monogram">TS</span>
+            <b>themespace</b>
+            <small>main</small>
+          </div>
+          <div className="t3-thread-list">
+            {threads.map((item, idx) => (
+              <button
+                key={item.name}
+                className={`t3-thread ${thread === idx ? "selected" : ""}`}
+                onClick={() => setThread(idx)}
+              >
+                <i className={`t3-dot t3-dot-${item.status}`} />
+                <span>{item.name}</span>
+                <small>{item.time}</small>
+              </button>
+            ))}
+          </div>
         </aside>
         <section className="t3-main">
-          <div className="t3-header">
-            <b>{threads[thread].name}</b>
-            <span className="t3-badge">main</span>
-          </div>
+          <header className="t3-header">
+            <div className="t3-header-title">
+              <b>{threads[thread].name}</b>
+              <span className="t3-badge">
+                <GitBranch size={10} /> main
+              </span>
+              <span className="t3-diff-pill">
+                <em className="t3-add">+64</em> <em className="t3-del">-0</em>
+              </span>
+            </div>
+            <button
+              className="native-pill-btn"
+              aria-pressed={showTerm}
+              onClick={() => setShowTerm(!showTerm)}
+            >
+              <Terminal size={12} /> Terminal
+            </button>
+          </header>
           <div className="t3-messages">
-            {messages.map((m, i) => (
-              <div key={i} className={`t3-msg t3-msg-${m.role}`}>
-                <p>{m.text}</p>
-              </div>
-            ))}
+            {messages.map((m, i) =>
+              m.role === "work" ? (
+                <div key={i} className="t3-work-card">
+                  <Check size={12} />
+                  <span>{m.text}</span>
+                </div>
+              ) : (
+                <div key={i} className={`t3-msg t3-msg-${m.role}`}>
+                  <p>{m.text}</p>
+                </div>
+              ),
+            )}
             <pre className="t3-code">
-              <code>{`{\n  "name": "${theme.name}",\n  "appearance": "${mode}",\n  "canvas": "var(--ts-background)",\n  "accent": "var(--ts-accent-fill)"\n}`}</code>
+              <code>{`{
+  "version": 1,
+  "name": "${theme.name}",
+  "appearance": "${mode}",
+  "canvas": "${r.background}",
+  "accent": "${r.accentFill}",
+  "colors": { "sidebar": "${r.sidebar}", "surface": "${r.surface}" }
+}`}</code>
             </pre>
           </div>
           <form
@@ -741,11 +890,14 @@ function T3CodeWorkspace({
           >
             <input
               aria-label="Preview T3 Code message"
-              placeholder="Ask anything about your theme…"
+              placeholder="Ask anything, @ to mention files…"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
             />
-            <button type="submit">Send</button>
+            <div className="t3-composer-bar">
+              <span className="t3-model-pill">Default · Full access</span>
+              <button type="submit">Send</button>
+            </div>
           </form>
           {showTerm && (
             <div className="native-integrated-terminal">
@@ -762,103 +914,207 @@ function T3CodeWorkspace({
     </div>
   );
 }
-function GitClient({ target, theme }: { target: string; theme: Theme }) {
+function GitClient({
+  target,
+  theme,
+  mode,
+}: {
+  target: string;
+  theme: Theme;
+  mode: Appearance;
+}) {
+  const r = integrationTheme(theme, mode, target).roles;
   const [commit, setCommit] = useState(0);
+  const [branch, setBranch] = useState("main");
   const commits = [
     {
-      hash: "9f2c1a4",
+      hash: "64b0589",
       branch: "main",
+      author: theme.author,
+      time: "4m ago",
       lane: 0,
-      msg: `Add ${theme.name} color tokens`,
+      msg: `Export ${theme.name} in GitComet v2 format`,
       files: [
-        { status: "M", path: "theme.json" },
-        { status: "A", path: "tokens.css" },
+        { status: "M", path: "web/lib/exporters.ts", stat: "+84 -12" },
+        { status: "M", path: "web/tests/exporters.test.ts", stat: "+26 -4" },
+      ],
+      hunk: "@@ -742,6 +742,8 @@ export function generateTarget(",
+      lines: [
+        { n1: "742", n2: "742", kind: "ctx", text: '  schema_version: 2,' },
+        { n1: "743", n2: "", kind: "del", text: `  background: "#1c1f26",` },
+        { n1: "", n2: "743", kind: "add", text: `  canvas: "${r.background}ff",` },
+        { n1: "", n2: "744", kind: "add", text: `  accent: "${r.accent}ff",` },
+        { n1: "744", n2: "745", kind: "ctx", text: "  radii: { panel: 10, pill: 999, row: 7 }," },
       ],
     },
     {
-      hash: "4b8e0d2",
+      hash: "4df4d4a",
       branch: "feat/companion",
+      author: "Maya",
+      time: "28m ago",
       lane: 1,
-      msg: "Sync live Studio draft to Companion",
+      msg: "Add hold-to-peek and backup restore in Companion",
       files: [
-        { status: "M", path: "bridge.ts" },
-        { status: "D", path: "legacy-sync.ts" },
+        { status: "M", path: "extension/src/background.ts", stat: "+68 -9" },
+        { status: "A", path: "web/lib/importers.ts", stat: "+295 -0" },
+      ],
+      hunk: "@@ -80,5 +80,7 @@ async function applyTo(tabId, ref, theme)",
+      lines: [
+        { n1: "80", n2: "80", kind: "ctx", text: "  await ensureEngine(tabId);" },
+        { n1: "81", n2: "", kind: "del", text: "  return send(tabId, { type: 'ts:apply', theme });" },
+        { n1: "", n2: "81", kind: "add", text: "  const status = await send(tabId, { type: 'ts:apply', theme });" },
+        { n1: "", n2: "82", kind: "add", text: "  updateBadge(tabId, status.applied ? theme : undefined);" },
+        { n1: "82", n2: "83", kind: "ctx", text: "  return status;" },
       ],
     },
     {
-      hash: "1a7d3c9",
+      hash: "2ba3a70",
       branch: "fix/contrast",
+      author: "Sam",
+      time: "2h ago",
       lane: 2,
-      msg: "Keep button foregrounds readable",
-      files: [{ status: "M", path: "palette.ts" }],
+      msg: "Auto-fix WCAG AA contrast pairs in Studio",
+      files: [
+        { status: "A", path: "web/lib/color-tools.ts", stat: "+240 -0" },
+      ],
+      hunk: "@@ -104,4 +104,6 @@ export function autoFixContrast(theme, mode)",
+      lines: [
+        { n1: "104", n2: "104", kind: "ctx", text: "  const dark = luminance(p.background) < 0.25;" },
+        { n1: "105", n2: "", kind: "del", text: "  return theme;" },
+        { n1: "", n2: "105", kind: "add", text: "  const fg = ensureContrastAgainst(p.foreground, bgs, 7.0, dark);" },
+        { n1: "", n2: "106", kind: "add", text: "  return { ...theme, modes: { ...theme.modes, [mode]: { ...p, foreground: fg } } };" },
+      ],
     },
     {
-      hash: "8c5f2e1",
-      branch: "release/v1",
-      lane: 3,
-      msg: "Package native exports",
-      files: [{ status: "A", path: "exporters.ts" }],
+      hash: "bc54c4f",
+      branch: "main",
+      author: theme.author,
+      time: "5h ago",
+      lane: 0,
+      msg: "Link Chrome Web Store and Firefox AMO listings",
+      files: [{ status: "M", path: "web/components/themespace.tsx", stat: "+18 -6" }],
+      hunk: "@@ -1690,4 +1690,5 @@ const CHROME_STORE_URL =",
+      lines: [
+        { n1: "1690", n2: "1690", kind: "ctx", text: '  "https://chromewebstore.google.com/detail/themespace-companion";' },
+        { n1: "", n2: "1691", kind: "add", text: 'const FIREFOX_AMO_URL = "https://addons.mozilla.org/firefox/addon/themespace-companion/";' },
+      ],
     },
   ];
   const active = commits[commit];
+  const laneColors = [
+    r.chart1 ?? r.accent,
+    r.chart2 ?? r.success,
+    r.chart3 ?? r.warning,
+  ];
   return (
     <div className="native-window native-git">
       <div className="native-titlebar">
         <Dots />
         <span>
-          {previewProfiles[target].label} — {theme.name.toLowerCase()}
+          {previewProfiles[target].label} — themespace
         </span>
         <span className="git-branch-pill">
-          <GitBranch size={11} /> {active.branch}
+          <GitBranch size={11} /> {branch}
         </span>
       </div>
-      <div className="git-layout">
-        <aside className="git-commits">
-          <div className="native-section-label">COMMIT GRAPH</div>
-          {commits.map((c, idx) => (
+      <div className="git-workbench">
+        <aside className="git-refs">
+          <div className="native-section-label">BRANCHES</div>
+          {[
+            { name: "main", badge: "↑2" },
+            { name: "feat/companion", badge: "1" },
+            { name: "fix/contrast", badge: "" },
+          ].map((b) => (
             <button
-              key={c.hash}
-              className={`git-row ${commit === idx ? "selected" : ""}`}
-              onClick={() => setCommit(idx)}
+              key={b.name}
+              className={`git-ref-row ${branch === b.name ? "selected" : ""}`}
+              onClick={() => setBranch(b.name)}
             >
-              <span className="git-lanes" aria-hidden="true">
-                {[0, 1, 2, 3].map((lane) => (
-                  <i
-                    key={lane}
-                    className={c.lane === lane ? "dot" : "line"}
-                    style={{
-                      background: `var(--ts-chart${lane + 1})`,
-                      opacity: c.lane === lane ? 1 : 0.35,
-                    }}
-                  />
-                ))}
-              </span>
-              <span className="git-msg">
-                <b>{c.msg}</b>
-                <small>
-                  {c.hash} · {c.branch}
-                </small>
-              </span>
+              <GitBranch size={11} />
+              <span>{b.name}</span>
+              {b.badge && <small>{b.badge}</small>}
             </button>
           ))}
+          <div className="native-section-label">TAGS</div>
+          <div className="git-ref-row muted-row">v0.2.0</div>
+          <div className="git-ref-row muted-row">v0.1.0</div>
         </aside>
-        <section className="git-diff-pane">
-          <div className="git-files">
-            {active.files.map((f) => (
-              <span key={f.path} className={`git-file git-status-${f.status}`}>
-                <b>{f.status}</b> {f.path}
-              </span>
-            ))}
+        <div className="git-main">
+          <div className="git-graph-table">
+            <svg
+              className="git-graph-svg"
+              width="52"
+              height={commits.length * 36}
+              viewBox={`0 0 52 ${commits.length * 36}`}
+              aria-hidden="true"
+            >
+              <line x1="12" y1="18" x2="12" y2={commits.length * 36 - 18} stroke={laneColors[0]} strokeWidth="2" />
+              <path d="M 12 18 C 26 24, 26 42, 26 54 C 26 78, 12 108, 12 126" fill="none" stroke={laneColors[1]} strokeWidth="2" />
+              <path d="M 26 54 C 40 62, 40 78, 40 90 C 40 108, 12 118, 12 126" fill="none" stroke={laneColors[2]} strokeWidth="2" />
+              {commits.map((c, idx) => (
+                <circle
+                  key={c.hash}
+                  cx={12 + c.lane * 14}
+                  cy={18 + idx * 36}
+                  r={commit === idx ? 5 : 4}
+                  fill={laneColors[c.lane]}
+                  stroke={r.background}
+                  strokeWidth="1.5"
+                />
+              ))}
+            </svg>
+            <div className="git-commit-rows">
+              {commits.map((c, idx) => (
+                <button
+                  key={c.hash}
+                  className={`git-row ${commit === idx ? "selected" : ""}`}
+                  onClick={() => {
+                    setCommit(idx);
+                    setBranch(c.branch);
+                  }}
+                >
+                  <span className="git-row-msg">
+                    <b>{c.msg}</b>
+                    {idx < 3 && (
+                      <em
+                        className="git-ref-tag"
+                        style={{ borderColor: laneColors[c.lane], color: laneColors[c.lane] }}
+                      >
+                        {c.branch}
+                      </em>
+                    )}
+                  </span>
+                  <span className="git-row-meta">
+                    <code>{c.hash}</code>
+                    <small>{c.time}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-          <pre className="git-diff">
-            <span className="diff-hunk">@@ -12,5 +12,6 @@ export const palette = &#123;</span>
-            <span className="diff-ctx">  surface: &quot;var(--ts-surface)&quot;,</span>
-            <span className="diff-del">- accent: &quot;#666666&quot;,</span>
-            <span className="diff-add">+ accent: &quot;var(--ts-accent)&quot;,</span>
-            <span className="diff-add">+ accentFill: &quot;var(--ts-accent-fill)&quot;,</span>
-            <span className="diff-ctx">&#125;;</span>
-          </pre>
-        </section>
+          <section className="git-diff-pane">
+            <div className="git-files">
+              {active.files.map((f) => (
+                <span key={f.path} className={`git-file git-status-${f.status}`}>
+                  <b>{f.status}</b> {f.path} <small>{f.stat}</small>
+                </span>
+              ))}
+            </div>
+            <div className="git-diff">
+              <div className="diff-hunk">{active.hunk}</div>
+              {active.lines.map((line, i) => (
+                <div key={i} className={`diff-line diff-${line.kind}`}>
+                  <span className="diff-ln">{line.n1}</span>
+                  <span className="diff-ln">{line.n2}</span>
+                  <span className="diff-sig">
+                    {line.kind === "add" ? "+" : line.kind === "del" ? "-" : " "}
+                  </span>
+                  <code>{line.text}</code>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );
@@ -866,35 +1122,55 @@ function GitClient({ target, theme }: { target: string; theme: Theme }) {
 function SlackWorkspace({ theme }: { theme: Theme }) {
   const [channel, setChannel] = useState("design-systems");
   const [draft, setDraft] = useState("");
+  const [reactions, setReactions] = useState<Record<string, number>>({
+    "🎨": 4,
+    "🚀": 2,
+  });
   const [feed, setFeed] = useState([
     {
-      author: "Maya",
-      time: "10:14",
-      text: `Just switched our workspace to ${theme.name}. Sidebar contrast looks super clean.`,
+      initials: "MR",
+      author: "Maya Ross",
+      time: "10:14 AM",
+      text: `Imported the ${theme.name} 4-color Slack string — sidebar contrast and active pill look crisp.`,
     },
     {
-      author: "Sam",
-      time: "10:16",
-      text: "Presence dots and mention badges pop nicely too.",
+      initials: "SK",
+      author: "Sam Kim",
+      time: "10:16 AM",
+      text: "Online presence dots and unread mention badges stand out nicely too.",
     },
   ]);
   const channels = [
     { name: "general", unread: 0 },
     { name: "design-systems", unread: 0 },
     { name: "releases", unread: 3 },
-    { name: "random", unread: 0 },
+    { name: "engineering", unread: 0 },
+  ];
+  const dms = [
+    { name: "Maya Ross", online: true },
+    { name: "Sam Kim", online: true },
+    { name: "Alex Chen", online: false },
   ];
   return (
     <div className="native-window native-slack">
-      <div className="native-titlebar slack-top">
+      <div className="slack-top-nav">
         <Dots />
-        <span>ThemeSpace Workspace — Slack</span>
+        <div className="slack-search-bar">
+          <Search size={11} />
+          <span>Search {theme.name}</span>
+        </div>
       </div>
-      <div className="slack-layout">
+      <div className="slack-shell">
+        <nav className="slack-rail" aria-label="Slack workspace rail">
+          <span className="slack-ws-icon">{theme.name.slice(0, 2).toUpperCase()}</span>
+          <span className="slack-rail-item active">Home</span>
+          <span className="slack-rail-item">DMs</span>
+          <span className="slack-rail-item">Activity</span>
+        </nav>
         <aside className="slack-sidebar">
           <div className="slack-ws">
             <b>{theme.name}</b>
-            <span className="slack-presence" title="Active" />
+            <ChevronDown size={13} />
           </div>
           <div className="slack-section">Channels</div>
           {channels.map((ch) => (
@@ -907,6 +1183,13 @@ function SlackWorkspace({ theme }: { theme: Theme }) {
               {ch.unread > 0 && <em className="slack-badge">{ch.unread}</em>}
             </button>
           ))}
+          <div className="slack-section">Direct messages</div>
+          {dms.map((dm) => (
+            <div key={dm.name} className="slack-dm">
+              <i className={`slack-presence ${dm.online ? "online" : ""}`} />
+              <span>{dm.name}</span>
+            </div>
+          ))}
         </aside>
         <section className="slack-main">
           <div className="slack-header">
@@ -916,8 +1199,32 @@ function SlackWorkspace({ theme }: { theme: Theme }) {
           <div className="slack-messages">
             {feed.map((m, i) => (
               <div key={i} className="slack-msg">
-                <b>{m.author}</b> <small>{m.time}</small>
-                <p>{m.text}</p>
+                <span className="slack-avatar">{m.initials}</span>
+                <div>
+                  <div className="slack-msg-head">
+                    <b>{m.author}</b>
+                    <small>{m.time}</small>
+                  </div>
+                  <p>{m.text}</p>
+                  {i === 0 && (
+                    <div className="slack-reactions">
+                      {Object.entries(reactions).map(([emoji, count]) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() =>
+                            setReactions((prev) => ({
+                              ...prev,
+                              [emoji]: prev[emoji] + 1,
+                            }))
+                          }
+                        >
+                          {emoji} {count}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -928,7 +1235,7 @@ function SlackWorkspace({ theme }: { theme: Theme }) {
               if (!draft.trim()) return;
               setFeed((prev) => [
                 ...prev,
-                { author: "You", time: "Now", text: draft },
+                { initials: "YO", author: "You", time: "Just now", text: draft },
               ]);
               setDraft("");
             }}
@@ -947,21 +1254,240 @@ function SlackWorkspace({ theme }: { theme: Theme }) {
 }
 function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
   const [workspace, setWorkspace] = useState(1);
+  const [focusedTile, setFocusedTile] = useState(0);
   const [query, setQuery] = useState("");
   const [selectedApp, setSelectedApp] = useState(0);
-  const [showRofi, setShowRofi] = useState(target === "rofi");
-  const apps = [
-    "Ghostty Terminal",
-    "Visual Studio Code",
-    "Firefox Browser",
-    "Obsidian Notes",
-    "System Settings",
-  ].filter((a) => a.toLowerCase().includes(query.toLowerCase()));
+  const [gtkNav, setGtkNav] = useState("Appearance");
+  const [gtkNightLight, setGtkNightLight] = useState(true);
+  const [gtkAnimations, setGtkAnimations] = useState(true);
+  const [batLevel, setBatLevel] = useState<"normal" | "warning" | "critical">(
+    "normal",
+  );
+
+  if (target === "gtk") {
+    return (
+      <div className="native-window native-gtk">
+        <div className="gtk-split">
+          <aside className="gtk-sidebar">
+            <div className="gtk-sidebar-top">
+              <Search size={13} />
+              <b>Settings</b>
+            </div>
+            {["Wi-Fi", "Bluetooth", "Appearance", "Displays", "Keyboard"].map(
+              (item) => (
+                <button
+                  key={item}
+                  className={`gtk-nav-row ${gtkNav === item ? "selected" : ""}`}
+                  onClick={() => setGtkNav(item)}
+                >
+                  {item}
+                </button>
+              ),
+            )}
+          </aside>
+          <section className="gtk-pane">
+            <header className="gtk-headerbar">
+              <b>{gtkNav}</b>
+              <span className="gtk-close" aria-hidden="true">×</span>
+            </header>
+            <div className="gtk-body">
+              <div className="gtk-group-title">Preferences · {theme.name}</div>
+              <div className="gtk-boxed-list">
+                <div className="gtk-row">
+                  <div>
+                    <b>Night Light</b>
+                    <small>Warmer display tone after sunset</small>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={gtkNightLight}
+                    className={`gtk-switch ${gtkNightLight ? "on" : ""}`}
+                    onClick={() => setGtkNightLight(!gtkNightLight)}
+                  >
+                    <i />
+                  </button>
+                </div>
+                <div className="gtk-row">
+                  <div>
+                    <b>Smooth Animations</b>
+                    <small>Use libadwaita transitions</small>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={gtkAnimations}
+                    className={`gtk-switch ${gtkAnimations ? "on" : ""}`}
+                    onClick={() => setGtkAnimations(!gtkAnimations)}
+                  >
+                    <i />
+                  </button>
+                </div>
+              </div>
+              <div className="gtk-actions">
+                <button type="button" className="gtk-btn-suggested">
+                  Apply Palette
+                </button>
+                <button type="button" className="gtk-btn-destructive">
+                  Reset Defaults
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  if (target === "kde") {
+    return (
+      <div className="native-window native-kde">
+        <div className="kde-stage">
+          <div className="kde-window">
+            <header className="kde-titlebar">
+              <span>System Settings — Colors ({theme.name})</span>
+              <span className="kde-wm-btns" aria-hidden="true">
+                <Minus size={11} />
+                <Square size={9} />
+                <X size={11} />
+              </span>
+            </header>
+            <div className="kde-body">
+              <aside className="kde-sidebar">
+                {["Global Theme", "Colors", "Application Style", "Window Decorations"].map(
+                  (item, i) => (
+                    <div key={item} className={`kde-nav ${i === 1 ? "selected" : ""}`}>
+                      {item}
+                    </div>
+                  ),
+                )}
+              </aside>
+              <div className="kde-view">
+                <div className="kde-banner kde-banner-ok">
+                  Installed {theme.name}.colors to ~/.local/share/color-schemes/
+                </div>
+                <div className="kde-banner kde-banner-warn">
+                  Logout optional — Qt/Plasma apps update live.
+                </div>
+                <div className="kde-card">
+                  <b>Breeze Widget Preview</b>
+                  <div className="kde-controls">
+                    <button type="button" className="kde-btn-primary">Apply</button>
+                    <button type="button" className="kde-btn">Defaults</button>
+                    <span className="kde-link">Get New Schemes…</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer className="kde-panel">
+          <span className="kde-kickoff">❖</span>
+          <span className="kde-task active">System Settings</span>
+          <span className="kde-task">Konsole</span>
+          <span className="kde-task">Dolphin</span>
+          <span className="kde-tray">Wi-Fi · 92% · 14:20</span>
+        </footer>
+      </div>
+    );
+  }
+
+  if (target === "rofi") {
+    const apps = [
+      { icon: "▸", name: "Ghostty", desc: "GPU-accelerated terminal" },
+      { icon: "▸", name: "Visual Studio Code", desc: "Code editor" },
+      { icon: "▸", name: "Firefox", desc: "Web browser" },
+      { icon: "▸", name: "Obsidian", desc: "Markdown knowledge base" },
+      { icon: "▸", name: "System Settings", desc: "Appearance & display" },
+    ].filter(
+      (a) =>
+        a.name.toLowerCase().includes(query.toLowerCase()) ||
+        a.desc.toLowerCase().includes(query.toLowerCase()),
+    );
+    return (
+      <div className="native-window native-rofi-stage">
+        <div className="native-rofi rofi-centered" role="region" aria-label="Rofi launcher preview">
+          <div className="rofi-inputbar">
+            <span className="rofi-prompt">drun:</span>
+            <input
+              aria-label="Filter launcher apps"
+              placeholder="Type to filter…"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSelectedApp(0);
+              }}
+            />
+          </div>
+          <div className="rofi-list">
+            {apps.map((app, i) => (
+              <button
+                key={app.name}
+                className={`${selectedApp === i ? "selected" : i % 2 === 1 ? "alt" : ""}`}
+                onClick={() => setSelectedApp(i)}
+              >
+                <b>{app.name}</b>
+                <small>{app.desc}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (target === "hyprland") {
+    const tiles = [
+      { title: "ghostty — ~/git/themespace", body: "$ hyprctl reload\nok\n$ echo 'active_border gradient'" },
+      { title: "nvim — hyprland.conf", body: `col.active_border = $ts_accent $ts_accent2 45deg\nrounding = ${Math.min(18, theme.style.radius)}` },
+      { title: "btop — system", body: "CPU 18%  MEM 12.4G / 32G\nClick any window to move focus" },
+    ];
+    return (
+      <div className="native-window native-hyprland">
+        <div className="native-waybar">
+          <div className="waybar-workspaces">
+            {[1, 2, 3, 4].map((ws) => (
+              <button
+                key={ws}
+                className={workspace === ws ? "active" : ""}
+                onClick={() => setWorkspace(ws)}
+              >
+                {ws}
+              </button>
+            ))}
+          </div>
+          <span className="waybar-clock">Hyprland · {theme.name}</span>
+          <div className="waybar-modules">
+            <span>WS {workspace}</span>
+            <span>14:20</span>
+          </div>
+        </div>
+        <div className="hypr-grid">
+          {tiles.map((tile, idx) => (
+            <button
+              key={tile.title}
+              type="button"
+              className={`hypr-tile hypr-tile-${idx} ${focusedTile === idx ? "active" : ""}`}
+              onClick={() => setFocusedTile(idx)}
+            >
+              <span className="hypr-tile-head">
+                <b>{tile.title}</b>
+                <small>{focusedTile === idx ? "focused" : "inactive"}</small>
+              </span>
+              <pre>{tile.body}</pre>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Waybar
   return (
-    <div className={`native-window native-desktop desktop-${target}`}>
+    <div className="native-window native-waybar-stage">
       <div className="native-waybar">
         <div className="waybar-workspaces">
-          {[1, 2, 3, 4].map((ws) => (
+          {[1, 2, 3, 4, 5].map((ws) => (
             <button
               key={ws}
               className={workspace === ws ? "active" : ""}
@@ -971,83 +1497,33 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
             </button>
           ))}
         </div>
-        <span className="waybar-clock">Thu 14:20</span>
+        <span className="waybar-clock">Thu 26 Nov · 14:20</span>
         <div className="waybar-modules">
-          <button onClick={() => setShowRofi(!showRofi)}>
-            {showRofi ? "Hide launcher" : "Launcher"}
-          </button>
+          <span>CPU 18%</span>
           <span>Wi-Fi</span>
-          <span>92%</span>
+          <span>VOL 74%</span>
+          <button
+            className={`waybar-bat bat-${batLevel}`}
+            title="Click to cycle battery warning/critical colors"
+            onClick={() =>
+              setBatLevel(
+                batLevel === "normal"
+                  ? "warning"
+                  : batLevel === "warning"
+                    ? "critical"
+                    : "normal",
+              )
+            }
+          >
+            BAT {batLevel === "normal" ? "92%" : batLevel === "warning" ? "18%" : "6%"}
+          </button>
         </div>
       </div>
-      <div className="desktop-canvas">
-        <div className="desktop-app-window">
-          <div className="desktop-headerbar">
-            <Dots />
-            <b>
-              {target === "kde"
-                ? "KDE System Settings"
-                : target === "gtk"
-                  ? "GTK Preferences"
-                  : target === "hyprland"
-                    ? `Hyprland · Active Window (${theme.name})`
-                    : `${previewProfiles[target].label} — ${theme.name}`}
-            </b>
-            <button className="desktop-primary-btn">Apply</button>
-          </div>
-          <div className="desktop-app-body">
-            <aside className="desktop-sidebar">
-              {["Appearance", "Colors", "Typography", "Shortcuts"].map(
-                (item, i) => (
-                  <div
-                    key={item}
-                    className={`desktop-nav-item ${i === 1 ? "selected" : ""}`}
-                  >
-                    {item}
-                  </div>
-                ),
-              )}
-            </aside>
-            <div className="desktop-content">
-              <div className="desktop-card">
-                <b>{theme.name}</b>
-                <p>
-                  Window surfaces, headerbars, cards, and accent buttons read
-                  directly from your exported desktop tokens.
-                </p>
-                <div className="desktop-pills">
-                  <span className="pill-success">OK</span>
-                  <span className="pill-warning">Beta</span>
-                  <span className="pill-error">Alert</span>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="waybar-backdrop">
+        <div className="waybar-win">
+          <div className="waybar-win-title">ghostty — workspace {workspace}</div>
+          <pre>{`@import "./colors-${theme.defaultAppearance}.css";\nwindow#waybar { background: @surface; color: @foreground; }\n#workspaces button.active { background: @accent-fill; }`}</pre>
         </div>
-        {showRofi && (
-          <div className="native-rofi" role="region" aria-label="Rofi launcher preview">
-            <input
-              aria-label="Filter launcher apps"
-              placeholder="Search applications…"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setSelectedApp(0);
-              }}
-            />
-            <div className="rofi-list">
-              {apps.map((app, i) => (
-                <button
-                  key={app}
-                  className={selectedApp === i ? "selected" : ""}
-                  onClick={() => setSelectedApp(i)}
-                >
-                  {app}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1061,7 +1537,10 @@ function CliScene({
   mode: Appearance;
   target: string;
 }) {
-  const ansi = tuiAnsi(target, theme, mode);
+  const renderAnsi = useCallback(
+    (cols: number) => tuiAnsi(target, theme, mode, cols),
+    [target, theme, mode],
+  );
   return (
     <div className={`native-window native-terminal cli-${target}`}>
       <div className="native-titlebar">
@@ -1075,7 +1554,7 @@ function CliScene({
           theme={theme}
           mode={mode}
           target={target}
-          staticAnsi={ansi}
+          renderAnsi={renderAnsi}
         />
       </div>
     </div>
@@ -1198,13 +1677,13 @@ export function IntegrationPreview({
         ) : profile.kind === "chat" ? (
           <DiscordPreview mode={mode} />
         ) : profile.kind === "browser" ? (
-          <Browser theme={theme} target={target} />
+          <Browser theme={theme} mode={mode} target={target} />
         ) : profile.kind === "notes" ? (
           <Notes theme={theme} mode={mode} />
         ) : profile.kind === "workspace" ? (
           <T3CodeWorkspace theme={theme} mode={mode} />
         ) : profile.kind === "git" ? (
-          <GitClient target={target} theme={theme} />
+          <GitClient target={target} theme={theme} mode={mode} />
         ) : profile.kind === "slack" ? (
           <SlackWorkspace theme={theme} />
         ) : profile.kind === "desktop" ? (

@@ -29,17 +29,18 @@ export function TerminalSurface({
   target,
   compact = false,
   windows = false,
-  staticAnsi,
+  renderAnsi,
 }: {
   theme: Theme;
   mode: Appearance;
   target: string;
   compact?: boolean;
   windows?: boolean;
-  staticAnsi?: string;
+  renderAnsi?: (cols: number) => string;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const terminal = useRef<TerminalHandle | null>(null);
+  const colsRef = useRef(74);
   const session = useRef<ReturnType<typeof createTerminalSession> | null>(null);
   const transcript = useRef(createTerminalTranscript());
   const context = useRef({ name: theme.name, windows });
@@ -52,16 +53,16 @@ export function TerminalSurface({
     [theme, mode, target],
   );
   const engine = terminalEngine(target, palette);
-  const latest = useRef({ palette, name: theme.name, scene, staticAnsi });
+  const latest = useRef({ palette, name: theme.name, scene, renderAnsi });
   // ghostty-web 0.4 does not apply options.theme after open(). Recreate its
   // renderer for a changed palette and replay ANSI, retaining the local session.
   const ghosttyPaletteKey =
     engine === "ghostty-web" ? JSON.stringify(palette) : "";
   useEffect(() => {
-    latest.current = { palette, name: theme.name, scene, staticAnsi };
+    latest.current = { palette, name: theme.name, scene, renderAnsi };
     context.current.name = theme.name;
     context.current.windows = windows;
-  }, [palette, theme.name, scene, windows, staticAnsi]);
+  }, [palette, theme.name, scene, windows, renderAnsi]);
   useEffect(() => {
     const element = host.current;
     if (!element) return;
@@ -139,8 +140,8 @@ export function TerminalSurface({
       }
       terminal.current = instance;
       let subscription: { dispose(): void } = { dispose() {} };
-      if (latest.current.staticAnsi !== undefined) {
-        instance.write(latest.current.staticAnsi);
+      if (latest.current.renderAnsi) {
+        instance.write(latest.current.renderAnsi(instance.cols));
       } else {
         if (!session.current) {
           session.current = createTerminalSession((text) => {
@@ -158,7 +159,13 @@ export function TerminalSurface({
           if (cancelled || !element!.clientWidth || !element!.clientHeight)
             return;
           fit.fit();
+          colsRef.current = instance.cols;
           setSize(`${instance.cols} × ${instance.rows}`);
+          if (latest.current.renderAnsi) {
+            instance.write(
+              `\x1b[2J\x1b[H${latest.current.renderAnsi(instance.cols)}`,
+            );
+          }
         });
       };
       const observer = new ResizeObserver(resize);
@@ -201,10 +208,10 @@ export function TerminalSurface({
       terminal.current.options.theme = palette;
   }, [palette, engine]);
   useEffect(() => {
-    if (staticAnsi !== undefined && terminal.current) {
-      terminal.current.write(`\x1b[2J\x1b[H${staticAnsi}`);
+    if (renderAnsi && terminal.current) {
+      terminal.current.write(`\x1b[2J\x1b[H${renderAnsi(colsRef.current)}`);
     }
-  }, [staticAnsi]);
+  }, [renderAnsi]);
   const choose = (next: TerminalScene) => {
     setScene(next);
     session.current?.start(next);
@@ -215,7 +222,7 @@ export function TerminalSurface({
       data-renderer={engine}
       data-engine-state={state}
     >
-      {staticAnsi === undefined && (
+      {!renderAnsi && (
         <div className="engine-scenes" aria-label="Terminal sample output">
           {terminalScenes.map((item) => (
             <button
@@ -260,10 +267,10 @@ export function TerminalSurface({
       {state !== "ready" && (
         <div className="engine-terminal-fallback">
           <pre>
-            {(staticAnsi ?? terminalScene("shell", theme.name, windows)).replace(
-              /\x1b\[[\d;]*m/g,
-              "",
-            )}
+            {(renderAnsi
+              ? renderAnsi(74)
+              : terminalScene("shell", theme.name, windows)
+            ).replace(/\x1b\[[\d;]*m/g, "")}
           </pre>
           <p role="status">
             {state === "error"

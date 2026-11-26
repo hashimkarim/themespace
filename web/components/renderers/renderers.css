@@ -500,6 +500,456 @@ body:has(.editor-renderer-page) {
 .obsidian-reading-view blockquote {
   border-left-color: var(--interactive-accent);
 }
+/* T3 Code, Git clients, Slack, and Linux Desktop previews */
+.native-t3code,
+.native-git,
+.native-slack,
+.native-desktop {
+  background: var(--ts-background);
+  color: var(--ts-foreground);
+  border: 1px solid var(--ts-border);
+  overflow: hidden;
+  font-size: 12px;
+}
+.native-pill-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--ts-elevated);
+  color: var(--ts-foreground);
+  border: 1px solid var(--ts-border);
+  font-size: 11px;
+}
+.t3-layout,
+.git-layout,
+.slack-layout {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  min-height: 360px;
+}
+.t3-sidebar,
+.git-commits {
+  background: var(--ts-surface);
+  border-right: 1px solid var(--ts-border);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.t3-thread {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  text-align: left;
+  color: var(--ts-foreground);
+}
+.t3-thread small {
+  color: var(--ts-muted);
+  font-size: 10px;
+}
+.t3-thread.selected,
+.git-row.selected {
+  background: var(--ts-selection);
+  color: var(--ts-selection-foreground);
+}
+.t3-main,
+.git-diff-pane,
+.slack-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.t3-header,
+.slack-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--ts-border);
+}
+.t3-badge,
+.git-branch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ts-elevated);
+  border: 1px solid var(--ts-border);
+  color: var(--ts-muted);
+  font-size: 10px;
+}
+.git-branch-pill {
+  margin-left: auto;
+}
+.t3-messages {
+  flex: 1;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.t3-msg p {
+  margin: 0;
+  line-height: 1.5;
+}
+.t3-msg-user {
+  align-self: flex-end;
+  max-width: 82%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border);
+}
+.t3-code {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border);
+  font: 11px/1.6 var(--ts-font-mono);
+  overflow: auto;
+}
+.t3-composer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--ts-border);
+}
+.t3-composer input,
+.slack-composer input,
+.native-rofi input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 7px;
+  background: var(--ts-input);
+  color: var(--ts-foreground);
+  border: 1px solid var(--ts-border);
+  font-size: 12px;
+}
+.t3-composer button,
+.desktop-primary-btn {
+  padding: 6px 12px;
+  border-radius: 7px;
+  background: var(--ts-accent-fill);
+  color: var(--ts-accent-foreground);
+  font-weight: 600;
+  font-size: 11px;
+}
+.git-commits {
+  width: auto;
+}
+.git-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  text-align: left;
+  color: var(--ts-foreground);
+}
+.git-lanes {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.git-lanes .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.git-lanes .line {
+  width: 2px;
+  height: 18px;
+  border-radius: 2px;
+}
+.git-msg {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.git-msg b,
+.git-msg small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.git-msg small {
+  color: var(--ts-muted);
+  font-size: 10px;
+}
+.git-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--ts-border);
+  background: var(--ts-surface);
+}
+.git-file {
+  font: 11px/1.4 var(--ts-font-mono);
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: var(--ts-elevated);
+  border: 1px solid var(--ts-border);
+}
+.git-status-A b {
+  color: var(--ts-success);
+}
+.git-status-M b {
+  color: var(--ts-warning);
+}
+.git-status-D b {
+  color: var(--ts-error);
+}
+.git-diff {
+  margin: 0;
+  padding: 14px;
+  font: 12px/1.75 var(--ts-font-mono);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.diff-hunk {
+  color: var(--ts-muted);
+}
+.diff-add {
+  color: var(--ts-success);
+  background: color-mix(in srgb, var(--ts-success) 12%, transparent);
+  padding: 0 6px;
+  border-radius: 4px;
+}
+.diff-del {
+  color: var(--ts-error);
+  background: color-mix(in srgb, var(--ts-error) 12%, transparent);
+  padding: 0 6px;
+  border-radius: 4px;
+}
+.slack-sidebar {
+  background: var(--slack-column-bg, var(--ts-surface));
+  color: var(--slack-text, var(--ts-foreground));
+  border-right: 1px solid var(--slack-border, var(--ts-border));
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.slack-ws {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 10px;
+}
+.slack-presence {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--slack-presence, var(--ts-success));
+}
+.slack-section {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.65;
+  padding: 4px 6px;
+}
+.slack-channel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: inherit;
+}
+.slack-channel:hover {
+  background: var(--slack-hover-item, var(--ts-hover));
+}
+.slack-channel.active {
+  background: var(--slack-active-item, var(--ts-accent-fill));
+  color: var(--slack-active-text, var(--ts-accent-foreground));
+}
+.slack-badge {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--slack-mention, var(--ts-error));
+  color: #ffffff;
+}
+.slack-messages {
+  flex: 1;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.slack-msg small {
+  color: var(--ts-muted);
+  font-size: 10px;
+}
+.slack-msg p {
+  margin: 3px 0 0;
+  line-height: 1.5;
+}
+.slack-composer {
+  display: flex;
+  padding: 10px 14px;
+  border-top: 1px solid var(--ts-border);
+}
+.native-waybar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--waybar-surface, var(--ts-surface));
+  color: var(--waybar-foreground, var(--ts-foreground));
+  border-bottom: 1px solid var(--waybar-border, var(--ts-border));
+  font-size: 11px;
+}
+.waybar-workspaces,
+.waybar-modules {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.waybar-workspaces button {
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--waybar-muted, var(--ts-muted));
+}
+.waybar-workspaces button.active {
+  background: var(--waybar-accent-fill, var(--ts-accent-fill));
+  color: var(--waybar-accent-foreground, var(--ts-accent-foreground));
+}
+.waybar-modules span,
+.waybar-modules button {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--waybar-elevated, var(--ts-elevated));
+  border: 1px solid var(--waybar-border, var(--ts-border));
+  color: inherit;
+}
+.desktop-canvas {
+  position: relative;
+  padding: 18px;
+  min-height: 320px;
+  background: color-mix(in srgb, var(--ts-background) 85%, var(--ts-surface));
+}
+.desktop-app-window {
+  background: var(--ts-background);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--radius, 10px);
+  overflow: hidden;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 18%);
+}
+.desktop-headerbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--ts-surface);
+  border-bottom: 1px solid var(--ts-border);
+}
+.desktop-headerbar .desktop-primary-btn {
+  margin-left: auto;
+}
+.desktop-app-body {
+  display: grid;
+  grid-template-columns: 145px minmax(0, 1fr);
+  min-height: 220px;
+}
+.desktop-sidebar {
+  background: var(--ts-surface);
+  border-right: 1px solid var(--ts-border);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.desktop-nav-item {
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--ts-muted);
+}
+.desktop-nav-item.selected {
+  background: var(--ts-selection);
+  color: var(--ts-selection-foreground);
+}
+.desktop-content {
+  padding: 14px;
+}
+.desktop-card {
+  background: var(--ts-elevated);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--radius, 8px);
+  padding: 14px;
+}
+.desktop-card p {
+  margin: 6px 0 12px;
+  color: var(--ts-muted);
+  line-height: 1.5;
+}
+.desktop-pills {
+  display: flex;
+  gap: 8px;
+}
+.desktop-pills span {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.pill-success {
+  background: color-mix(in srgb, var(--ts-success) 20%, transparent);
+  color: var(--ts-success);
+}
+.pill-warning {
+  background: color-mix(in srgb, var(--ts-warning) 20%, transparent);
+  color: var(--ts-warning);
+}
+.pill-error {
+  background: color-mix(in srgb, var(--ts-error) 20%, transparent);
+  color: var(--ts-error);
+}
+.native-rofi {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(320px, calc(100% - 32px));
+  background: var(--rofi-bg, var(--ts-background));
+  color: var(--rofi-fg, var(--ts-foreground));
+  border: 1px solid var(--rofi-border-col, var(--ts-border));
+  border-radius: var(--radius, 10px);
+  padding: 12px;
+  box-shadow: 0 20px 44px rgb(0 0 0 / 35%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rofi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rofi-list button {
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: inherit;
+}
+.rofi-list button.selected {
+  background: var(--rofi-accent, var(--ts-accent-fill));
+  color: var(--rofi-accent-fg, var(--ts-accent-foreground));
+}
 @container appPreview (max-width: 640px) {
   .integration-renderer .native-editor .native-filetree {
     width: 115px;

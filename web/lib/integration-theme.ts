@@ -67,6 +67,22 @@ function section(content: string, name = "") {
   return result;
 }
 const hex = (value: string) => (value.startsWith("#") ? value : `#${value}`);
+const csvHex = (value?: string) => {
+  if (!value) return undefined;
+  const parts = value.split(",").map((n) => Number(n.trim()));
+  if (parts.length < 3 || parts.some((n) => !Number.isFinite(n)))
+    return undefined;
+  return `#${parts
+    .slice(0, 3)
+    .map((n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0"))
+    .join("")}`;
+};
+const defineColors = (content: string) =>
+  Object.fromEntries(
+    [...content.matchAll(/@define-color\s+([\w-]+)\s+(#[\da-fA-F]{6})\s*;/g)].map(
+      (m) => [m[1], m[2].toLowerCase()],
+    ),
+  );
 export function cssDeclarations(content: string, selector?: string) {
   const result: Record<string, string> = {};
   const blocks = [
@@ -447,6 +463,322 @@ export function integrationThemeFromFiles(
       foreground: p.foreground,
       cursor: p.cursorColor,
     });
+  } else if (target === "konsole") {
+    const content = named(".colorscheme");
+    const colorOf = (sec: string) => csvHex(section(content, sec).Color);
+    ansi(
+      ansiKeys.map((_, index) =>
+        colorOf(`Color${index % 8}${index >= 8 ? "Intense" : ""}`),
+      ) as string[],
+    );
+    Object.assign(terminal, {
+      background: colorOf("Background"),
+      foreground: colorOf("Foreground"),
+    });
+  } else if (target === "gnome-terminal") {
+    const p = section(named(".dconf"), "/");
+    const unquote = (v?: string) => v?.replace(/^'|'$/g, "");
+    const palette = [...(p.palette?.matchAll(/'(#[\da-fA-F]{6})'/g) ?? [])].map(
+      (m) => m[1].toLowerCase(),
+    );
+    ansi(palette);
+    Object.assign(terminal, {
+      background: unquote(p["background-color"]),
+      foreground: unquote(p["foreground-color"]),
+      cursor: unquote(p["cursor-background-color"]),
+      cursorAccent: unquote(p["cursor-foreground-color"]),
+      selectionBackground: unquote(p["highlight-background-color"]),
+      selectionForeground: unquote(p["highlight-foreground-color"]),
+    });
+  } else if (target === "t3-code") {
+    const data = JSON.parse(read((f) => f.path.endsWith(".json")));
+    const p =
+      (data.appearance === mode ? data.colors : data.variants?.[mode]) ??
+      data.colors;
+    apply({
+      background: p.canvas,
+      surface: p.surface,
+      elevated: p.surfaceRaised,
+      foreground: p.text,
+      muted: p.textMuted,
+      border: p.border,
+      input: p.input,
+      focus: p.focus,
+      accent: p.accent,
+      accentFill: p.accent,
+      accentForeground: p.accentForeground,
+      selection: p.accentSurface,
+      selectionForeground: p.accentSurfaceForeground,
+      hover: p.sidebarRowHover,
+      sidebar: p.sidebar,
+      title: p.toolbar,
+      status: p.chrome,
+      statusText: p.toolbarForeground,
+      error: p.error,
+      warning: p.warning,
+      success: p.update,
+    });
+    Object.assign(terminal, {
+      background: p.terminalBackground,
+      foreground: p.terminalForeground,
+      cursor: p.terminalCursor,
+      selectionBackground: p.terminalSelection,
+    });
+    ansi(ansiKeys.map((_, index) => c[`ansi${index}`]));
+  } else if (target === "vivaldi") {
+    const data = JSON.parse(read((f) => f.path === `${mode}/settings.json`));
+    const vc = data.colors as Record<string, string>;
+    result.variables = {
+      "--browser-frame": vc.colorWindowBg,
+      "--browser-toolbar": vc.colorBg,
+      "--browser-tab-selected": vc.colorBg,
+      "--browser-tab-text": vc.colorFg,
+      "--browser-tab-background-text": c.muted,
+      "--browser-tab-line": vc.colorHi,
+      "--browser-toolbar-text": vc.colorFg,
+      "--browser-toolbar-field": vc.colorAc,
+      "--browser-toolbar-field-text": vc.colorFg,
+      "--browser-ntp-background": vc.colorBg,
+      "--browser-ntp-text": vc.colorFg,
+    };
+    apply({
+      title: vc.colorWindowBg,
+      tabs: vc.colorWindowBg,
+      surface: vc.colorAc,
+      background: vc.colorBg,
+      foreground: vc.colorFg,
+      accent: vc.colorHi,
+      accentFill: vc.colorHi,
+      success: vc.colorSuccessBg,
+      warning: vc.colorWarningBg,
+      error: vc.colorErrorBg,
+    });
+  } else if (target === "zen") {
+    const v = cssDeclarations(
+      read((f) => f.path === `${mode}/userChrome.css`),
+      ":root",
+    );
+    result.variables = {
+      ...v,
+      "--browser-frame": v["--zen-main-browser-background"],
+      "--browser-toolbar": v["--zen-themed-toolbar-bg"],
+      "--browser-tab-selected": v["--tab-selected-bgcolor"],
+      "--browser-tab-text": v["--tab-selected-textcolor"],
+      "--browser-tab-background-text": c.muted,
+      "--browser-tab-line": v["--zen-primary-color"],
+      "--browser-toolbar-text": v["--toolbar-color"],
+      "--browser-toolbar-field": v["--urlbar-box-bgcolor"],
+      "--browser-toolbar-field-text": v["--urlbar-box-text-color"],
+      "--browser-toolbar-bottom-separator": v["--zen-colors-border"],
+      "--browser-sidebar": v["--zen-colors-secondary"],
+      "--browser-sidebar-text": v["--toolbar-color"],
+      "--browser-sidebar-border": v["--zen-colors-border"],
+      "--browser-ntp-background": v["--zen-themed-toolbar-bg"],
+      "--browser-ntp-text": v["--toolbar-color"],
+    };
+    apply({
+      title: v["--zen-main-browser-background"],
+      surface: v["--zen-colors-secondary"],
+      elevated: v["--zen-colors-tertiary"],
+      background: v["--zen-themed-toolbar-bg"],
+      foreground: v["--toolbar-color"],
+      accent: v["--zen-primary-color"],
+      accentFill: v["--zen-primary-color"],
+      border: v["--zen-colors-border"],
+    });
+  } else if (target === "stylus") {
+    const content = read((f) => f.path.endsWith(".user.css"));
+    const mediaRe = new RegExp(
+      `@media\\s*\\(prefers-color-scheme:\\s*${mode}\\)\\s*\\{([\\s\\S]*?)\\n\\}`,
+    );
+    const scoped = content.match(mediaRe)?.[1] ?? content;
+    const v = cssDeclarations(scoped);
+    result.variables = {
+      ...v,
+      "--browser-frame": mode === "dark" ? "#202124" : "#dee1e6",
+      "--browser-toolbar": mode === "dark" ? "#292a2d" : "#ffffff",
+      "--browser-tab-selected": mode === "dark" ? "#292a2d" : "#ffffff",
+      "--browser-tab-text": mode === "dark" ? "#e8eaed" : "#202124",
+      "--browser-tab-background-text": mode === "dark" ? "#9aa0a6" : "#5f6368",
+      "--browser-ntp-background": v["--ts-background"] || c.background,
+      "--browser-ntp-text": v["--ts-foreground"] || c.foreground,
+    };
+    apply({
+      background: v["--ts-background"],
+      surface: v["--ts-surface"],
+      elevated: v["--ts-elevated"],
+      foreground: v["--ts-foreground"],
+      muted: v["--ts-muted"],
+      accent: v["--ts-accent"],
+      accentFill: v["--ts-accent-fill"],
+      border: v["--ts-border"],
+    });
+  } else if (target === "gitcomet") {
+    const data = JSON.parse(named(".json"));
+    const gc = data.colors as Record<string, string>;
+    apply({
+      background: gc.background,
+      surface: gc.surface,
+      elevated: gc.elevated,
+      foreground: gc.foreground,
+      muted: gc.muted,
+      border: gc.border,
+      input: gc.input,
+      accent: gc.accent,
+      accentFill: gc.accentFill,
+      accentForeground: gc.accentForeground,
+      selection: gc.selection,
+      selectionForeground: gc.selectionForeground,
+      hover: gc.hover,
+      success: data.diff.added,
+      error: data.diff.removed,
+      warning: data.diff.modified,
+      chart1: data.graph[0],
+      chart2: data.graph[1],
+      chart3: data.graph[2],
+      chart4: data.graph[3],
+      chart5: data.graph[4],
+    });
+    result.syntax = data.syntax;
+  } else if (target === "smartgit") {
+    const p = section(named(".properties"));
+    apply({
+      surface: p["window.background"],
+      background: p["control.background"],
+      elevated: p["elevated.background"],
+      foreground: p["window.foreground"],
+      muted: p["muted.foreground"],
+      border: p["border.color"],
+      accent: p["accent.color"],
+      accentFill: p["accent.color"],
+      accentForeground: p["accent.foreground"],
+      selection: p["selection.background"],
+      selectionForeground: p["selection.foreground"],
+      hover: p["hover.background"],
+      success: p["diff.added"],
+      error: p["diff.removed"],
+      warning: p["diff.modified"],
+      chart1: p["graph.branch.0"],
+      chart2: p["graph.branch.1"],
+      chart3: p["graph.branch.2"],
+      chart4: p["graph.branch.3"],
+      chart5: p["graph.branch.4"],
+    });
+  } else if (target === "slack") {
+    const p = section(named(".txt"));
+    result.variables = {
+      "--slack-column-bg": p.column_bg,
+      "--slack-menu-hover": p.menu_bg_hover,
+      "--slack-active-item": p.active_item,
+      "--slack-active-text": p.active_item_text,
+      "--slack-hover-item": p.hover_item,
+      "--slack-text": p.text_color,
+      "--slack-presence": p.active_presence,
+      "--slack-mention": p.mention_badge,
+      "--slack-window-bg": p.window_bg,
+      "--slack-border": p.border,
+    };
+    apply({
+      sidebar: p.column_bg,
+      surface: p.column_bg,
+      background: p.window_bg,
+      elevated: p.menu_bg_hover,
+      foreground: p.text_color,
+      accent: p.active_item,
+      accentFill: p.active_item,
+      accentForeground: p.active_item_text,
+      hover: p.hover_item,
+      success: p.active_presence,
+      error: p.mention_badge,
+      border: p.border,
+    });
+  } else if (target === "gtk") {
+    const v = defineColors(read((f) => f.path === `${mode}/gtk-4.0/gtk.css`));
+    result.variables = Object.fromEntries(
+      Object.entries(v).map(([k, val]) => [`--gtk-${k.replaceAll("_", "-")}`, val]),
+    );
+    apply({
+      background: v.window_bg_color,
+      foreground: v.window_fg_color,
+      surface: v.headerbar_bg_color,
+      sidebar: v.sidebar_bg_color,
+      elevated: v.card_bg_color,
+      accent: v.accent_color,
+      accentFill: v.accent_bg_color,
+      accentForeground: v.accent_fg_color,
+      border: v.borders,
+      error: v.destructive_bg_color,
+      success: v.success_bg_color,
+      warning: v.warning_bg_color,
+    });
+  } else if (target === "kde") {
+    const content = named(".colors");
+    const win = section(content, "Colors:Window");
+    const view = section(content, "Colors:View");
+    const btn = section(content, "Colors:Button");
+    const sel = section(content, "Colors:Selection");
+    const wm = section(content, "WM");
+    apply({
+      background: csvHex(view.BackgroundNormal),
+      surface: csvHex(win.BackgroundNormal),
+      sidebar: csvHex(win.BackgroundNormal),
+      elevated: csvHex(btn.BackgroundNormal),
+      foreground: csvHex(win.ForegroundNormal),
+      muted: csvHex(win.ForegroundInactive),
+      accent: csvHex(win.ForegroundActive),
+      accentFill: csvHex(sel.BackgroundNormal),
+      accentForeground: csvHex(sel.ForegroundNormal),
+      selection: csvHex(sel.BackgroundAlternate),
+      selectionForeground: csvHex(sel.ForegroundInactive),
+      title: csvHex(wm.activeBackground),
+      success: csvHex(win.ForegroundPositive),
+      warning: csvHex(win.ForegroundNeutral),
+      error: csvHex(win.ForegroundNegative),
+    });
+  } else if (target === "waybar") {
+    const v = defineColors(read((f) => f.path === `colors-${mode}.css`));
+    result.variables = Object.fromEntries(
+      Object.entries(v).map(([k, val]) => [`--waybar-${k}`, val]),
+    );
+    apply({
+      background: v.background,
+      surface: v.surface,
+      elevated: v.elevated,
+      foreground: v.foreground,
+      muted: v.muted,
+      border: v.border,
+      accent: v.accent,
+      accentFill: v["accent-fill"],
+      accentForeground: v["accent-foreground"],
+      selection: v.selection,
+      hover: v.hover,
+      success: v.success,
+      warning: v.warning,
+      error: v.error,
+    });
+  } else if (target === "rofi") {
+    const content = named(".rasi");
+    const vars = Object.fromEntries(
+      [...content.matchAll(/^\s*([\w-]+):\s*(#[\da-fA-F]{6})\s*;/gm)].map(
+        (m) => [m[1], m[2].toLowerCase()],
+      ),
+    );
+    result.variables = Object.fromEntries(
+      Object.entries(vars).map(([k, val]) => [`--rofi-${k}`, val]),
+    );
+    apply({
+      background: vars.bg,
+      surface: vars["bg-alt"],
+      elevated: vars.elevated,
+      foreground: vars.fg,
+      muted: vars["fg-alt"],
+      accent: vars.accent,
+      accentFill: vars.accent,
+      accentForeground: vars["accent-fg"],
+      border: vars["border-col"],
+      selection: vars.selection,
+      selectionForeground: vars["selection-fg"],
+    });
   } else if (target === "spicetify") {
     const p = section(
       read((f) => f.path === "color.ini"),
@@ -553,7 +885,9 @@ export function integrationThemeFromFiles(
 
   apply({ terminalBackground: terminal.background });
   if (
-    !["vscode", "zed", "neovim", "helix", "sublime"].includes(target) &&
+    !["vscode", "zed", "neovim", "helix", "sublime", "t3-code"].includes(
+      target,
+    ) &&
     terminal.background
   ) {
     apply({

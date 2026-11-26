@@ -10,7 +10,11 @@ export type PreviewKind =
   | "music"
   | "chat"
   | "browser"
-  | "notes";
+  | "notes"
+  | "workspace"
+  | "git"
+  | "slack"
+  | "desktop";
 export const previewProfiles: Record<
   string,
   { kind: PreviewKind; label: string; variant?: string }
@@ -25,6 +29,7 @@ export const previewProfiles: Record<
   neovim: { kind: "editor", label: "Neovim", variant: "modal" },
   helix: { kind: "editor", label: "Helix", variant: "modal" },
   sublime: { kind: "editor", label: "Sublime Text" },
+  "t3-code": { kind: "workspace", label: "T3 Code" },
   ghostty: { kind: "terminal", label: "Ghostty" },
   kitty: { kind: "terminal", label: "kitty" },
   alacritty: { kind: "terminal", label: "Alacritty" },
@@ -39,12 +44,24 @@ export const previewProfiles: Record<
   foot: { kind: "terminal", label: "foot" },
   termux: { kind: "terminal", label: "Termux", variant: "mobile" },
   xresources: { kind: "terminal", label: "Xresources / xterm" },
+  konsole: { kind: "terminal", label: "Konsole" },
+  "gnome-terminal": { kind: "terminal", label: "GNOME Terminal" },
   spicetify: { kind: "music", label: "Spicetify" },
   betterdiscord: { kind: "chat", label: "BetterDiscord" },
   vencord: { kind: "chat", label: "Vencord" },
+  slack: { kind: "slack", label: "Slack" },
   firefox: { kind: "browser", label: "Firefox" },
   chromium: { kind: "browser", label: "Chrome / Chromium" },
+  vivaldi: { kind: "browser", label: "Vivaldi" },
+  zen: { kind: "browser", label: "Zen Browser" },
+  stylus: { kind: "browser", label: "Stylus userstyles" },
   obsidian: { kind: "notes", label: "Obsidian" },
+  gitcomet: { kind: "git", label: "GitComet" },
+  smartgit: { kind: "git", label: "SmartGit" },
+  gtk: { kind: "desktop", label: "GTK", variant: "gtk" },
+  kde: { kind: "desktop", label: "KDE Plasma", variant: "kde" },
+  waybar: { kind: "desktop", label: "Waybar", variant: "waybar" },
+  rofi: { kind: "desktop", label: "Rofi", variant: "rofi" },
 };
 export function previewStyle(
   theme: Theme,

@@ -66,6 +66,7 @@ export type Library = {
   studio: { theme: Theme; at: string; live: boolean } | null;
   picked: Theme[];
   community: { id: string; theme: Theme; version: number; preset?: boolean }[];
+  sites: Record<string, SiteAssignment>;
   communityError?: string;
 };
 export type TabState = {

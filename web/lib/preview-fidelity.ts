@@ -144,4 +144,97 @@ export const previewFidelity: Record<string, PreviewFidelity> = {
       "The vault, backlinks and graph are reconstructed. Obsidian's live-preview extensions, plugins and custom Markdown syntax are not loaded.",
     url: "https://docs.obsidian.md/Plugins/Editor/Editor",
   },
+  konsole: terminal(
+    "Konsole .colorscheme",
+    "Konsole's colorscheme format defines background, foreground, and 16 ANSI colors; cursor and selection follow terminal defaults.",
+  ),
+  "gnome-terminal": terminal("GNOME Terminal dconf profile"),
+  "t3-code": {
+    renderer: "T3 Code · workspace & terminal preview",
+    coverage:
+      "Reads the generated T3 Code theme JSON directly for sidebar, toolbar, message surfaces, code blocks, composer, and the integrated xterm.js terminal.",
+    limitations:
+      "The workspace shell is reconstructed from T3 Code's color role contract; custom CSS overrides and desktop window chrome are not emulated here.",
+    url: "https://github.com/pingdotgg/t3code",
+  },
+  vivaldi: {
+    renderer: "Vivaldi · settings.json reconstruction",
+    coverage:
+      "Reads window background, toolbar, foreground, accent, and highlight tokens from the generated Vivaldi settings.json file.",
+    limitations:
+      "Browser chrome cannot run inside a web page. Vivaldi's custom tab stacking, web panels, and background wallpaper settings are not emulated.",
+    url: "https://help.vivaldi.com/desktop/appearance-customization/browser-themes/",
+  },
+  zen: {
+    renderer: "Zen Browser · userChrome.css reconstruction",
+    coverage:
+      "Reads the generated --zen-* and toolbar CSS custom properties from userChrome.css for sidebar, toolbar, URL bar, and tab highlights.",
+    limitations:
+      "Browser chrome cannot run inside a web page. Zen's vertical tab layouts, workspaces, and gradient mods are reconstructed locally.",
+    url: "https://docs.zen-browser.app/mods/zen-mods",
+  },
+  stylus: {
+    renderer: "Stylus · UserCSS website preview",
+    coverage:
+      "Applies the generated UserCSS custom properties and base rules directly to the Example website tab so you can compare page content against browser chrome.",
+    limitations:
+      "Real websites have varied markup and specificity; the exported UserCSS is a clean starting template you can scope and extend per domain.",
+    url: "https://github.com/openstyles/stylus/wiki/Writing-UserCSS",
+  },
+  gitcomet: {
+    renderer: "GitComet · commit graph & diff preview",
+    coverage:
+      "Reads surfaces, selection, 5 branch graph lane colors, and diff additions/deletions directly from the generated GitComet JSON theme.",
+    limitations:
+      "The repository view is an interactive local reconstruction; real Git operations and native widget rendering are not emulated.",
+    url: "https://github.com/Auto-Explore/GitComet/blob/main/docs/themes.md",
+  },
+  smartgit: {
+    renderer: "SmartGit · properties-driven Git preview",
+    coverage:
+      "Reads window, control, selection, diff, and branch lane values directly from the generated SmartGit .properties file.",
+    limitations:
+      "The Git client UI is reconstructed locally; native Swing/SWT platform chrome and third-party icons can differ on desktop.",
+    url: "https://docs.syntevo.com/SmartGit/Latest/Manual/GUI/AdvancedSettings/Theme-Customization",
+  },
+  slack: {
+    renderer: "Slack · custom theme workspace preview",
+    coverage:
+      "Reads column background, active item, presence indicator, mention badge, and hover colors from the generated Slack theme export.",
+    limitations:
+      "Slack custom themes style workspace navigation chrome; message canvas typography and enterprise branding remain controlled by Slack.",
+    url: "https://slack.com/help/articles/205166337-Change-your-Slack-theme",
+  },
+  gtk: {
+    renderer: "GTK 4 · desktop window reconstruction",
+    coverage:
+      "Reads @define-color declarations from gtk-4.0/gtk.css for window, headerbar, sidebar, cards, accent buttons, and semantic statuses.",
+    limitations:
+      "Native GTK/libadwaita widget geometry, shadows, and icon themes depend on your Linux desktop environment.",
+    url: "https://docs.gtk.org/gtk4/css-overview.html",
+  },
+  kde: {
+    renderer: "KDE Plasma · .colors scheme reconstruction",
+    coverage:
+      "Reads [Colors:Window], [Colors:View], [Colors:Button], [Colors:Selection], and [WM] RGB triplets directly from the exported .colors file.",
+    limitations:
+      "Desktop window decorations, Breeze widget metrics, and Plasma panel applets are reconstructed locally in the browser.",
+    url: "https://develop.kde.org/docs/plasma/",
+  },
+  waybar: {
+    renderer: "Waybar · Wayland status bar preview",
+    coverage:
+      "Reads @define-color tokens from colors-*.css for the top status bar, active workspace pill, and system status modules.",
+    limitations:
+      "Module layout and system icons depend on your local Waybar JSON config and Nerd Font installation.",
+    url: "https://github.com/Alexays/Waybar/wiki/Styling",
+  },
+  rofi: {
+    renderer: "Rofi · interactive launcher preview",
+    coverage:
+      "Reads palette and radius tokens directly from the generated .rasi file for the launcher window, search input bar, and selected row.",
+    limitations:
+      "Launcher search runs locally over sample applications; native X11/Wayland compositor blur and system icon packs are not emulated.",
+    url: "https://github.com/davatorium/rofi/blob/next/doc/rofi-theme.5.markdown",
+  },
 };

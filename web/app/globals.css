@@ -3258,6 +3258,11 @@ body {
   background: var(--app-soft);
   border: 1px solid var(--app-border);
 }
+.theme-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 .privacy-page {
   max-width: 820px;
 }

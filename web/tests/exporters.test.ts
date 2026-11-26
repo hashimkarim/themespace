@@ -93,7 +93,9 @@ test("semantic foregrounds, explicit overrides, and independent appearances surv
   assert.equal(remix.parent?.version, 3);
 });
 
-test("all export targets generate parseable files; planned targets cannot be downloaded", async () => {
+test("all 39 export targets generate parseable files and reject unknown targets", async () => {
+  assert.equal(exportTargets.length, 39);
+  assert.equal(targets.filter((t) => t.status === "planned").length, 0);
   for (const target of exportTargets) {
     const files = generateTarget(source, target.id);
     assert.ok(files.length > 1, target.id);
@@ -227,6 +229,60 @@ test("terminal and browser exports preserve native data shapes and all ANSI colo
   ]);
   assert.equal(tokens.fontSans.$type, "fontFamily");
   assert.equal(tokens.motion.$value.unit, "ms");
+
+  const t3 = JSON.parse(mainFile("t3-code", ".json"));
+  assert.equal(t3.version, 1);
+  assert.equal(t3.appearance, source.defaultAppearance);
+  assert.equal(t3.colors.accent, resolve(source, source.defaultAppearance).accentFill);
+  const otherMode = source.defaultAppearance === "dark" ? "light" : "dark";
+  assert.equal(t3.variants[otherMode].accent, resolve(source, otherMode).accentFill);
+
+  const stylus = mainFile("stylus", ".user.css");
+  assert.match(stylus, /==UserStyle==/);
+  assert.match(stylus, /--ts-accent: #123abc/);
+  assert.match(stylus, /--ts-accent: #874201/);
+
+  const vivaldi = JSON.parse(
+    generateTarget(source, "vivaldi").find(
+      (f) => f.path === "dark/settings.json",
+    )!.content,
+  );
+  assert.equal(vivaldi.colors.colorHi, "#123abc");
+
+  const zen = mainFile("zen", "dark/userChrome.css");
+  assert.match(zen, /--zen-primary-color: #123abc/);
+
+  const konsole = mainFile("konsole", "-dark.colorscheme");
+  assert.match(konsole, /\[Color7Intense\]\nColor=238,221,255/);
+
+  const gnome = mainFile("gnome-terminal", "-dark.dconf");
+  assert.match(gnome, /use-theme-colors=false/);
+  assert.match(gnome, /'#eeddff'/);
+
+  const gitcomet = JSON.parse(mainFile("gitcomet", "-dark.json"));
+  assert.equal(gitcomet.colors.accent, "#123abc");
+  assert.equal(gitcomet.syntax.keyword, "#ab12cd");
+
+  const smartgit = mainFile("smartgit", "-dark.properties");
+  assert.match(smartgit, /accent\.color=#123abc/);
+
+  const slack = mainFile("slack", "-dark.txt");
+  assert.match(slack, /#123abc/);
+
+  const gtk = generateTarget(source, "gtk").find(
+    (f) => f.path === "dark/gtk-4.0/gtk.css",
+  )!.content;
+  assert.match(gtk, /@define-color accent_bg_color #123abc;/);
+
+  const kde = mainFile("kde", "-dark.colors");
+  assert.match(kde, /\[Colors:Selection\]/);
+  assert.match(kde, /BackgroundNormal=18,58,188/);
+
+  const waybar = mainFile("waybar", "colors-dark.css");
+  assert.match(waybar, /@define-color accent #123abc;/);
+
+  const rofi = mainFile("rofi", "-dark.rasi");
+  assert.match(rofi, /accent: #123abc;/);
 });
 
 test("component fixture escapes user text and contains only valid theme file references", () => {

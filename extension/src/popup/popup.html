@@ -67,11 +67,18 @@
       <div class="picked" id="picked-result" hidden>
         <div class="swatches large" id="picked-swatches"></div>
         <div class="picked-name">
-          <strong id="picked-name"></strong>
+          <input
+            type="text"
+            id="picked-name"
+            class="picked-input"
+            maxlength="80"
+            aria-label="Picked theme name"
+          />
           <span id="picked-detail"></span>
         </div>
         <div class="row">
           <button type="button" class="secondary" id="save-picked">Save</button>
+          <button type="button" class="secondary" id="copy-css">Copy CSS</button>
           <button type="button" class="secondary" id="publish-picked">
             Open in ThemeSpace
           </button>
@@ -94,12 +101,29 @@
       >
         Community
       </button>
+      <button type="button" role="tab" data-tab="sites" aria-selected="false">
+        Sites
+      </button>
     </nav>
+    <div class="search-wrap">
+      <input
+        type="search"
+        id="search"
+        class="search"
+        placeholder="Filter themes or sites…"
+        aria-label="Filter themes or pinned sites"
+      />
+    </div>
     <ul class="list" id="list" role="tabpanel"></ul>
 
     <footer class="foot">
       <span id="server-label"></span>
-      <button type="button" class="link" id="server-change">Change</button>
+      <span class="foot-actions">
+        <a id="open-studio" class="link" target="_blank" rel="noreferrer"
+          >Studio ↗</a
+        >
+        <button type="button" class="link" id="server-change">Change</button>
+      </span>
     </footer>
     <p class="toast" id="toast" role="status" hidden></p>
     <script src="popup.js"></script>

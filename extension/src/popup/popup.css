@@ -187,10 +187,55 @@ a:focus-visible {
 .picked-name {
   display: flex;
   flex-direction: column;
+  gap: 4px;
   margin: 8px 0;
+}
+.picked-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  padding: 5px 8px;
 }
 .picked-name span {
   color: var(--muted);
+  font-size: 12px;
+}
+.search-wrap {
+  margin-bottom: 6px;
+}
+.search {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 9px;
+}
+.search::placeholder {
+  color: var(--muted);
+}
+.live-badge {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #63ce9b;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.foot-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+a.link {
+  text-decoration: none;
 }
 .row {
   display: flex;

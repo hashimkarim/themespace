@@ -587,12 +587,167 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
           })
           .join("\n"),
     );
+  } else if (targetId === "t3-code") {
+    const t3Palette = (mode: Appearance) => {
+      const c = resolve(theme, mode);
+      return {
+        canvas: c.background,
+        chrome: c.surface,
+        toolbar: c.surface,
+        toolbarForeground: c.foreground,
+        toolbarBorder: c.border,
+        toolbarControl: c.elevated,
+        toolbarControlForeground: c.foreground,
+        toolbarControlHover: c.hover,
+        surface: c.surface,
+        surfaceRaised: c.elevated,
+        surfaceOverlay: c.elevated,
+        text: c.foreground,
+        textMuted: c.muted,
+        border: c.border,
+        input: c.input,
+        focus: c.focus,
+        accent: c.accentFill,
+        accentForeground: c.accentForeground,
+        secondary: c.surface,
+        secondaryForeground: c.foreground,
+        muted: c.surface,
+        mutedForeground: c.muted,
+        placeholder: c.muted,
+        secondaryLabel: c.muted,
+        iconMuted: c.muted,
+        error: c.error,
+        errorForeground: contrastForeground(c.error),
+        errorSurface: c.elevated,
+        warning: c.warning,
+        warningForeground: contrastForeground(c.warning),
+        warningSurface: c.elevated,
+        update: c.success,
+        updateForeground: contrastForeground(c.success),
+        updateSurface: c.elevated,
+        accentSurface: c.selection,
+        accentSurfaceForeground: c.selectionForeground,
+        messageSurface: c.surface,
+        messageForeground: c.foreground,
+        messageAction: c.elevated,
+        messageActionForeground: c.foreground,
+        messageActionHover: c.hover,
+        codeBackground: c.surface,
+        codeForeground: c.foreground,
+        searchMatchBackground: c.selection,
+        searchMatchForeground: c.selectionForeground,
+        searchMatchActiveBackground: c.accentFill,
+        searchMatchActiveForeground: c.accentForeground,
+        sidebar: c.surface,
+        sidebarForeground: c.foreground,
+        sidebarMutedForeground: c.muted,
+        sidebarControlSurface: c.elevated,
+        sidebarRowHover: c.hover,
+        sidebarRowActive: c.selection,
+        sidebarRowSelected: c.selection,
+        sidebarBorder: c.border,
+        terminalBackground: c.background,
+        terminalForeground: c.foreground,
+        terminalCursor: c.accentFill,
+        terminalSelection: c.selection,
+        terminalScrollbar: c.border,
+        terminalScrollbarHover: c.muted,
+      };
+    };
+    const primary = resolve(theme, theme.defaultAppearance);
+    const other: Appearance =
+      theme.defaultAppearance === "dark" ? "light" : "dark";
+    add(
+      `${slug}.json`,
+      json({
+        version: 1,
+        name: theme.name,
+        appearance: theme.defaultAppearance,
+        canvas: primary.background,
+        accent: primary.accentFill,
+        colors: t3Palette(theme.defaultAppearance),
+        ...(theme.modes[other]
+          ? { variants: { [other]: t3Palette(other) } }
+          : {}),
+      }),
+    );
+  } else if (targetId === "stylus") {
+    const blocks = modes
+      .map((mode) => {
+        const c = resolve(theme, mode);
+        const sel =
+          modes.length > 1
+            ? `@media (prefers-color-scheme: ${mode}) {\n` +
+              `  :root {\n` +
+              Object.entries(cssVariables(theme, mode))
+                .map(([k, v]) => `    ${k}: ${v};`)
+                .join("\n") +
+              `\n  }\n  html, body { background-color: ${c.background}; color: ${c.foreground}; }\n  a { color: ${c.accent}; }\n  hr, border, input, textarea, select { border-color: ${c.border}; }\n}`
+            : cssBlock(":root", cssVariables(theme, mode)) +
+              `\nhtml, body { background-color: ${c.background}; color: ${c.foreground}; }\na { color: ${c.accent}; }\n`;
+        return sel;
+      })
+      .join("\n\n");
+    add(
+      `${slug}.user.css`,
+      `/* ==UserStyle==\n` +
+        `@name           ${clean(theme.name)}\n` +
+        `@namespace      themespace.app/${slug}\n` +
+        `@version        ${generatorVersion}\n` +
+        `@description    ${clean(theme.description || theme.name)}\n` +
+        `@author         ${clean(theme.author)}\n` +
+        `@license        ${clean(theme.license)}\n` +
+        `==/UserStyle== */\n\n` +
+        `@-moz-document regexp("https?://.*") {\n` +
+        `${blocks}\n` +
+        `}\n`,
+    );
+  } else if (targetId === "waybar") {
+    for (const mode of modes) {
+      const c = resolve(theme, mode);
+      add(
+        `colors-${mode}.css`,
+        comment(theme) +
+          Object.entries({
+            background: c.background,
+            surface: c.surface,
+            elevated: c.elevated,
+            foreground: c.foreground,
+            muted: c.muted,
+            border: c.border,
+            accent: c.accent,
+            "accent-fill": c.accentFill,
+            "accent-foreground": c.accentForeground,
+            selection: c.selection,
+            hover: c.hover,
+            success: c.success,
+            warning: c.warning,
+            error: c.error,
+          })
+            .map(([k, v]) => `@define-color ${k} ${v};`)
+            .join("\n") +
+          "\n",
+      );
+    }
+    add(
+      "style.css",
+      comment(theme) +
+        `@import "./colors-${theme.defaultAppearance}.css";\n\n` +
+        `* {\n  font-family: "${theme.fonts.sans}", sans-serif;\n  font-size: ${theme.fonts.size}px;\n}\n\n` +
+        `window#waybar {\n  background: @surface;\n  color: @foreground;\n  border-bottom: 1px solid @border;\n}\n\n` +
+        `#workspaces button {\n  padding: 0 ${theme.style.spacing * 2}px;\n  border-radius: ${Math.min(12, theme.style.radius)}px;\n  color: @muted;\n}\n\n` +
+        `#workspaces button.active {\n  background: @accent-fill;\n  color: @accent-foreground;\n}\n\n` +
+        `#clock, #battery, #network, #pulseaudio, #tray {\n  padding: 0 ${theme.style.spacing * 2}px;\n  margin: ${theme.style.spacing}px 3px;\n  background: @elevated;\n  color: @foreground;\n  border: 1px solid @border;\n  border-radius: ${Math.min(12, theme.style.radius)}px;\n}\n\n` +
+        `#battery.warning { color: @warning; }\n` +
+        `#battery.critical { color: @error; }\n`,
+    );
   } else
     for (const mode of modes) {
       const c = resolve(theme, mode),
         name = `${theme.name} ${mode}`,
         file = `${slug}-${mode}`,
         ansi = Array.from({ length: 16 }, (_, i) => c[`ansi${i}`]);
+      const rgbCsv = (color: string) => rgb(color).join(",");
       switch (targetId) {
         case "ghostty":
           add(
@@ -910,6 +1065,306 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
                 foreground,
               })),
             }),
+          );
+          break;
+        case "vivaldi":
+          add(
+            `${mode}/settings.json`,
+            json({
+              version: 1,
+              id: `${slug}-${mode}`,
+              name,
+              colors: {
+                colorBg: c.background,
+                colorFg: c.foreground,
+                colorHi: c.accentFill,
+                colorAc: c.surface,
+                colorWindowBg: c.surface,
+                colorSuccessBg: c.success,
+                colorWarningBg: c.warning,
+                colorErrorBg: c.error,
+              },
+              settings: {
+                accentFromPage: false,
+                accentOnWindow: false,
+                accentSaturationLimit: 1,
+                alpha: 1,
+                backgroundPosition: "stretch",
+                blur: 0,
+                contrast: 0,
+                dimBlurred: false,
+                engineVersion: 1,
+                id: `${slug}-${mode}`,
+                name,
+                preferSystemAccent: false,
+                radius: Math.min(14, theme.style.radius),
+                simpleScrollbar: true,
+                tabsTransparent: false,
+              },
+            }),
+          );
+          break;
+        case "zen":
+          add(
+            `${mode}/userChrome.css`,
+            comment(theme) +
+              cssBlock(":root", {
+                "--zen-primary-color": c.accentFill,
+                "--zen-main-browser-background": c.surface,
+                "--zen-themed-toolbar-bg": c.background,
+                "--zen-colors-primary": c.accentFill,
+                "--zen-colors-secondary": c.surface,
+                "--zen-colors-tertiary": c.elevated,
+                "--zen-colors-border": c.border,
+                "--toolbar-bgcolor": c.background,
+                "--toolbar-color": c.foreground,
+                "--lwt-accent-color": c.surface,
+                "--lwt-text-color": c.foreground,
+                "--tab-selected-bgcolor": c.elevated,
+                "--tab-selected-textcolor": c.foreground,
+                "--urlbar-box-bgcolor": c.input,
+                "--urlbar-box-text-color": c.foreground,
+              }),
+          );
+          add(
+            `${mode}/theme.json`,
+            json({
+              id: `${slug}-${mode}`,
+              name,
+              description: theme.description,
+              author: theme.author,
+              version: generatorVersion,
+              style: "userChrome.css",
+              colors: {
+                primary: c.accentFill,
+                background: c.background,
+                surface: c.surface,
+                elevated: c.elevated,
+                foreground: c.foreground,
+                muted: c.muted,
+                border: c.border,
+              },
+            }),
+          );
+          break;
+        case "konsole":
+          add(
+            `${file}.colorscheme`,
+            `[Background]\nColor=${rgbCsv(c.background)}\n\n` +
+              `[BackgroundFaint]\nColor=${rgbCsv(c.surface)}\n\n` +
+              `[BackgroundIntense]\nColor=${rgbCsv(c.elevated)}\n\n` +
+              `[Foreground]\nColor=${rgbCsv(c.foreground)}\n\n` +
+              `[ForegroundFaint]\nColor=${rgbCsv(c.muted)}\n\n` +
+              `[ForegroundIntense]\nColor=${rgbCsv(c.foreground)}\n\n` +
+              ansi
+                .slice(0, 8)
+                .map(
+                  (color, i) =>
+                    `[Color${i}]\nColor=${rgbCsv(color)}\n\n` +
+                    `[Color${i}Faint]\nColor=${rgbCsv(color)}\n\n` +
+                    `[Color${i}Intense]\nColor=${rgbCsv(ansi[i + 8])}`,
+                )
+                .join("\n\n") +
+              `\n\n[General]\nBlur=false\nColorRandomization=false\nDescription=${name}\nOpacity=1\nWallpaper=\n`,
+          );
+          break;
+        case "gnome-terminal":
+          add(
+            `${file}.dconf`,
+            `[/]\n` +
+              `visible-name='${name.replace(/'/g, "")}'\n` +
+              `use-theme-colors=false\n` +
+              `background-color='${c.background}'\n` +
+              `foreground-color='${c.foreground}'\n` +
+              `cursor-colors-set=true\n` +
+              `cursor-background-color='${c.accentFill}'\n` +
+              `cursor-foreground-color='${c.accentForeground}'\n` +
+              `highlight-colors-set=true\n` +
+              `highlight-background-color='${c.selection}'\n` +
+              `highlight-foreground-color='${c.selectionForeground}'\n` +
+              `palette=[${ansi.map((col) => `'${col}'`).join(", ")}]\n`,
+          );
+          add(
+            `${mode}/install.sh`,
+            `#!/usr/bin/env bash\nset -euo pipefail\n` +
+              `# Installs ${name} as a new GNOME Terminal profile via dconf.\n` +
+              `UUID=$(uuidgen)\n` +
+              `DIR=$(cd "$(dirname "$0")/.." && pwd)\n` +
+              `dconf load "/org/gnome/terminal/legacy/profiles:/:$UUID/" < "$DIR/${file}.dconf"\n` +
+              `EXISTING=$(dconf read /org/gnome/terminal/legacy/profiles:/list || echo "[]")\n` +
+              `echo "Loaded profile $UUID. Add '$UUID' to your GNOME Terminal profiles list (current: $EXISTING)."\n`,
+          );
+          break;
+        case "gitcomet":
+          add(
+            `${file}.json`,
+            json({
+              name,
+              author: theme.author,
+              appearance: mode,
+              colors: {
+                background: c.background,
+                surface: c.surface,
+                elevated: c.elevated,
+                foreground: c.foreground,
+                muted: c.muted,
+                border: c.border,
+                input: c.input,
+                accent: c.accent,
+                accentFill: c.accentFill,
+                accentForeground: c.accentForeground,
+                selection: c.selection,
+                selectionForeground: c.selectionForeground,
+                hover: c.hover,
+              },
+              diff: {
+                added: c.success,
+                removed: c.error,
+                modified: c.warning,
+              },
+              graph: [c.chart1, c.chart2, c.chart3, c.chart4, c.chart5],
+              syntax: syntax(c),
+            }),
+          );
+          break;
+        case "smartgit":
+          add(
+            `${file}.properties`,
+            `# ${name} for SmartGit · Generated with ThemeSpace ${generatorVersion}\n` +
+              `theme.name=${name}\n` +
+              `theme.dark=${mode === "dark"}\n` +
+              `window.background=${c.surface}\n` +
+              `window.foreground=${c.foreground}\n` +
+              `control.background=${c.background}\n` +
+              `control.foreground=${c.foreground}\n` +
+              `elevated.background=${c.elevated}\n` +
+              `muted.foreground=${c.muted}\n` +
+              `border.color=${c.border}\n` +
+              `accent.color=${c.accentFill}\n` +
+              `accent.foreground=${c.accentForeground}\n` +
+              `selection.background=${c.selection}\n` +
+              `selection.foreground=${c.selectionForeground}\n` +
+              `hover.background=${c.hover}\n` +
+              `diff.added=${c.success}\n` +
+              `diff.removed=${c.error}\n` +
+              `diff.modified=${c.warning}\n` +
+              `graph.branch.0=${c.chart1}\n` +
+              `graph.branch.1=${c.chart2}\n` +
+              `graph.branch.2=${c.chart3}\n` +
+              `graph.branch.3=${c.chart4}\n` +
+              `graph.branch.4=${c.chart5}\n`,
+          );
+          break;
+        case "slack": {
+          // Slack custom theme string: Column BG, Menu BG Hover, Active Item, Active Item Text,
+          // Hover Item, Text Color, Active Presence, Mention Badge, Top Nav BG, Top Nav Text
+          const legacy8 = [
+            c.surface,
+            c.elevated,
+            c.accentFill,
+            c.accentForeground,
+            c.hover,
+            c.foreground,
+            c.success,
+            c.error,
+          ].join(",");
+          const modern = [
+            c.surface,
+            c.accentFill,
+            c.foreground,
+            c.error,
+          ].join(",");
+          add(
+            `${file}.txt`,
+            `# ${name} for Slack\n` +
+              `# Paste into Slack → Preferences → Themes → Custom theme\n\n` +
+              `# 8-color sidebar theme string:\n${legacy8}\n\n` +
+              `# 4-color Slack theme values (System Nav, Selected Items, Presence, Notifications):\n${modern}\n\n` +
+              `column_bg=${c.surface}\n` +
+              `menu_bg_hover=${c.elevated}\n` +
+              `active_item=${c.accentFill}\n` +
+              `active_item_text=${c.accentForeground}\n` +
+              `hover_item=${c.hover}\n` +
+              `text_color=${c.foreground}\n` +
+              `active_presence=${c.success}\n` +
+              `mention_badge=${c.error}\n` +
+              `window_bg=${c.background}\n` +
+              `border=${c.border}\n`,
+          );
+          break;
+        }
+        case "gtk": {
+          const gtkVars = Object.entries({
+            window_bg_color: c.background,
+            window_fg_color: c.foreground,
+            view_bg_color: c.background,
+            view_fg_color: c.foreground,
+            headerbar_bg_color: c.surface,
+            headerbar_fg_color: c.foreground,
+            headerbar_border_color: c.border,
+            card_bg_color: c.elevated,
+            card_fg_color: c.foreground,
+            popover_bg_color: c.elevated,
+            popover_fg_color: c.foreground,
+            dialog_bg_color: c.elevated,
+            dialog_fg_color: c.foreground,
+            sidebar_bg_color: c.surface,
+            sidebar_fg_color: c.foreground,
+            accent_bg_color: c.accentFill,
+            accent_fg_color: c.accentForeground,
+            accent_color: c.accent,
+            destructive_bg_color: c.error,
+            destructive_fg_color: contrastForeground(c.error),
+            success_bg_color: c.success,
+            success_fg_color: contrastForeground(c.success),
+            warning_bg_color: c.warning,
+            warning_fg_color: contrastForeground(c.warning),
+            borders: c.border,
+          })
+            .map(([k, v]) => `@define-color ${k} ${v};`)
+            .join("\n");
+          add(`${mode}/gtk-4.0/gtk.css`, comment(theme) + gtkVars + "\n");
+          add(`${mode}/gtk-3.0/gtk.css`, comment(theme) + gtkVars + "\n");
+          break;
+        }
+        case "kde":
+          add(
+            `${file}.colors`,
+            `[General]\nColorScheme=${slug}-${mode}\nName=${name}\n\n` +
+              `[Colors:Window]\nBackgroundNormal=${rgbCsv(c.surface)}\nBackgroundAlternate=${rgbCsv(c.elevated)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundInactive=${rgbCsv(c.muted)}\nForegroundActive=${rgbCsv(c.accent)}\nForegroundLink=${rgbCsv(c.accent)}\nForegroundPositive=${rgbCsv(c.success)}\nForegroundNeutral=${rgbCsv(c.warning)}\nForegroundNegative=${rgbCsv(c.error)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\n\n` +
+              `[Colors:View]\nBackgroundNormal=${rgbCsv(c.background)}\nBackgroundAlternate=${rgbCsv(c.surface)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundInactive=${rgbCsv(c.muted)}\nForegroundActive=${rgbCsv(c.accent)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\n\n` +
+              `[Colors:Button]\nBackgroundNormal=${rgbCsv(c.elevated)}\nBackgroundAlternate=${rgbCsv(c.surface)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundInactive=${rgbCsv(c.muted)}\nDecorationFocus=${rgbCsv(c.focus)}\nDecorationHover=${rgbCsv(c.hover)}\n\n` +
+              `[Colors:Selection]\nBackgroundNormal=${rgbCsv(c.accentFill)}\nBackgroundAlternate=${rgbCsv(c.selection)}\nForegroundNormal=${rgbCsv(c.accentForeground)}\nForegroundInactive=${rgbCsv(c.selectionForeground)}\n\n` +
+              `[Colors:Header]\nBackgroundNormal=${rgbCsv(c.surface)}\nBackgroundAlternate=${rgbCsv(c.background)}\nForegroundNormal=${rgbCsv(c.foreground)}\nForegroundInactive=${rgbCsv(c.muted)}\n\n` +
+              `[Colors:Tooltip]\nBackgroundNormal=${rgbCsv(c.elevated)}\nForegroundNormal=${rgbCsv(c.foreground)}\n\n` +
+              `[WM]\nactiveBackground=${rgbCsv(c.surface)}\nactiveForeground=${rgbCsv(c.foreground)}\ninactiveBackground=${rgbCsv(c.background)}\ninactiveForeground=${rgbCsv(c.muted)}\n`,
+          );
+          break;
+        case "rofi":
+          add(
+            `${file}.rasi`,
+            comment(theme) +
+              `* {\n` +
+              `  bg: ${c.background};\n` +
+              `  bg-alt: ${c.surface};\n` +
+              `  elevated: ${c.elevated};\n` +
+              `  fg: ${c.foreground};\n` +
+              `  fg-alt: ${c.muted};\n` +
+              `  accent: ${c.accentFill};\n` +
+              `  accent-fg: ${c.accentForeground};\n` +
+              `  border-col: ${c.border};\n` +
+              `  selection: ${c.selection};\n` +
+              `  selection-fg: ${c.selectionForeground};\n` +
+              `  radius: ${theme.style.radius}px;\n` +
+              `  background-color: transparent;\n` +
+              `  text-color: @fg;\n` +
+              `  font: "${theme.fonts.sans} ${theme.fonts.size}";\n` +
+              `}\n\n` +
+              `window {\n  background-color: @bg;\n  border: 1px solid;\n  border-color: @border-col;\n  border-radius: @radius;\n  padding: 16px;\n}\n\n` +
+              `inputbar {\n  background-color: @bg-alt;\n  border: 1px solid;\n  border-color: @border-col;\n  border-radius: @radius;\n  padding: 10px 12px;\n}\n\n` +
+              `listview {\n  lines: 6;\n  spacing: 4px;\n}\n\n` +
+              `element {\n  padding: 8px 10px;\n  border-radius: @radius;\n}\n\n` +
+              `element selected {\n  background-color: @accent;\n  text-color: @accent-fg;\n}\n`,
           );
           break;
         default:

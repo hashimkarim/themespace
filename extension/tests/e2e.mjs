@@ -578,6 +578,13 @@ try {
       );
       await ui.locator("#pin").check();
       await ui.getByText(/loads every time you visit/).waitFor();
+      // The Sites tab lists pinned origins and supports filtering and unpinning.
+      await ui.getByRole("tab", { name: "Sites" }).click();
+      await ui.locator("#list").getByText(new URL(site).host).waitFor();
+      await ui.locator("#search").fill("no-such-site-zzz");
+      await ui.locator("#list").getByText(/No pinned sites match/).waitFor();
+      await ui.locator("#search").fill("");
+      await ui.locator("#list").getByText(new URL(site).host).waitFor();
       await page.reload();
       await page.waitForFunction(
         () =>
@@ -587,12 +594,16 @@ try {
         { timeout: 5000 },
       );
       await ui.reload();
-      await ui.locator("#pin").uncheck();
+      await ui.getByRole("tab", { name: "Sites" }).click();
+      await ui.getByRole("button", { name: new RegExp(`Unpin ${new URL(site).host}`) }).click();
+      await ui.getByText(/Unpinned/).waitFor();
+      assert.equal(await ui.locator("#pin").isChecked(), false);
       await ui.getByText("Pick up this site's theme").click();
       await ui.locator("#picked-result").waitFor({ state: "visible" });
-      assert.equal(await ui.locator("#picked-name").textContent(), "127.0.0.1");
+      assert.equal(await ui.locator("#picked-name").inputValue(), "127.0.0.1");
+      await ui.locator("#picked-name").fill("Local Demo");
       await ui.getByRole("button", { name: "Save" }).click();
-      await ui.getByText(/Saved 127.0.0.1/).waitFor();
+      await ui.getByText(/Saved Local Demo/).waitFor();
       // Close any existing studio tab so Open in ThemeSpace opens a fresh tab with ?companion=import.
       for (const p of context.pages())
         if (p.url().startsWith(studioUrl)) await p.close();
@@ -609,7 +620,7 @@ try {
           window.received?.some(
             (m) => m.type === "import" && m.theme.name === name,
           ),
-        "127.0.0.1",
+        "Local Demo",
         { timeout: 5000 },
       );
       await ui.screenshot({ path: join(shots, "5b-popup-themed.png") });

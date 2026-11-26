@@ -9,19 +9,21 @@ instructions are in [docs/deployment.md](docs/deployment.md).
 
 ThemeSpace now has a working first version in [`web/`](web/). The Studio edits
 light and dark palettes, typography, corners, spacing, shadows, semantic roles,
-syntax, charts, and all 16 ANSI colors. Every one of the 26 working integrations
+syntax, charts, and all 16 ANSI colors. Every one of the 39 working integrations
 has a live preview. Native preview adapters read the actual generated theme files:
 Monaco for VS Code, Ghostty's WebAssembly terminal core, xterm.js for the other
-nine terminals, and CodeMirror for the remaining editors and Obsidian. Spotify
-and Discord use adapted MIT-licensed community frontends with local interactions.
-Browser chrome is reconstructed from the generated manifests. Each native preview
+eleven terminals, and CodeMirror for the remaining editors and Obsidian. Spotify
+and Discord use adapted MIT-licensed community frontends with local interactions,
+while T3 Code, Git clients, Slack, browser chrome, and Linux desktop/Waybar/Rofi
+surfaces reconstruct their UIs directly from the generated files. Each native preview
 lists its renderer, source files and limits under **About this preview**. See the
 [renderer research and coverage](docs/preview-renderers.md).
 
 The [ThemeSpace Companion](extension/) browser extension (Chromium and
 Firefox) shows other websites in your themes, previews your studio draft live
-while you edit, and picks up a website's colors as a theme you can refine and
-publish here.
+while you edit, manages per-site pinned themes, searches across your library,
+toggles theming with `Alt+Shift+T`, and picks up any website's colors with
+inline rename, CSS copy, and JSON export so you can refine and publish them here.
 
 Explore includes six starter palettes plus actual published snapshots. Themes
 can be searched, filtered, opened, and remixed. Guest drafts persist in browser
@@ -80,14 +82,16 @@ reconstructed application shells; they do not run complete desktop applications.
 
 ## Exports
 
-| Category       | Working exporters                                                                                         |
-| -------------- | --------------------------------------------------------------------------------------------------------- |
-| Web            | CSS custom properties, Sass/SCSS module, Tailwind CSS v4, shadcn/ui with Tailwind v4, DTCG 2025.10 tokens |
-| Terminals      | Ghostty, kitty, Alacritty, WezTerm, Windows Terminal, iTerm2, Warp, foot, Termux, Xresources              |
-| Editors        | VS Code, Zed, Neovim, Helix, Sublime Text                                                                 |
-| Chat and music | Spicetify, BetterDiscord, Vencord                                                                         |
-| Browsers       | Firefox, Chrome/Chromium                                                                                  |
-| Notes          | Obsidian                                                                                                  |
+| Category       | Working exporters (39 total)                                                                                               |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Web            | CSS custom properties, Sass/SCSS module, Tailwind CSS v4, shadcn/ui with Tailwind v4, DTCG 2025.10 tokens                  |
+| Terminals      | Ghostty, kitty, Alacritty, WezTerm, Windows Terminal, iTerm2, Warp, foot, Termux, Xresources, Konsole, GNOME Terminal      |
+| Editors        | VS Code, Zed, Neovim, Helix, Sublime Text                                                                                  |
+| Workspace & Git| T3 Code, GitComet, SmartGit                                                                                                |
+| Chat and music | Spicetify, BetterDiscord, Vencord, Slack                                                                                   |
+| Browsers       | Firefox, Chrome/Chromium, Vivaldi, Zen Browser, Stylus                                                                     |
+| Notes          | Obsidian                                                                                                                   |
+| Desktop        | GTK 3 / GTK 4, KDE Plasma, Waybar, Rofi                                                                                    |
 
 The large export dialog combines integration selection with Preview, Files,
 and Install tabs. Inspect a target or the full package, then download one file,
@@ -101,14 +105,9 @@ GitHub creation and publication are not automated.
 
 Native exports are **beta**. Generated formats have been parsed and Zed's JSON
 has been checked against its schema; they have not been installed in their
-native apps. Browser exports recolor browser chrome. Brave/Edge compatibility
-has not been separately verified. Website-specific userstyles and native app
-layout customization require additional adapters. Fonts are referenced in
-exports, not bundled.
-
-The catalog also shows 13 explicit roadmap entries: Vivaldi, Zen, Stylus,
-Konsole, GNOME Terminal, T3 Code, GitComet, SmartGit, Slack, GTK, KDE Plasma,
-Waybar, and Rofi. These cannot be selected for export yet.
+native apps. Browser exports recolor browser chrome (and Stylus generates a
+generic userstyle); Brave/Edge compatibility has not been separately verified.
+Fonts are referenced in exports, not bundled.
 
 ## Run locally
 

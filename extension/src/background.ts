@@ -101,10 +101,11 @@ async function fetchJson<T>(path: string): Promise<T> {
 }
 
 async function library(): Promise<Library> {
-  const [base, picked, stored] = await Promise.all([
+  const [base, picked, stored, sites] = await Promise.all([
     server(),
     local("picked"),
     local("studio"),
+    local("sites"),
   ]);
   const [session, draft, community] = await Promise.allSettled([
     fetchJson<{ user: Library["user"] }>("/api/session"),
@@ -149,6 +150,7 @@ async function library(): Promise<Library> {
     studio,
     picked: picked ?? [],
     community: themes,
+    sites: sites ?? {},
     communityError:
       community.status === "rejected"
         ? "Offline — showing starter palettes."
@@ -443,3 +445,46 @@ chrome.runtime.onStartup.addListener(() => void syncPinnedScripts());
 chrome.permissions.onRemoved.addListener(() => void syncPinnedScripts());
 // The popup can close while the permission prompt is open; finish pinning here.
 chrome.permissions.onAdded.addListener(() => void syncPinnedScripts());
+// Keyboard shortcut (Alt+Shift+T): toggle theming on the current tab.
+chrome.commands?.onCommand.addListener(async (command) => {
+  if (command !== "toggle-theme") return;
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id || !originOf(tab.url)) return;
+  const tabId = tab.id;
+  const origin = originOf(tab.url)!;
+  try {
+    const reply = await send<EngineStatus | undefined>(tabId, {
+      type: "ts:status",
+    });
+    if (reply?.applied) {
+      const all = await previews();
+      delete all[tabId];
+      await setPreviews(all);
+      await send(tabId, { type: "ts:revert" });
+      return;
+    }
+  } catch {
+    /* not applied yet */
+  }
+  const sites = (await local("sites")) ?? {};
+  const site = sites[origin];
+  if (site) {
+    const theme =
+      site.ref.kind === "studio"
+        ? ((await local("studio"))?.theme ?? site.theme)
+        : site.theme;
+    await applyTo(tabId, site.ref, theme, site.appearance).catch(() => {});
+    return;
+  }
+  const studio = await local("studio");
+  const picked = (await local("picked")) ?? [];
+  const fallback = studio
+    ? { ref: { kind: "studio" } as ThemeRef, theme: studio.theme }
+    : picked[0]
+      ? { ref: { kind: "picked", id: picked[0].id } as ThemeRef, theme: picked[0] }
+      : { ref: { kind: "public", id: `preset-${presets[0].id}` } as ThemeRef, theme: presets[0] };
+  await applyTo(tabId, fallback.ref, fallback.theme, "auto").catch(() => {});
+  const all = await previews();
+  all[tabId] = { ref: fallback.ref, theme: fallback.theme, appearance: "auto" };
+  await setPreviews(all);
+});

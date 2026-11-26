@@ -1,4 +1,4 @@
-import { resolve, type Theme } from "../../../web/lib/theme";
+import { resolve, slugify, type Theme } from "../../../web/lib/theme";
 import type {
   AppearanceChoice,
   BackgroundMessage,
@@ -14,7 +14,7 @@ if (!__DEV__) document.getElementById("server-change")?.remove();
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
-type Tab = "studio" | "picked" | "community";
+type Tab = "studio" | "picked" | "community" | "sites";
 
 let tabId = -1;
 let library: Library | null = null;
@@ -23,6 +23,7 @@ let current: ThemeEntry | null = null;
 let appearance: AppearanceChoice = "auto";
 let picked: Theme | null = null;
 let tab: Tab = "studio";
+let filterQuery = "";
 
 async function call<T>(message: BackgroundMessage): Promise<T> {
   const reply = await chrome.runtime.sendMessage(message);
@@ -98,6 +99,30 @@ function entries(): ThemeEntry[] {
   }));
 }
 
+function themeCssVariables(theme: Theme) {
+  const mode = theme.defaultAppearance;
+  const c = resolve(theme, mode);
+  const kebab = (s: string) => s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+  return (
+    `/* ${theme.name} (${mode}) · ThemeSpace Companion */\n:root {\n` +
+    Object.entries(c)
+      .map(([k, v]) => `  --ts-${kebab(k)}: ${v};`)
+      .join("\n") +
+    `\n}\n`
+  );
+}
+function downloadJson(theme: Theme) {
+  const blob = new Blob([JSON.stringify(theme, null, 2) + "\n"], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${slugify(theme.name)}.theme.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function renderList() {
   for (const button of document.querySelectorAll<HTMLButtonElement>(
     "[data-tab]",
@@ -105,12 +130,65 @@ function renderList() {
     button.setAttribute("aria-selected", String(button.dataset.tab === tab));
   const list = $("list");
   list.replaceChildren();
-  const items = entries();
+  const q = filterQuery.trim().toLowerCase();
+  if (tab === "sites") {
+    const pinnedSites = Object.entries(library?.sites ?? {}).filter(
+      ([origin, assignment]) =>
+        !q ||
+        origin.toLowerCase().includes(q) ||
+        assignment.theme.name.toLowerCase().includes(q),
+    );
+    if (!pinnedSites.length) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = q
+        ? "No pinned sites match your filter."
+        : "Sites where you enable 'Always use this theme here' appear here.";
+      list.append(li);
+      return;
+    }
+    for (const [origin, assignment] of pinnedSites) {
+      const li = document.createElement("li");
+      const host = new URL(origin).host;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "entry";
+      button.setAttribute("aria-current", String(state?.origin === origin));
+      const text = document.createElement("span");
+      const name = document.createElement("b");
+      name.textContent = host;
+      const detail = document.createElement("small");
+      detail.textContent = `${assignment.theme.name} · ${assignment.appearance}`;
+      text.append(name, detail);
+      button.append(swatches(assignment.theme), text);
+      button.addEventListener(
+        "click",
+        guard(async () => {
+          await chrome.tabs.create({ url: origin });
+        }),
+      );
+      const unpin = iconButton("×", `Unpin ${host}`, async () => {
+        await call({ type: "assign", origin, assignment: null });
+        await Promise.all([refresh(), refreshTab()]);
+        toast(`Unpinned ${host}.`);
+      });
+      li.append(button, unpin);
+      list.append(li);
+    }
+    return;
+  }
+  const items = entries().filter(
+    (e) =>
+      !q ||
+      e.theme.name.toLowerCase().includes(q) ||
+      (e.detail ?? "").toLowerCase().includes(q),
+  );
   if (!items.length) {
     const li = document.createElement("li");
     li.className = "empty";
-    li.textContent =
-      tab === "studio"
+    li.textContent = q
+      ? "No themes match your filter."
+      : tab === "studio"
         ? library?.user
           ? "Open the ThemeSpace editor to preview your draft here."
           : "Sign in or open the ThemeSpace editor to preview your work here."
@@ -132,7 +210,12 @@ function renderList() {
     );
     const text = document.createElement("span");
     const name = document.createElement("b");
-    name.textContent = entry.theme.name;
+    if (entry.ref.kind === "studio" && library?.studio?.live) {
+      const dot = document.createElement("i");
+      dot.className = "live-badge";
+      name.append(dot);
+    }
+    name.append(entry.theme.name);
     const detail = document.createElement("small");
     detail.textContent = entry.detail ?? "";
     text.append(name, detail);
@@ -143,6 +226,10 @@ function renderList() {
     );
     li.append(button);
     if (entry.ref.kind === "picked") {
+      const dl = iconButton("↓", `Download ${entry.theme.name} JSON`, async () => {
+        downloadJson(entry.theme);
+        toast(`Downloaded ${entry.theme.name} JSON.`);
+      });
       const open = iconButton(
         "↗",
         `Open ${entry.theme.name} in ThemeSpace`,
@@ -152,7 +239,7 @@ function renderList() {
         await call({ type: "delete-picked", id: entry.theme.id });
         await refresh();
       });
-      li.append(open, remove);
+      li.append(dl, open, remove);
     }
     list.append(li);
   }
@@ -214,6 +301,7 @@ function renderAccount() {
       "Signed in"
     : "Sign in";
   $("server-label").textContent = `Synced with ${new URL(base).host}`;
+  $<HTMLAnchorElement>("open-studio").href = base;
   void chrome.permissions
     .contains({ origins: [sitePattern(base)] })
     .then((granted) => {
@@ -229,7 +317,7 @@ function renderPicked() {
   $("picked-swatches").replaceWith(
     Object.assign(swatches(picked, true), { id: "picked-swatches" }),
   );
-  $("picked-name").textContent = picked.name;
+  $<HTMLInputElement>("picked-name").value = picked.name;
   $("picked-detail").textContent =
     `${picked.defaultAppearance} theme · ready to save or publish`;
 }
@@ -333,7 +421,7 @@ $("pin").addEventListener(
       await call({ type: "assign", origin: state.origin, assignment: null });
       toast("This site will load with its own colors.");
     }
-    await refreshTab();
+    await Promise.all([refresh(), refreshTab()]);
   }),
 );
 $("scan").addEventListener(
@@ -349,6 +437,23 @@ $("scan").addEventListener(
       button.disabled = false;
       button.textContent = "Pick up this site's theme";
     }
+  }),
+);
+$("picked-name").addEventListener("input", () => {
+  if (!picked) return;
+  const next = $<HTMLInputElement>("picked-name").value.trim();
+  if (next) picked = { ...picked, name: next.slice(0, 80) };
+});
+$("search").addEventListener("input", () => {
+  filterQuery = $<HTMLInputElement>("search").value;
+  renderList();
+});
+$("copy-css").addEventListener(
+  "click",
+  guard(async () => {
+    if (!picked) return;
+    await navigator.clipboard.writeText(themeCssVariables(picked));
+    toast(`Copied ${picked.name} CSS variables.`);
   }),
 );
 $("save-picked").addEventListener(

@@ -1520,6 +1520,7 @@ export function ThemeSpace({
                             "shadcn",
                             "scss",
                             "vscode",
+                            "t3-code",
                             "ghostty",
                             "spicetify",
                             "betterdiscord",
@@ -1677,14 +1678,26 @@ export function ThemeSpace({
                             : `By ${entry.theme.author} · v${entry.version}`}
                         </span>
                       </div>
-                      <button
-                        className="icon-button"
-                        title="Remix this theme"
-                        aria-label={`Remix ${entry.theme.name}`}
-                        onClick={() => startRemix(entry)}
-                      >
-                        <GitFork size={16} />
-                      </button>
+                      <div className="theme-card-actions">
+                        {companionConnected && (
+                          <button
+                            className="icon-button"
+                            title="Save to Companion"
+                            aria-label={`Save ${entry.theme.name} to Companion`}
+                            onClick={() => sendToCompanion(entry.theme)}
+                          >
+                            <Globe2 size={16} />
+                          </button>
+                        )}
+                        <button
+                          className="icon-button"
+                          title="Remix this theme"
+                          aria-label={`Remix ${entry.theme.name}`}
+                          onClick={() => startRemix(entry)}
+                        >
+                          <GitFork size={16} />
+                        </button>
+                      </div>
                     </div>
                     <div className="theme-card-footer">
                       <div>
@@ -1743,7 +1756,9 @@ export function ThemeSpace({
                   <span>
                     export targets
                     <br />
-                    {targets.length - exportTargets.length} on the roadmap
+                    {targets.length - exportTargets.length > 0
+                      ? `${targets.length - exportTargets.length} on the roadmap`
+                      : "all with live previews"}
                   </span>
                 </div>
               </div>

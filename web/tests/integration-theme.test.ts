@@ -24,9 +24,14 @@ theme.modes.light!.overrides = {
   syntaxKeyword: "#123abc",
 };
 
-test("all 26 integrations parse their real export and disclose renderer coverage", () => {
+test("all 39 integrations parse their real export and disclose renderer coverage", () => {
+  assert.equal(exportTargets.length, 39);
   assert.deepEqual(
     Object.keys(previewFidelity).sort(),
+    exportTargets.map((target) => target.id).sort(),
+  );
+  assert.deepEqual(
+    Object.keys(previewProfiles).sort(),
     exportTargets.map((target) => target.id).sort(),
   );
   for (const target of exportTargets)
@@ -51,11 +56,11 @@ test("all 26 integrations parse their real export and disclose renderer coverage
     }
 });
 
-test("all ten terminal adapters preserve every ANSI color and only exported cursor/selection settings", () => {
+test("all twelve terminal adapters preserve every ANSI color and only exported cursor/selection settings", () => {
   const targets = Object.entries(previewProfiles)
     .filter(([, profile]) => profile.kind === "terminal")
     .map(([target]) => target);
-  assert.equal(targets.length, 10);
+  assert.equal(targets.length, 12);
   for (const target of targets)
     for (const mode of ["dark", "light"] as const) {
       const result = integrationTheme(theme, mode, target),
@@ -69,13 +74,22 @@ test("all ten terminal adapters preserve every ANSI color and only exported curs
           `${target} ${key}`,
         ),
       );
-      if (["warp", "termux", "xresources"].includes(target))
+      if (["warp", "termux", "xresources", "konsole"].includes(target))
         assert.equal(result.terminal.selectionBackground, undefined);
       else
         assert.equal(result.terminal.selectionBackground, c.selection, target);
-      if (target === "foot") assert.equal(result.terminal.cursor, undefined);
+      if (["foot", "konsole"].includes(target))
+        assert.equal(result.terminal.cursor, undefined);
       else assert.equal(result.terminal.cursor, c.accent, target);
-      if (["warp", "termux", "xresources", "windows-terminal"].includes(target))
+      if (
+        [
+          "warp",
+          "termux",
+          "xresources",
+          "windows-terminal",
+          "konsole",
+        ].includes(target)
+      )
         assert.equal(result.terminal.selectionForeground, undefined);
       else
         assert.equal(
@@ -175,5 +189,95 @@ test("browser manifests and DTCG token values drive the preview, not a second pa
   assert.equal(
     integrationThemeFromFiles(theme, "dark", "tokens", files).variables.accent,
     "#102030",
+  );
+});
+
+test("workspace, git, slack, browser, and desktop adapters read independently changed native fields", () => {
+  const t3Files = generateTarget(theme, "t3-code");
+  const t3File = t3Files.find((f) => f.path.endsWith(".json"))!;
+  const t3Data = JSON.parse(t3File.content);
+  const t3Palette =
+    t3Data.appearance === "dark" ? t3Data.colors : t3Data.variants.dark;
+  t3Palette.canvas = "#050607";
+  t3Palette.accent = "#abcdef";
+  t3File.content = JSON.stringify(t3Data);
+  const t3 = integrationThemeFromFiles(theme, "dark", "t3-code", t3Files);
+  assert.equal(t3.roles.background, "#050607");
+  assert.equal(t3.roles.accent, "#abcdef");
+
+  const gcFiles = generateTarget(theme, "gitcomet");
+  const gcFile = gcFiles.find((f) => f.path.endsWith("-dark.json"))!;
+  const gcData = JSON.parse(gcFile.content);
+  gcData.diff.added = "#11aa22";
+  gcData.graph[0] = "#334455";
+  gcFile.content = JSON.stringify(gcData);
+  const gc = integrationThemeFromFiles(theme, "dark", "gitcomet", gcFiles);
+  assert.equal(gc.roles.success, "#11aa22");
+  assert.equal(gc.roles.chart1, "#334455");
+
+  const sgFiles = generateTarget(theme, "smartgit");
+  const sgFile = sgFiles.find((f) => f.path.endsWith("-dark.properties"))!;
+  sgFile.content = sgFile.content.replace(
+    /accent\.color=#[0-9a-f]{6}/i,
+    "accent.color=#223344",
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "smartgit", sgFiles).roles.accent,
+    "#223344",
+  );
+
+  const slackFiles = generateTarget(theme, "slack");
+  const slackFile = slackFiles.find((f) => f.path.endsWith("-dark.txt"))!;
+  slackFile.content = slackFile.content.replace(
+    /column_bg=#[0-9a-f]{6}/i,
+    "column_bg=#1a1b1c",
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "slack", slackFiles).roles.sidebar,
+    "#1a1b1c",
+  );
+
+  const gtkFiles = generateTarget(theme, "gtk");
+  const gtkFile = gtkFiles.find((f) => f.path === "dark/gtk-4.0/gtk.css")!;
+  gtkFile.content = gtkFile.content.replace(
+    /@define-color window_bg_color #[0-9a-f]{6};/i,
+    "@define-color window_bg_color #0a0b0c;",
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "gtk", gtkFiles).roles.background,
+    "#0a0b0c",
+  );
+
+  const kdeFiles = generateTarget(theme, "kde");
+  const kdeFile = kdeFiles.find((f) => f.path.endsWith("-dark.colors"))!;
+  kdeFile.content = kdeFile.content.replace(
+    /\[Colors:View\]\nBackgroundNormal=\d+,\d+,\d+/,
+    "[Colors:View]\nBackgroundNormal=16,32,48",
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "kde", kdeFiles).roles.background,
+    "#102030",
+  );
+
+  const waybarFiles = generateTarget(theme, "waybar");
+  const waybarFile = waybarFiles.find((f) => f.path === "colors-dark.css")!;
+  waybarFile.content = waybarFile.content.replace(
+    /@define-color accent #[0-9a-f]{6};/i,
+    "@define-color accent #fedcba;",
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "waybar", waybarFiles).roles.accent,
+    "#fedcba",
+  );
+
+  const rofiFiles = generateTarget(theme, "rofi");
+  const rofiFile = rofiFiles.find((f) => f.path.endsWith("-dark.rasi"))!;
+  rofiFile.content = rofiFile.content.replace(
+    /accent: #[0-9a-f]{6};/i,
+    "accent: #445566;",
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "rofi", rofiFiles).roles.accent,
+    "#445566",
   );
 });

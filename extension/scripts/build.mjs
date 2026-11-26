@@ -69,6 +69,12 @@ const manifest = (browser) => ({
   content_scripts: [
     { matches: sites, js: ["bridge.js"], run_at: "document_start" },
   ],
+  commands: {
+    "toggle-theme": {
+      suggested_key: { default: "Alt+Shift+T" },
+      description: "Toggle ThemeSpace theme on the current tab",
+    },
+  },
   ...(browser === "firefox"
     ? {
         background: { scripts: ["background.js"] },

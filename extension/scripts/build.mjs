@@ -63,7 +63,7 @@ const manifest = (browser) => ({
     default_icon: { 16: "icons/icon-16.png", 32: "icons/icon-32.png" },
   },
   // activeTab covers one-off previews and scans; per-site access is asked for only when pinning.
-  permissions: ["storage", "activeTab", "scripting"],
+  permissions: ["storage", "activeTab", "scripting", "contextMenus"],
   host_permissions: sites,
   optional_host_permissions: ["https://*/*", "http://*/*"],
   content_scripts: [
@@ -73,6 +73,10 @@ const manifest = (browser) => ({
     "toggle-theme": {
       suggested_key: { default: "Alt+Shift+T" },
       description: "Toggle ThemeSpace theme on the current tab",
+    },
+    "pick-site": {
+      suggested_key: { default: "Alt+Shift+P" },
+      description: "Pick up this site's theme and open in ThemeSpace",
     },
   },
   ...(browser === "firefox"

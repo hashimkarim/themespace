@@ -237,4 +237,68 @@ export const previewFidelity: Record<string, PreviewFidelity> = {
       "Launcher search runs locally over sample applications; native X11/Wayland compositor blur and system icon packs are not emulated.",
     url: "https://github.com/davatorium/rofi/blob/next/doc/rofi-theme.5.markdown",
   },
+  jetbrains: {
+    renderer: "CodeMirror 6 · JetBrains .icls preview",
+    coverage:
+      "Parses TEXT, CARET_COLOR, SELECTION_BACKGROUND, GUTTER_BACKGROUND, and syntax attributes directly from the exported .icls XML file.",
+    limitations:
+      "JetBrains IDE tool windows and Darcula/Light UI chrome are separate from .icls editor color schemes; this preview focuses on the editor and gutter.",
+    url: "https://www.jetbrains.com/help/idea/configuring-colors-and-fonts.html",
+  },
+  bat: {
+    renderer: "CodeMirror 6 · TextMate .tmTheme preview",
+    coverage:
+      "Reads editor settings and comment, keyword, string, number, function, type, and diff scopes directly from the exported .tmTheme XML plist.",
+    limitations:
+      "Real TextMate grammars vary per language; this preview demonstrates the exported syntax tokens inside CodeMirror.",
+    url: "https://github.com/sharkdp/bat#adding-new-themes",
+  },
+  tmux: {
+    renderer: "tmux · multiplexer status & pane preview",
+    coverage:
+      "Reads status-style, window-status-current-style, pane-border-style, pane-active-border-style, and mode-style directly from the generated .conf file.",
+    limitations:
+      "Runs as a local interactive pane mockup; real tmux plugins and terminal ANSI sequences remain controlled by your terminal emulator.",
+    url: "https://github.com/tmux/tmux/wiki/Getting-Started",
+  },
+  zellij: {
+    renderer: "Zellij · multiplexer KDL theme preview",
+    coverage:
+      "Reads fg, bg, black, red, green, yellow, blue, magenta, cyan, and orange directly from the generated Zellij KDL theme block.",
+    limitations:
+      "Reconstructs Zellij's tab bar, stacked panes, and keybind footer locally; native Zellij plugins and custom layouts are not executed.",
+    url: "https://zellij.dev/documentation/themes",
+  },
+  starship: {
+    renderer: "Starship · prompt palette TOML preview",
+    coverage:
+      "Reads the named [palettes.*] table directly from the generated Starship TOML config for directory, git branch, prompt symbol, and status modules.",
+    limitations:
+      "Shows representative prompt segments; Nerd Font icons and your local Starship module order depend on your shell environment.",
+    url: "https://starship.rs/config/#palettes",
+  },
+  btop: {
+    renderer: "btop++ · system monitor theme preview",
+    coverage:
+      "Reads main_bg, main_fg, hi_fg, selected_bg, box borders, and CPU/memory/network gradient stops directly from the generated .theme file.",
+    limitations:
+      "Displays sample telemetry curves and process rows locally; live OS metrics and Braille graph density depend on your terminal.",
+    url: "https://github.com/aristocratos/btop#themes",
+  },
+  lazygit: {
+    renderer: "Lazygit · TUI Git client YAML preview",
+    coverage:
+      "Reads activeBorderColor, inactiveBorderColor, selectedLineBgColor, unstagedChangesColor, and defaultFgColor directly from the exported YAML config.",
+    limitations:
+      "Uses a local interactive Git repository preview; native terminal borders and custom keybindings depend on your Lazygit installation.",
+    url: "https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md#color-attributes",
+  },
+  hyprland: {
+    renderer: "Hyprland · compositor borders & rounding preview",
+    coverage:
+      "Reads $ts_bg, $ts_surface, $ts_accent, $ts_accent2, $ts_border, and rounding tokens directly from the generated Hyprland .conf file.",
+    limitations:
+      "Reconstructs active gradient borders and tiled window chrome locally; real Wayland blur, animations, and shader effects run only in Hyprland.",
+    url: "https://wiki.hyprland.org/Configuring/Variables/",
+  },
 };

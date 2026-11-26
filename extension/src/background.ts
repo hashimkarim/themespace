@@ -1,4 +1,4 @@
-import { parseTheme, presets, type Theme } from "../../web/lib/theme";
+import { parseTheme, presets, resolve, type Theme } from "../../web/lib/theme";
 import { themeFromScan } from "./core/scan";
 import type {
   AppearanceChoice,
@@ -76,6 +76,21 @@ async function ensureEngine(tabId: number) {
   }
 }
 
+function updateBadge(tabId: number, theme?: Theme) {
+  try {
+    if (!chrome.action?.setBadgeText) return;
+    if (!theme) {
+      void chrome.action.setBadgeText({ tabId, text: "" });
+      return;
+    }
+    const accent = resolve(theme, theme.defaultAppearance).accentFill;
+    void chrome.action.setBadgeBackgroundColor({ tabId, color: accent });
+    void chrome.action.setBadgeText({ tabId, text: "●" });
+  } catch {
+    /* badge updates are best-effort */
+  }
+}
+
 async function applyTo(
   tabId: number,
   ref: ThemeRef,
@@ -83,12 +98,14 @@ async function applyTo(
   appearance: AppearanceChoice,
 ) {
   await ensureEngine(tabId);
-  return send<EngineStatus>(tabId, {
+  const status = await send<EngineStatus>(tabId, {
     type: "ts:apply",
     theme,
     appearance,
     label: label(ref, theme),
   });
+  updateBadge(tabId, status.applied ? theme : undefined);
+  return status;
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
@@ -309,7 +326,31 @@ async function handle(
       delete all[message.tabId];
       await setPreviews(all);
       await ensureEngine(message.tabId);
-      return send(message.tabId, { type: "ts:revert" });
+      const res = await send(message.tabId, { type: "ts:revert" });
+      updateBadge(message.tabId);
+      return res;
+    }
+    case "peek": {
+      const tabId = message.tabId;
+      await ensureEngine(tabId);
+      if (message.active) {
+        return send(tabId, { type: "ts:revert" });
+      }
+      const all = await previews();
+      const prev = all[tabId];
+      if (prev)
+        return applyTo(tabId, prev.ref, prev.theme, prev.appearance);
+      const tab = await chrome.tabs.get(tabId);
+      const origin = originOf(tab.url);
+      const site = origin ? ((await local("sites")) ?? {})[origin] : null;
+      if (site) {
+        const theme =
+          site.ref.kind === "studio"
+            ? ((await local("studio"))?.theme ?? site.theme)
+            : site.theme;
+        return applyTo(tabId, site.ref, theme, site.appearance);
+      }
+      return null;
     }
     case "scan": {
       // The engine keeps the site's own colors from before any theme, so scanning never reverts.
@@ -335,6 +376,49 @@ async function handle(
       );
       await chrome.storage.local.set({ picked });
       return null;
+    }
+    case "import-backup": {
+      const existingPicked = (await local("picked")) ?? [];
+      const mergedPicked = new Map<string, Theme>(
+        existingPicked.map((t) => [t.id, t]),
+      );
+      let pickedCount = 0;
+      for (const item of message.picked ?? []) {
+        try {
+          const valid = parseTheme(item);
+          mergedPicked.set(valid.id, valid);
+          pickedCount++;
+        } catch {
+          /* skip invalid entries */
+        }
+      }
+      const existingSites = (await local("sites")) ?? {};
+      let siteCount = 0;
+      for (const [origin, raw] of Object.entries(message.sites ?? {})) {
+        if (!originOf(origin) || !raw || typeof raw !== "object") continue;
+        const entry = raw as Partial<SiteAssignment>;
+        try {
+          const validTheme = parseTheme(entry.theme);
+          const appearance: AppearanceChoice =
+            entry.appearance === "dark" || entry.appearance === "light"
+              ? entry.appearance
+              : "auto";
+          const ref: ThemeRef =
+            entry.ref && typeof entry.ref === "object" && "kind" in entry.ref
+              ? (entry.ref as ThemeRef)
+              : { kind: "picked", id: validTheme.id };
+          existingSites[origin] = { ref, theme: validTheme, appearance };
+          siteCount++;
+        } catch {
+          /* skip invalid site entries */
+        }
+      }
+      await chrome.storage.local.set({
+        picked: [...mergedPicked.values()].slice(0, 40),
+        sites: existingSites,
+      });
+      await syncPinnedScripts();
+      return { pickedCount, siteCount };
     }
     case "assign": {
       const sites = (await local("sites")) ?? {};
@@ -385,6 +469,7 @@ async function handle(
           appearance: site.appearance,
           label: label(site.ref, theme),
         });
+        updateBadge(tabId, theme);
       }
       return null;
     }
@@ -427,6 +512,7 @@ chrome.runtime.onMessage.addListener(
 // Previews last until the tab navigates; pinned sites re-apply on load.
 chrome.tabs.onUpdated.addListener(async (tabId, info) => {
   if (info.status !== "loading") return;
+  updateBadge(tabId);
   const all = await previews();
   if (all[tabId]) {
     delete all[tabId];
@@ -440,18 +526,32 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
     await setPreviews(all);
   }
 });
-chrome.runtime.onInstalled.addListener(() => void syncPinnedScripts());
-chrome.runtime.onStartup.addListener(() => void syncPinnedScripts());
-chrome.permissions.onRemoved.addListener(() => void syncPinnedScripts());
-// The popup can close while the permission prompt is open; finish pinning here.
-chrome.permissions.onAdded.addListener(() => void syncPinnedScripts());
-// Keyboard shortcut (Alt+Shift+T): toggle theming on the current tab.
-chrome.commands?.onCommand.addListener(async (command) => {
-  if (command !== "toggle-theme") return;
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id || !originOf(tab.url)) return;
-  const tabId = tab.id;
-  const origin = originOf(tab.url)!;
+
+function setupContextMenus() {
+  if (!chrome.contextMenus?.create) return;
+  chrome.contextMenus.removeAll(() => {
+    void chrome.runtime.lastError;
+    chrome.contextMenus.create({
+      id: "themespace-toggle",
+      title: "Toggle ThemeSpace on this page",
+      contexts: ["page"],
+    });
+    chrome.contextMenus.create({
+      id: "themespace-pickup",
+      title: "Pick up this site's theme",
+      contexts: ["page"],
+    });
+    chrome.contextMenus.create({
+      id: "themespace-studio",
+      title: "Open ThemeSpace Studio",
+      contexts: ["page", "action"],
+    });
+  });
+}
+
+async function toggleTab(tabId: number, url?: string) {
+  const origin = originOf(url);
+  if (!origin) return;
   try {
     const reply = await send<EngineStatus | undefined>(tabId, {
       type: "ts:status",
@@ -461,6 +561,7 @@ chrome.commands?.onCommand.addListener(async (command) => {
       delete all[tabId];
       await setPreviews(all);
       await send(tabId, { type: "ts:revert" });
+      updateBadge(tabId);
       return;
     }
   } catch {
@@ -487,4 +588,51 @@ chrome.commands?.onCommand.addListener(async (command) => {
   const all = await previews();
   all[tabId] = { ref: fallback.ref, theme: fallback.theme, appearance: "auto" };
   await setPreviews(all);
+}
+
+async function pickupTab(tabId: number, url?: string) {
+  if (!originOf(url)) return;
+  await ensureEngine(tabId);
+  const { sample } = await send<ScanReply>(tabId, { type: "ts:scan" });
+  const theme = parseTheme(themeFromScan(sample).theme);
+  const picked = ((await local("picked")) ?? []).filter(
+    (t) => t.id !== theme.id,
+  );
+  await chrome.storage.local.set({
+    picked: [theme, ...picked].slice(0, 40),
+  });
+  await openForPublish(theme);
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  void syncPinnedScripts();
+  setupContextMenus();
+});
+chrome.runtime.onStartup.addListener(() => {
+  void syncPinnedScripts();
+  setupContextMenus();
+});
+chrome.permissions.onRemoved.addListener(() => void syncPinnedScripts());
+// The popup can close while the permission prompt is open; finish pinning here.
+chrome.permissions.onAdded.addListener(() => void syncPinnedScripts());
+
+chrome.contextMenus?.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === "themespace-studio") {
+    void server().then((base) => chrome.tabs.create({ url: base }));
+    return;
+  }
+  if (!tab?.id) return;
+  if (info.menuItemId === "themespace-toggle")
+    void toggleTab(tab.id, tab.url);
+  else if (info.menuItemId === "themespace-pickup")
+    void pickupTab(tab.id, tab.url).catch(() => {});
+});
+
+// Keyboard shortcuts: Alt+Shift+T toggles theming, Alt+Shift+P picks up the site.
+chrome.commands?.onCommand.addListener(async (command) => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+  if (command === "toggle-theme") await toggleTab(tab.id, tab.url);
+  else if (command === "pick-site")
+    await pickupTab(tab.id, tab.url).catch(() => {});
 });

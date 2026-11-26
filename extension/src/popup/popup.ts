@@ -274,6 +274,7 @@ function renderSite() {
     : "Original colors";
   stateEl.classList.toggle("on", !!status?.applied);
   $<HTMLButtonElement>("revert").disabled = !status?.applied;
+  $<HTMLButtonElement>("peek").disabled = !status?.applied;
   for (const button of document.querySelectorAll<HTMLButtonElement>(
     "[data-appearance]",
   ))
@@ -378,6 +379,81 @@ $("revert").addEventListener(
     await call({ type: "revert", tabId });
     current = null;
     await refreshTab();
+  }),
+);
+let peeking = false;
+const startPeek = guard(async () => {
+  if (peeking || !state?.status?.applied) return;
+  peeking = true;
+  await call({ type: "peek", tabId, active: true });
+});
+const stopPeek = guard(async () => {
+  if (!peeking) return;
+  peeking = false;
+  await call({ type: "peek", tabId, active: false });
+});
+const peekBtn = $("peek");
+peekBtn.addEventListener("pointerdown", startPeek);
+peekBtn.addEventListener("pointerup", stopPeek);
+peekBtn.addEventListener("pointerleave", stopPeek);
+peekBtn.addEventListener("pointercancel", stopPeek);
+peekBtn.addEventListener("blur", stopPeek);
+peekBtn.addEventListener("keydown", (e) => {
+  if (e.key === " " || e.key === "Enter") startPeek();
+});
+peekBtn.addEventListener("keyup", (e) => {
+  if (e.key === " " || e.key === "Enter") stopPeek();
+});
+$("backup-export").addEventListener(
+  "click",
+  guard(async () => {
+    const data = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      picked: library?.picked ?? [],
+      sites: library?.sites ?? {},
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2) + "\n"], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "themespace-companion-backup.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast(
+      `Backed up ${data.picked.length} themes & ${Object.keys(data.sites).length} pinned sites.`,
+    );
+  }),
+);
+$("backup-import").addEventListener("click", () => {
+  $<HTMLInputElement>("backup-input").click();
+});
+$("backup-input").addEventListener(
+  "change",
+  guard(async () => {
+    const input = $<HTMLInputElement>("backup-input");
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text()) as {
+        picked?: unknown[];
+        sites?: Record<string, unknown>;
+      };
+      const result = await call<{ pickedCount: number; siteCount: number }>({
+        type: "import-backup",
+        picked: Array.isArray(parsed.picked) ? parsed.picked : [],
+        sites:
+          parsed.sites && typeof parsed.sites === "object" ? parsed.sites : {},
+      });
+      await Promise.all([refresh(), refreshTab()]);
+      toast(
+        `Restored ${result.pickedCount} themes & ${result.siteCount} pinned sites.`,
+      );
+    } finally {
+      input.value = "";
+    }
   }),
 );
 $("pin").addEventListener(

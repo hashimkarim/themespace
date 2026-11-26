@@ -46,6 +46,14 @@
             Dark
           </button>
         </div>
+        <button
+          type="button"
+          class="ghost"
+          id="peek"
+          title="Press and hold to compare original colors"
+        >
+          Peek
+        </button>
         <button type="button" class="ghost" id="revert">Original</button>
       </div>
       <label class="pin" id="pin-row">
@@ -119,6 +127,13 @@
     <footer class="foot">
       <span id="server-label"></span>
       <span class="foot-actions">
+        <button type="button" class="link" id="backup-export" title="Export saved themes and pinned sites">
+          Backup
+        </button>
+        <button type="button" class="link" id="backup-import" title="Import a Companion backup JSON">
+          Restore
+        </button>
+        <input type="file" id="backup-input" accept="application/json,.json" hidden />
         <a id="open-studio" class="link" target="_blank" rel="noreferrer"
           >Studio ↗</a
         >

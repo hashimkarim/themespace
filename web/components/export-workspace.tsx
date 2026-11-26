@@ -225,12 +225,60 @@ export function ExportWorkspace({
                   onClick={() => setSelected(exportTargets.map((t) => t.id))}
                 >
                   <CheckCheck size={12} />
-                  All
+                  All ({exportTargets.length})
                 </button>
                 <button className="text-button" onClick={() => setSelected([])}>
                   Clear
                 </button>
                 <span>Preview any target</span>
+              </div>
+              <div className="export-presets" aria-label="Quick integration bundles">
+                {(
+                  [
+                    [
+                      "Web",
+                      ["css", "scss", "tailwind", "shadcn", "tokens"],
+                    ],
+                    [
+                      "CLI & Term",
+                      [
+                        "ghostty",
+                        "kitty",
+                        "alacritty",
+                        "tmux",
+                        "zellij",
+                        "starship",
+                        "btop",
+                        "bat",
+                      ],
+                    ],
+                    [
+                      "Editors & Git",
+                      [
+                        "vscode",
+                        "zed",
+                        "neovim",
+                        "helix",
+                        "jetbrains",
+                        "t3-code",
+                        "gitcomet",
+                        "lazygit",
+                      ],
+                    ],
+                    [
+                      "Linux Desktop",
+                      ["hyprland", "waybar", "rofi", "gtk", "kde", "foot"],
+                    ],
+                  ] as Array<[string, string[]]>
+                ).map(([label, ids]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setSelected(ids)}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
               <div className="export-destination-list">
                 {categories.map((category) => {

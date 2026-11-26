@@ -24,8 +24,8 @@ theme.modes.light!.overrides = {
   syntaxKeyword: "#123abc",
 };
 
-test("all 39 integrations parse their real export and disclose renderer coverage", () => {
-  assert.equal(exportTargets.length, 39);
+test("all 47 integrations parse their real export and disclose renderer coverage", () => {
+  assert.equal(exportTargets.length, 47);
   assert.deepEqual(
     Object.keys(previewFidelity).sort(),
     exportTargets.map((target) => target.id).sort(),
@@ -279,5 +279,94 @@ test("workspace, git, slack, browser, and desktop adapters read independently ch
   assert.equal(
     integrationThemeFromFiles(theme, "dark", "rofi", rofiFiles).roles.accent,
     "#445566",
+  );
+
+  const jbFiles = generateTarget(theme, "jetbrains");
+  const jbFile = jbFiles.find((f) => f.path.endsWith("-dark.icls"))!;
+  jbFile.content = jbFile.content.replace(
+    /name="CARET_COLOR" value="[0-9a-f]{6}"/i,
+    'name="CARET_COLOR" value="112233"',
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "jetbrains", jbFiles).roles.cursor,
+    "#112233",
+  );
+
+  const batFiles = generateTarget(theme, "bat");
+  const batFile = batFiles.find((f) => f.path.endsWith("-dark.tmTheme"))!;
+  batFile.content = batFile.content.replace(
+    /<key>caret<\/key><string>#[0-9a-f]{6}<\/string>/i,
+    "<key>caret</key><string>#223344</string>",
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "bat", batFiles).roles.cursor,
+    "#223344",
+  );
+
+  const tmuxFiles = generateTarget(theme, "tmux");
+  const tmuxFile = tmuxFiles.find((f) => f.path.endsWith("-dark.conf"))!;
+  tmuxFile.content = tmuxFile.content.replace(
+    /pane-active-border-style "fg=#[0-9a-f]{6}"/i,
+    'pane-active-border-style "fg=#334455"',
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "tmux", tmuxFiles).roles.accent,
+    "#334455",
+  );
+
+  const zellijFiles = generateTarget(theme, "zellij");
+  const zellijFile = zellijFiles.find((f) => f.path.endsWith("-dark.kdl"))!;
+  zellijFile.content = zellijFile.content.replace(
+    /blue "#[0-9a-f]{6}"/i,
+    'blue "#445566"',
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "zellij", zellijFiles).roles.accent,
+    "#445566",
+  );
+
+  const starshipFiles = generateTarget(theme, "starship");
+  const starshipFile = starshipFiles.find((f) => f.path.endsWith("-dark.toml"))!;
+  starshipFile.content = starshipFile.content.replace(
+    /accent = "#[0-9a-f]{6}"/i,
+    'accent = "#556677"',
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "starship", starshipFiles).roles
+      .accent,
+    "#556677",
+  );
+
+  const btopFiles = generateTarget(theme, "btop");
+  const btopFile = btopFiles.find((f) => f.path.endsWith("-dark.theme"))!;
+  btopFile.content = btopFile.content.replace(
+    /theme\[hi_fg\]="#[0-9a-f]{6}"/i,
+    'theme[hi_fg]="#667788"',
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "btop", btopFiles).roles.accent,
+    "#667788",
+  );
+
+  const lgFiles = generateTarget(theme, "lazygit");
+  const lgFile = lgFiles.find((f) => f.path.endsWith("-dark.yaml"))!;
+  lgFile.content = lgFile.content.replace(
+    /activeBorderColor:\n\s+- "#[0-9a-f]{6}"/i,
+    'activeBorderColor:\n      - "#778899"',
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "lazygit", lgFiles).roles.accent,
+    "#778899",
+  );
+
+  const hyprFiles = generateTarget(theme, "hyprland");
+  const hyprFile = hyprFiles.find((f) => f.path.endsWith("-dark.conf"))!;
+  hyprFile.content = hyprFile.content.replace(
+    /\$ts_accent = rgba\([0-9a-f]{6}ff\)/i,
+    "$ts_accent = rgba(8899aaff)",
+  );
+  assert.equal(
+    integrationThemeFromFiles(theme, "dark", "hyprland", hyprFiles).roles.accent,
+    "#8899aa",
   );
 });

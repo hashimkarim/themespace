@@ -779,6 +779,204 @@ export function integrationThemeFromFiles(
       selection: vars.selection,
       selectionForeground: vars["selection-fg"],
     });
+  } else if (target === "jetbrains") {
+    const content = named(".icls");
+    const optHex = (re: RegExp) => {
+      const m = content.match(re)?.[1];
+      return m ? hex(m) : undefined;
+    };
+    const colorOpt = (k: string) =>
+      optHex(new RegExp(`<option name="${k}" value="([0-9a-fA-F]{6})"`, "i"));
+    const attrFg = (k: string) =>
+      optHex(
+        new RegExp(
+          `<option name="${k}">[\\s\\S]*?<option name="FOREGROUND" value="([0-9a-fA-F]{6})"`,
+          "i",
+        ),
+      );
+    const attrBg = (k: string) =>
+      optHex(
+        new RegExp(
+          `<option name="${k}">[\\s\\S]*?<option name="BACKGROUND" value="([0-9a-fA-F]{6})"`,
+          "i",
+        ),
+      );
+    apply({
+      background: attrBg("TEXT"),
+      foreground: attrFg("TEXT"),
+      surface: colorOpt("GUTTER_BACKGROUND"),
+      sidebar: colorOpt("GUTTER_BACKGROUND"),
+      title: colorOpt("GUTTER_BACKGROUND"),
+      tabs: colorOpt("GUTTER_BACKGROUND"),
+      status: colorOpt("GUTTER_BACKGROUND"),
+      muted: colorOpt("LINE_NUMBERS_COLOR"),
+      cursor: colorOpt("CARET_COLOR"),
+      hover: colorOpt("CARET_ROW_COLOR"),
+      selection: colorOpt("SELECTION_BACKGROUND"),
+      selectionForeground: colorOpt("SELECTION_FOREGROUND"),
+      border: colorOpt("TEARLINE_COLOR"),
+    });
+    result.syntax = {
+      keyword: attrFg("DEFAULT_KEYWORD") ?? c.syntaxKeyword,
+      string: attrFg("DEFAULT_STRING") ?? c.syntaxString,
+      number: attrFg("DEFAULT_NUMBER") ?? c.syntaxNumber,
+      function: attrFg("DEFAULT_FUNCTION_DECLARATION") ?? c.syntaxFunction,
+      type: attrFg("DEFAULT_CLASS_NAME") ?? c.syntaxType,
+      comment: attrFg("DEFAULT_LINE_COMMENT") ?? c.syntaxComment,
+    };
+  } else if (target === "bat") {
+    const content = named(".tmTheme");
+    const setting = (k: string) =>
+      content.match(
+        new RegExp(`<key>${k}</key><string>(#[0-9a-fA-F]{6})</string>`, "i"),
+      )?.[1]?.toLowerCase();
+    const ruleFg = (label: string) =>
+      content.match(
+        new RegExp(
+          `<key>name</key><string>${label}</string>[\\s\\S]*?<key>foreground</key><string>(#[0-9a-fA-F]{6})</string>`,
+          "i",
+        ),
+      )?.[1]?.toLowerCase();
+    apply({
+      background: setting("background"),
+      foreground: setting("foreground"),
+      cursor: setting("caret"),
+      hover: setting("lineHighlight"),
+      selection: setting("selection"),
+      surface: setting("gutter"),
+      sidebar: setting("gutter"),
+      muted: setting("gutterForeground"),
+      success: ruleFg("Diff Inserted"),
+      error: ruleFg("Diff Deleted"),
+      warning: ruleFg("Diff Changed"),
+    });
+    result.syntax = {
+      comment: ruleFg("Comment") ?? c.syntaxComment,
+      keyword: ruleFg("Keyword") ?? c.syntaxKeyword,
+      string: ruleFg("String") ?? c.syntaxString,
+      number: ruleFg("Number") ?? c.syntaxNumber,
+      function: ruleFg("Function") ?? c.syntaxFunction,
+      type: ruleFg("Type") ?? c.syntaxType,
+    };
+  } else if (target === "tmux") {
+    const content = named(".conf");
+    const styleVal = (opt: string, part: "bg" | "fg") =>
+      content.match(
+        new RegExp(`set -g ${opt} "[^"]*${part}=(#[0-9a-fA-F]{6})`, "i"),
+      )?.[1]?.toLowerCase();
+    apply({
+      surface: styleVal("status-style", "bg"),
+      status: styleVal("status-style", "bg"),
+      foreground: styleVal("status-style", "fg"),
+      statusText: styleVal("status-style", "fg"),
+      muted: styleVal("window-status-style", "fg"),
+      accentFill: styleVal("window-status-current-style", "bg"),
+      accentForeground: styleVal("window-status-current-style", "fg"),
+      border: styleVal("pane-border-style", "fg"),
+      accent: styleVal("pane-active-border-style", "fg"),
+      elevated: styleVal("message-style", "bg"),
+      selection: styleVal("mode-style", "bg"),
+      selectionForeground: styleVal("mode-style", "fg"),
+    });
+  } else if (target === "zellij") {
+    const content = named(".kdl");
+    const kdl = (k: string) =>
+      content.match(
+        new RegExp(`^\\s*${k}\\s+"(#[0-9a-fA-F]{6})"`, "im"),
+      )?.[1]?.toLowerCase();
+    apply({
+      foreground: kdl("fg"),
+      background: kdl("bg"),
+      surface: kdl("black"),
+      error: kdl("red"),
+      success: kdl("green"),
+      warning: kdl("yellow"),
+      accent: kdl("blue"),
+      chart5: kdl("magenta"),
+      info: kdl("cyan"),
+      accentFill: kdl("orange"),
+    });
+  } else if (target === "starship") {
+    const data = parseToml(named(".toml")) as unknown as {
+      palette: string;
+      palettes: Record<string, Record<string, string>>;
+    };
+    const p = data.palettes[data.palette] ?? {};
+    apply({
+      background: p.background,
+      surface: p.surface,
+      foreground: p.foreground,
+      muted: p.muted,
+      accent: p.accent,
+      accentFill: p.accent_fill,
+      accentForeground: p.accent_fg,
+      success: p.success,
+      warning: p.warning,
+      error: p.error,
+      info: p.info,
+    });
+  } else if (target === "btop") {
+    const content = named(".theme");
+    const btop = (k: string) =>
+      content.match(
+        new RegExp(`^theme\\[${k}\\]="(#[0-9a-fA-F]{6})"`, "im"),
+      )?.[1]?.toLowerCase();
+    apply({
+      background: btop("main_bg"),
+      foreground: btop("main_fg"),
+      accent: btop("hi_fg"),
+      accentFill: btop("hi_fg"),
+      selection: btop("selected_bg"),
+      selectionForeground: btop("selected_fg"),
+      muted: btop("inactive_fg"),
+      surface: btop("meter_bg"),
+      border: btop("cpu_box"),
+      success: btop("temp_start"),
+      warning: btop("temp_mid"),
+      error: btop("temp_end"),
+      info: btop("download_start"),
+      chart1: btop("cpu_start"),
+      chart2: btop("cpu_mid"),
+      chart3: btop("used_start"),
+      chart4: btop("used_end"),
+      chart5: btop("download_end"),
+    });
+  } else if (target === "lazygit") {
+    const data = parseYaml(named(".yaml")) as {
+      gui?: { theme?: Record<string, string[]> };
+    };
+    const t = data.gui?.theme ?? {};
+    const first = (k: string) => t[k]?.[0];
+    apply({
+      accent: first("activeBorderColor"),
+      border: first("inactiveBorderColor"),
+      warning: first("searchingActiveBorderColor"),
+      selection: first("selectedLineBgColor"),
+      accentFill: first("cherryPickedCommitBgColor"),
+      accentForeground: first("cherryPickedCommitFgColor"),
+      error: first("unstagedChangesColor"),
+      foreground: first("defaultFgColor"),
+    });
+  } else if (target === "hyprland") {
+    const content = named(".conf");
+    const hv = (k: string) => {
+      const m = content.match(
+        new RegExp(`^\\$ts_${k}\\s*=\\s*rgba\\(([0-9a-fA-F]{6})`, "im"),
+      );
+      return m ? `#${m[1].toLowerCase()}` : undefined;
+    };
+    apply({
+      background: hv("bg"),
+      surface: hv("surface"),
+      sidebar: hv("surface"),
+      foreground: hv("fg"),
+      muted: hv("muted"),
+      accent: hv("accent"),
+      accentFill: hv("accent"),
+      accent2: hv("accent2"),
+      border: hv("border"),
+      error: hv("error"),
+    });
   } else if (target === "spicetify") {
     const p = section(
       read((f) => f.path === "color.ini"),

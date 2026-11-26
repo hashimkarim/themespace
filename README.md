@@ -9,21 +9,34 @@ instructions are in [docs/deployment.md](docs/deployment.md).
 
 ThemeSpace now has a working first version in [`web/`](web/). The Studio edits
 light and dark palettes, typography, corners, spacing, shadows, semantic roles,
-syntax, charts, and all 16 ANSI colors. Every one of the 39 working integrations
+syntax, charts, and all 16 ANSI colors. Every one of the 47 working integrations
 has a live preview. Native preview adapters read the actual generated theme files:
 Monaco for VS Code, Ghostty's WebAssembly terminal core, xterm.js for the other
-eleven terminals, and CodeMirror for the remaining editors and Obsidian. Spotify
-and Discord use adapted MIT-licensed community frontends with local interactions,
-while T3 Code, Git clients, Slack, browser chrome, and Linux desktop/Waybar/Rofi
-surfaces reconstruct their UIs directly from the generated files. Each native preview
+eleven terminals, and CodeMirror for the remaining editors (including JetBrains
+and bat/TextMate) and Obsidian. Spotify and Discord use adapted MIT-licensed
+community frontends with local interactions, while T3 Code, Git clients (GitComet,
+SmartGit, Lazygit), Slack, browser chrome, CLI multiplexers/monitors (tmux,
+Zellij, Starship, btop), and Linux desktop/Hyprland/Waybar/Rofi surfaces
+reconstruct their UIs directly from the generated files. Each native preview
 lists its renderer, source files and limits under **About this preview**. See the
 [renderer research and coverage](docs/preview-renderers.md).
 
+Studio also includes a multi-pair **WCAG Contrast Audit** with 1-click **Fix
+contrast**, **Derive light/dark** counterpart generation, quick tone/hue
+transforms, a **Color vision simulator** (Protanopia, Deuteranopia, Tritanopia,
+Monochrome) in the preview toolbar, **Shareable draft URLs** (`#share=...`), and
+a **Universal theme importer** supporting ThemeSpace JSON, VS Code, T3 Code,
+Windows Terminal, Ghostty, kitty, Alacritty, WezTerm, Konsole, Xresources, and
+CSS custom properties.
+
 The [ThemeSpace Companion](extension/) browser extension (Chromium and
-Firefox) shows other websites in your themes, previews your studio draft live
-while you edit, manages per-site pinned themes, searches across your library,
-toggles theming with `Alt+Shift+T`, and picks up any website's colors with
-inline rename, CSS copy, and JSON export so you can refine and publish them here.
+Firefox) shows other websites in your themes, displays an accent-colored toolbar
+badge on themed tabs, previews your studio draft live while you edit, offers
+hold-to-**Peek** before/after comparison, manages per-site pinned themes,
+searches across your library, backs up & restores themes/sites to JSON, adds
+right-click context menu actions and keyboard shortcuts (`Alt+Shift+T` toggle,
+`Alt+Shift+P` pick up), and picks up any website's colors with inline rename,
+CSS copy, and JSON export so you can refine and publish them here.
 
 Explore includes six starter palettes plus actual published snapshots. Themes
 can be searched, filtered, opened, and remixed. Guest drafts persist in browser
@@ -82,16 +95,16 @@ reconstructed application shells; they do not run complete desktop applications.
 
 ## Exports
 
-| Category       | Working exporters (39 total)                                                                                               |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Web            | CSS custom properties, Sass/SCSS module, Tailwind CSS v4, shadcn/ui with Tailwind v4, DTCG 2025.10 tokens                  |
-| Terminals      | Ghostty, kitty, Alacritty, WezTerm, Windows Terminal, iTerm2, Warp, foot, Termux, Xresources, Konsole, GNOME Terminal      |
-| Editors        | VS Code, Zed, Neovim, Helix, Sublime Text                                                                                  |
-| Workspace & Git| T3 Code, GitComet, SmartGit                                                                                                |
-| Chat and music | Spicetify, BetterDiscord, Vencord, Slack                                                                                   |
-| Browsers       | Firefox, Chrome/Chromium, Vivaldi, Zen Browser, Stylus                                                                     |
-| Notes          | Obsidian                                                                                                                   |
-| Desktop        | GTK 3 / GTK 4, KDE Plasma, Waybar, Rofi                                                                                    |
+| Category       | Working exporters (47 total)                                                                                                                       |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web            | CSS custom properties, Sass/SCSS module, Tailwind CSS v4, shadcn/ui with Tailwind v4, DTCG 2025.10 tokens                                          |
+| Terminals      | Ghostty, kitty, Alacritty, WezTerm, Windows Terminal, iTerm2, Warp, foot, Termux, Xresources, Konsole, GNOME Terminal, tmux, Zellij, Starship, btop |
+| Editors        | VS Code, Zed, Neovim, Helix, Sublime Text, JetBrains IDEs, bat / TextMate                                                                          |
+| Workspace & Git| T3 Code, GitComet, SmartGit, Lazygit                                                                                                               |
+| Chat and music | Spicetify, BetterDiscord, Vencord, Slack                                                                                                           |
+| Browsers       | Firefox, Chrome/Chromium, Vivaldi, Zen Browser, Stylus                                                                                             |
+| Notes          | Obsidian                                                                                                                                           |
+| Desktop        | GTK 3 / GTK 4, KDE Plasma, Hyprland, Waybar, Rofi                                                                                                  |
 
 The large export dialog combines integration selection with Preview, Files,
 and Install tabs. Inspect a target or the full package, then download one file,

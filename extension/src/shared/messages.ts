@@ -44,9 +44,15 @@ export type BackgroundMessage =
       appearance: AppearanceChoice;
     }
   | { type: "revert"; tabId: number }
+  | { type: "peek"; tabId: number; active: boolean }
   | { type: "scan"; tabId: number }
   | { type: "save-picked"; theme: Theme }
   | { type: "delete-picked"; id: string }
+  | {
+      type: "import-backup";
+      picked: unknown[];
+      sites: Record<string, unknown>;
+    }
   | { type: "assign"; origin: string; assignment: SiteAssignment | null }
   | { type: "publish"; theme: Theme }
   | { type: "save-from-app"; theme: Theme }

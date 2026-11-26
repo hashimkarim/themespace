@@ -1367,6 +1367,239 @@ export function generateTarget(source: Theme, targetId: string): ThemeFile[] {
               `element selected {\n  background-color: @accent;\n  text-color: @accent-fg;\n}\n`,
           );
           break;
+        case "jetbrains": {
+          const hexNoHash = (color: string) => color.slice(1).toLowerCase();
+          const escXml = (s: string) =>
+            s
+              .replaceAll("&", "&amp;")
+              .replaceAll("<", "&lt;")
+              .replaceAll(">", "&gt;")
+              .replaceAll('"', "&quot;");
+          const parentScheme = mode === "dark" ? "Darcula" : "Default";
+          const syn = syntax(c);
+          add(
+            `${file}.icls`,
+            `<scheme name="${escXml(name)}" version="142" parent_scheme="${parentScheme}">\n` +
+              `  <metaInfo>\n    <property name="created">ThemeSpace ${generatorVersion}</property>\n  </metaInfo>\n` +
+              `  <colors>\n` +
+              `    <option name="CARET_COLOR" value="${hexNoHash(c.accent)}" />\n` +
+              `    <option name="CARET_ROW_COLOR" value="${hexNoHash(c.hover)}" />\n` +
+              `    <option name="CONSOLE_BACKGROUND_KEY" value="${hexNoHash(c.background)}" />\n` +
+              `    <option name="GUTTER_BACKGROUND" value="${hexNoHash(c.surface)}" />\n` +
+              `    <option name="LINE_NUMBERS_COLOR" value="${hexNoHash(c.muted)}" />\n` +
+              `    <option name="SELECTION_BACKGROUND" value="${hexNoHash(c.selection)}" />\n` +
+              `    <option name="SELECTION_FOREGROUND" value="${hexNoHash(c.selectionForeground)}" />\n` +
+              `    <option name="TEARLINE_COLOR" value="${hexNoHash(c.border)}" />\n` +
+              `  </colors>\n` +
+              `  <attributes>\n` +
+              `    <option name="TEXT">\n      <value>\n        <option name="FOREGROUND" value="${hexNoHash(c.foreground)}" />\n        <option name="BACKGROUND" value="${hexNoHash(c.background)}" />\n      </value>\n    </option>\n` +
+              `    <option name="DEFAULT_KEYWORD">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.keyword)}" /></value>\n    </option>\n` +
+              `    <option name="DEFAULT_STRING">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.string)}" /></value>\n    </option>\n` +
+              `    <option name="DEFAULT_NUMBER">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.number)}" /></value>\n    </option>\n` +
+              `    <option name="DEFAULT_FUNCTION_DECLARATION">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.function)}" /></value>\n    </option>\n` +
+              `    <option name="DEFAULT_CLASS_NAME">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.type)}" /></value>\n    </option>\n` +
+              `    <option name="DEFAULT_LINE_COMMENT">\n      <value><option name="FOREGROUND" value="${hexNoHash(syn.comment)}" /><option name="FONT_TYPE" value="2" /></value>\n    </option>\n` +
+              `    <option name="ERRORS_ATTRIBUTES">\n      <value><option name="EFFECT_COLOR" value="${hexNoHash(c.error)}" /><option name="EFFECT_TYPE" value="2" /></value>\n    </option>\n` +
+              `    <option name="WARNING_ATTRIBUTES">\n      <value><option name="EFFECT_COLOR" value="${hexNoHash(c.warning)}" /><option name="EFFECT_TYPE" value="2" /></value>\n    </option>\n` +
+              `  </attributes>\n</scheme>\n`,
+          );
+          break;
+        }
+        case "bat": {
+          const escXml = (s: string) =>
+            s
+              .replaceAll("&", "&amp;")
+              .replaceAll("<", "&lt;")
+              .replaceAll(">", "&gt;");
+          const syn = syntax(c);
+          const rule = (label: string, scope: string, fg: string) =>
+            `    <dict>\n      <key>name</key><string>${label}</string>\n      <key>scope</key><string>${scope}</string>\n      <key>settings</key><dict><key>foreground</key><string>${fg}</string></dict>\n    </dict>`;
+          add(
+            `${file}.tmTheme`,
+            `<?xml version="1.0" encoding="UTF-8"?>\n` +
+              `<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n` +
+              `<plist version="1.0">\n<dict>\n` +
+              `  <key>name</key><string>${escXml(name)}</string>\n` +
+              `  <key>settings</key>\n  <array>\n` +
+              `    <dict>\n      <key>settings</key>\n      <dict>\n` +
+              `        <key>background</key><string>${c.background}</string>\n` +
+              `        <key>foreground</key><string>${c.foreground}</string>\n` +
+              `        <key>caret</key><string>${c.accent}</string>\n` +
+              `        <key>lineHighlight</key><string>${c.hover}</string>\n` +
+              `        <key>selection</key><string>${c.selection}</string>\n` +
+              `        <key>gutter</key><string>${c.surface}</string>\n` +
+              `        <key>gutterForeground</key><string>${c.muted}</string>\n` +
+              `      </dict>\n    </dict>\n` +
+              [
+                rule("Comment", "comment", syn.comment),
+                rule("Keyword", "keyword, storage.type", syn.keyword),
+                rule("String", "string", syn.string),
+                rule("Number", "constant.numeric", syn.number),
+                rule("Function", "entity.name.function", syn.function),
+                rule("Type", "entity.name.type, support.type", syn.type),
+                rule("Diff Inserted", "markup.inserted", c.success),
+                rule("Diff Deleted", "markup.deleted", c.error),
+                rule("Diff Changed", "markup.changed", c.warning),
+              ].join("\n") +
+              `\n  </array>\n</dict>\n</plist>\n`,
+          );
+          break;
+        }
+        case "tmux":
+          add(
+            `${file}.conf`,
+            `# ${name} for tmux · Generated with ThemeSpace ${generatorVersion}\n` +
+              `set -g status-style "bg=${c.surface},fg=${c.foreground}"\n` +
+              `set -g window-status-style "bg=${c.surface},fg=${c.muted}"\n` +
+              `set -g window-status-current-style "bg=${c.accentFill},fg=${c.accentForeground},bold"\n` +
+              `set -g pane-border-style "fg=${c.border}"\n` +
+              `set -g pane-active-border-style "fg=${c.accent}"\n` +
+              `set -g message-style "bg=${c.elevated},fg=${c.foreground}"\n` +
+              `set -g message-command-style "bg=${c.selection},fg=${c.selectionForeground}"\n` +
+              `set -g mode-style "bg=${c.selection},fg=${c.selectionForeground}"\n` +
+              `set -g status-left "#[bg=${c.accentFill},fg=${c.accentForeground},bold] #S #[bg=${c.surface},fg=${c.foreground}] "\n` +
+              `set -g status-right "#[fg=${c.muted}]%H:%M #[fg=${c.success}]● #[fg=${c.foreground}]#h "\n`,
+          );
+          break;
+        case "zellij":
+          add(
+            `${file}.kdl`,
+            `// ${name} for Zellij · Generated with ThemeSpace ${generatorVersion}\n` +
+              `themes {\n` +
+              `    ${file} {\n` +
+              `        fg "${c.foreground}"\n` +
+              `        bg "${c.background}"\n` +
+              `        black "${c.surface}"\n` +
+              `        red "${c.error}"\n` +
+              `        green "${c.success}"\n` +
+              `        yellow "${c.warning}"\n` +
+              `        blue "${c.accent}"\n` +
+              `        magenta "${c.chart5}"\n` +
+              `        cyan "${c.info}"\n` +
+              `        white "${c.foreground}"\n` +
+              `        orange "${c.accentFill}"\n` +
+              `    }\n` +
+              `}\n`,
+          );
+          break;
+        case "starship": {
+          const palName = `${slug.replaceAll("-", "_")}_${mode}`;
+          add(
+            `${file}.toml`,
+            `# ${name} for Starship · Generated with ThemeSpace ${generatorVersion}\n` +
+              `palette = "${palName}"\n\n` +
+              `[palettes.${palName}]\n` +
+              `background = "${c.background}"\n` +
+              `surface = "${c.surface}"\n` +
+              `foreground = "${c.foreground}"\n` +
+              `muted = "${c.muted}"\n` +
+              `accent = "${c.accent}"\n` +
+              `accent_fill = "${c.accentFill}"\n` +
+              `accent_fg = "${c.accentForeground}"\n` +
+              `success = "${c.success}"\n` +
+              `warning = "${c.warning}"\n` +
+              `error = "${c.error}"\n` +
+              `info = "${c.info}"\n\n` +
+              `[directory]\nstyle = "bold accent"\n\n` +
+              `[git_branch]\nstyle = "bold success"\n\n` +
+              `[character]\nsuccess_symbol = "[❯](bold accent)"\nerror_symbol = "[❯](bold error)"\n`,
+          );
+          break;
+        }
+        case "btop":
+          add(
+            `${file}.theme`,
+            `# ${name} for btop++ · Generated with ThemeSpace ${generatorVersion}\n` +
+              `theme[main_bg]="${c.background}"\n` +
+              `theme[main_fg]="${c.foreground}"\n` +
+              `theme[title]="${c.foreground}"\n` +
+              `theme[hi_fg]="${c.accent}"\n` +
+              `theme[selected_bg]="${c.selection}"\n` +
+              `theme[selected_fg]="${c.selectionForeground}"\n` +
+              `theme[inactive_fg]="${c.muted}"\n` +
+              `theme[graph_text]="${c.muted}"\n` +
+              `theme[meter_bg]="${c.surface}"\n` +
+              `theme[proc_misc]="${c.info}"\n` +
+              `theme[cpu_box]="${c.border}"\n` +
+              `theme[mem_box]="${c.border}"\n` +
+              `theme[net_box]="${c.border}"\n` +
+              `theme[proc_box]="${c.border}"\n` +
+              `theme[div_line]="${c.border}"\n` +
+              `theme[temp_start]="${c.success}"\n` +
+              `theme[temp_mid]="${c.warning}"\n` +
+              `theme[temp_end]="${c.error}"\n` +
+              `theme[cpu_start]="${c.accent}"\n` +
+              `theme[cpu_mid]="${c.chart2}"\n` +
+              `theme[cpu_end]="${c.error}"\n` +
+              `theme[free_start]="${c.success}"\n` +
+              `theme[free_mid]="${c.info}"\n` +
+              `theme[free_end]="${c.accent}"\n` +
+              `theme[used_start]="${c.warning}"\n` +
+              `theme[used_mid]="${c.chart5}"\n` +
+              `theme[used_end]="${c.error}"\n` +
+              `theme[download_start]="${c.info}"\n` +
+              `theme[download_mid]="${c.accent}"\n` +
+              `theme[download_end]="${c.chart5}"\n` +
+              `theme[upload_start]="${c.success}"\n` +
+              `theme[upload_mid]="${c.warning}"\n` +
+              `theme[upload_end]="${c.error}"\n`,
+          );
+          break;
+        case "lazygit":
+          add(
+            `${file}.yaml`,
+            `# ${name} for Lazygit · Generated with ThemeSpace ${generatorVersion}\n` +
+              `gui:\n` +
+              `  theme:\n` +
+              `    activeBorderColor:\n      - "${c.accent}"\n      - bold\n` +
+              `    inactiveBorderColor:\n      - "${c.border}"\n` +
+              `    searchingActiveBorderColor:\n      - "${c.warning}"\n      - bold\n` +
+              `    optionsTextColor:\n      - "${c.accent}"\n` +
+              `    selectedLineBgColor:\n      - "${c.selection}"\n` +
+              `    cherryPickedCommitFgColor:\n      - "${c.accentForeground}"\n` +
+              `    cherryPickedCommitBgColor:\n      - "${c.accentFill}"\n` +
+              `    markedBaseCommitFgColor:\n      - "${c.accentForeground}"\n` +
+              `    markedBaseCommitBgColor:\n      - "${c.warning}"\n` +
+              `    unstagedChangesColor:\n      - "${c.error}"\n` +
+              `    defaultFgColor:\n      - "${c.foreground}"\n`,
+          );
+          break;
+        case "hyprland": {
+          const rgbaHex = (color: string, alpha = "ff") =>
+            `rgba(${color.slice(1).toLowerCase()}${alpha})`;
+          add(
+            `${file}.conf`,
+            `# ${name} for Hyprland · Generated with ThemeSpace ${generatorVersion}\n` +
+              `$ts_bg = ${rgbaHex(c.background)}\n` +
+              `$ts_surface = ${rgbaHex(c.surface)}\n` +
+              `$ts_fg = ${rgbaHex(c.foreground)}\n` +
+              `$ts_muted = ${rgbaHex(c.muted)}\n` +
+              `$ts_accent = ${rgbaHex(c.accentFill)}\n` +
+              `$ts_accent2 = ${rgbaHex(c.accent2)}\n` +
+              `$ts_border = ${rgbaHex(c.border)}\n` +
+              `$ts_error = ${rgbaHex(c.error)}\n\n` +
+              `general {\n` +
+              `    col.active_border = $ts_accent $ts_accent2 45deg\n` +
+              `    col.inactive_border = $ts_border\n` +
+              `}\n\n` +
+              `decoration {\n` +
+              `    rounding = ${Math.min(18, theme.style.radius)}\n` +
+              `    shadow {\n` +
+              `        color = ${rgbaHex(c.background, "aa")}\n` +
+              `    }\n` +
+              `}\n\n` +
+              `group {\n` +
+              `    col.border_active = $ts_accent\n` +
+              `    col.border_inactive = $ts_border\n` +
+              `    groupbar {\n` +
+              `        text_color = $ts_fg\n` +
+              `        col.active = $ts_accent\n` +
+              `        col.inactive = $ts_surface\n` +
+              `    }\n` +
+              `}\n`,
+          );
+          break;
+        }
         default:
           throw new Error(`No exporter registered for ${targetId}.`);
       }

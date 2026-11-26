@@ -93,8 +93,8 @@ test("semantic foregrounds, explicit overrides, and independent appearances surv
   assert.equal(remix.parent?.version, 3);
 });
 
-test("all 39 export targets generate parseable files and reject unknown targets", async () => {
-  assert.equal(exportTargets.length, 39);
+test("all 47 export targets generate parseable files and reject unknown targets", async () => {
+  assert.equal(exportTargets.length, 47);
   assert.equal(targets.filter((t) => t.status === "planned").length, 0);
   for (const target of exportTargets) {
     const files = generateTarget(source, target.id);
@@ -283,6 +283,32 @@ test("terminal and browser exports preserve native data shapes and all ANSI colo
 
   const rofi = mainFile("rofi", "-dark.rasi");
   assert.match(rofi, /accent: #123abc;/);
+
+  const jetbrains = mainFile("jetbrains", "-dark.icls");
+  assert.match(jetbrains, /name="CARET_COLOR" value="123abc"/);
+  assert.match(jetbrains, /name="DEFAULT_KEYWORD"[\s\S]*value="ab12cd"/);
+
+  const bat = mainFile("bat", "-dark.tmTheme");
+  assert.match(bat, /<key>caret<\/key><string>#123abc<\/string>/);
+  assert.match(bat, /<string>#ab12cd<\/string>/);
+
+  const tmux = mainFile("tmux", "-dark.conf");
+  assert.match(tmux, /window-status-current-style "bg=#123abc/);
+
+  const zellij = mainFile("zellij", "-dark.kdl");
+  assert.match(zellij, /blue "#123abc"/);
+
+  const starship = mainFile("starship", "-dark.toml");
+  assert.match(starship, /accent = "#123abc"/);
+
+  const btop = mainFile("btop", "-dark.theme");
+  assert.match(btop, /theme\[hi_fg\]="#123abc"/);
+
+  const lazygit = mainFile("lazygit", "-dark.yaml");
+  assert.match(lazygit, /activeBorderColor:\n\s+- "#123abc"/);
+
+  const hyprland = mainFile("hyprland", "-dark.conf");
+  assert.match(hyprland, /\$ts_accent = rgba\(123abcff\)/);
 });
 
 test("component fixture escapes user text and contains only valid theme file references", () => {

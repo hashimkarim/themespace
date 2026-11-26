@@ -988,7 +988,9 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
                 ? "KDE System Settings"
                 : target === "gtk"
                   ? "GTK Preferences"
-                  : `${previewProfiles[target].label} — ${theme.name}`}
+                  : target === "hyprland"
+                    ? `Hyprland · Active Window (${theme.name})`
+                    : `${previewProfiles[target].label} — ${theme.name}`}
             </b>
             <button className="desktop-primary-btn">Apply</button>
           </div>
@@ -1045,6 +1047,164 @@ function DesktopScene({ theme, target }: { theme: Theme; target: string }) {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+function CliScene({ theme, target }: { theme: Theme; target: string }) {
+  const [activePane, setActivePane] = useState(0);
+  const [selectedProc, setSelectedProc] = useState(0);
+  if (target === "btop") {
+    const procs = [
+      { pid: 4102, name: "themespace-web", cpu: "14.2%", mem: "184M" },
+      { pid: 3891, name: "ghostty", cpu: "4.8%", mem: "92M" },
+      { pid: 2910, name: "rust-analyzer", cpu: "21.6%", mem: "612M" },
+      { pid: 1420, name: "waybar", cpu: "0.7%", mem: "28M" },
+    ];
+    return (
+      <div className="native-window native-cli cli-btop">
+        <div className="native-titlebar">
+          <Dots />
+          <span>btop++ — {theme.name}</span>
+        </div>
+        <div className="btop-grid">
+          <section className="btop-box">
+            <header>
+              <b>CPU</b>
+              <span>38% · 54°C</span>
+            </header>
+            <div className="btop-bars">
+              {[28, 46, 62, 51, 74, 83, 64, 42, 58, 70, 49, 36].map((h, i) => (
+                <span
+                  key={i}
+                  style={{
+                    height: `${h}%`,
+                    background:
+                      h > 70
+                        ? "var(--ts-error)"
+                        : h > 50
+                          ? "var(--ts-chart2)"
+                          : "var(--ts-chart1)",
+                  }}
+                />
+              ))}
+            </div>
+          </section>
+          <section className="btop-box">
+            <header>
+              <b>Memory</b>
+              <span>12.4 / 32 GiB</span>
+            </header>
+            <div className="btop-meter">
+              <i style={{ width: "39%", background: "var(--ts-chart3)" }} />
+            </div>
+            <div className="btop-meter-meta">
+              <span>Used 39%</span>
+              <span>Free 61%</span>
+            </div>
+          </section>
+          <section className="btop-box btop-procs">
+            <header>
+              <b>Processes</b>
+              <span>PID · Command · CPU · Mem</span>
+            </header>
+            {procs.map((p, i) => (
+              <button
+                key={p.pid}
+                className={`btop-row ${selectedProc === i ? "selected" : ""}`}
+                onClick={() => setSelectedProc(i)}
+              >
+                <span>{p.pid}</span>
+                <b>{p.name}</b>
+                <span>{p.cpu}</span>
+                <span>{p.mem}</span>
+              </button>
+            ))}
+          </section>
+        </div>
+      </div>
+    );
+  }
+  if (target === "starship") {
+    return (
+      <div className="native-window native-cli cli-starship">
+        <div className="native-titlebar">
+          <Dots />
+          <span>Starship Prompt — {theme.name}</span>
+        </div>
+        <div className="starship-body">
+          <div className="starship-line">
+            <span className="st-dir">~/git/themespace</span>
+            <span className="st-branch">on ⎇ main</span>
+            <span className="st-status">[+3 ~1]</span>
+            <span className="st-runtime">via ⬢ v22.14</span>
+          </div>
+          <div className="starship-cmd">
+            <b className="st-ok">❯</b> npm run build &amp;&amp; npm test
+          </div>
+          <div className="starship-out">
+            ✓ Exported 47 integrations · 0 warnings (1.8s)
+          </div>
+          <div className="starship-line">
+            <span className="st-dir">~/git/themespace</span>
+            <span className="st-branch">on ⎇ main</span>
+            <span className="st-err">✘ 1</span>
+          </div>
+          <div className="starship-cmd">
+            <b className="st-fail">❯</b> git push --force
+          </div>
+          <div className="starship-muted">
+            hint: palette colors come directly from your exported Starship TOML table.
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const windows = ["1:code", "2:server", "3:git"];
+  return (
+    <div className={`native-window native-cli cli-${target}`}>
+      <div className="native-titlebar">
+        <Dots />
+        <span>
+          {target === "zellij" ? "Zellij" : "tmux"} — {theme.name}
+        </span>
+      </div>
+      <div className="mux-panes">
+        <button
+          type="button"
+          className={`mux-pane ${activePane === 0 ? "active" : ""}`}
+          onClick={() => setActivePane(0)}
+        >
+          <span className="mux-pane-title">pane 0 · nvim</span>
+          <code>export const accent = &quot;var(--ts-accent)&quot;;</code>
+          <code className="mux-sel">-- VISUAL -- 12 lines selected</code>
+        </button>
+        <button
+          type="button"
+          className={`mux-pane ${activePane === 1 ? "active" : ""}`}
+          onClick={() => setActivePane(1)}
+        >
+          <span className="mux-pane-title">pane 1 · dev server</span>
+          <code>ready in 240ms · http://localhost:5173</code>
+          <code className="mux-ok">● 200 GET /api/themes</code>
+        </button>
+      </div>
+      <div className="mux-status">
+        <span className="mux-session">
+          {target === "zellij" ? "ZELLIJ" : "main"}
+        </span>
+        <div className="mux-tabs">
+          {windows.map((w, i) => (
+            <span
+              key={w}
+              className={activePane === i ? "active" : ""}
+              onClick={() => setActivePane(i % 2)}
+            >
+              {w}
+            </span>
+          ))}
+        </div>
+        <span className="mux-right">14:20 ● host</span>
       </div>
     </div>
   );
@@ -1177,6 +1337,8 @@ export function IntegrationPreview({
           <SlackWorkspace theme={theme} />
         ) : profile.kind === "desktop" ? (
           <DesktopScene theme={theme} target={target} />
+        ) : profile.kind === "cli" ? (
+          <CliScene theme={theme} target={target} />
         ) : (
           <Tokens theme={theme} mode={mode} />
         )}

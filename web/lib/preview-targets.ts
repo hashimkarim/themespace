@@ -14,7 +14,8 @@ export type PreviewKind =
   | "workspace"
   | "git"
   | "slack"
-  | "desktop";
+  | "desktop"
+  | "cli";
 export const previewProfiles: Record<
   string,
   { kind: PreviewKind; label: string; variant?: string }
@@ -62,6 +63,14 @@ export const previewProfiles: Record<
   kde: { kind: "desktop", label: "KDE Plasma", variant: "kde" },
   waybar: { kind: "desktop", label: "Waybar", variant: "waybar" },
   rofi: { kind: "desktop", label: "Rofi", variant: "rofi" },
+  jetbrains: { kind: "editor", label: "JetBrains IDEs" },
+  bat: { kind: "editor", label: "bat / TextMate" },
+  tmux: { kind: "cli", label: "tmux", variant: "tmux" },
+  zellij: { kind: "cli", label: "Zellij", variant: "zellij" },
+  starship: { kind: "cli", label: "Starship", variant: "starship" },
+  btop: { kind: "cli", label: "btop", variant: "btop" },
+  lazygit: { kind: "git", label: "Lazygit" },
+  hyprland: { kind: "desktop", label: "Hyprland", variant: "hyprland" },
 };
 export function previewStyle(
   theme: Theme,

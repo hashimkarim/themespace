@@ -950,6 +950,212 @@ body:has(.editor-renderer-page) {
   background: var(--rofi-accent, var(--ts-accent-fill));
   color: var(--rofi-accent-fg, var(--ts-accent-foreground));
 }
+.desktop-hyprland .desktop-app-window {
+  border: 2px solid var(--ts-accent-fill);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ts-accent2, var(--ts-accent)) 60%, transparent),
+    0 14px 36px rgb(0 0 0 / 0.32);
+}
+.native-cli {
+  display: flex;
+  flex-direction: column;
+  background: var(--ts-background);
+  color: var(--ts-foreground);
+  font-family: var(--ts-font-mono);
+  font-size: 11px;
+  min-height: 290px;
+}
+.btop-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px;
+  flex: 1;
+}
+.btop-box {
+  border: 1px solid var(--ts-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--ts-surface) 45%, var(--ts-background));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.btop-box header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--ts-muted);
+}
+.btop-box header b {
+  color: var(--ts-accent);
+}
+.btop-bars {
+  display: flex;
+  align-items: end;
+  gap: 4px;
+  height: 58px;
+  padding-top: 4px;
+}
+.btop-bars span {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  min-height: 6px;
+}
+.btop-meter {
+  height: 10px;
+  border-radius: 99px;
+  background: var(--ts-surface);
+  overflow: hidden;
+  border: 1px solid var(--ts-border);
+  margin-top: 10px;
+}
+.btop-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+.btop-meter-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--ts-muted);
+}
+.btop-procs {
+  grid-column: 1 / -1;
+}
+.btop-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 54px 54px;
+  gap: 8px;
+  text-align: left;
+  padding: 4px 6px;
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+}
+.btop-row.selected {
+  background: var(--ts-selection);
+  color: var(--ts-selection-foreground);
+}
+.starship-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.starship-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-weight: 600;
+}
+.st-dir {
+  color: var(--ts-accent);
+}
+.st-branch {
+  color: var(--ts-success);
+}
+.st-status {
+  color: var(--ts-warning);
+}
+.st-runtime {
+  color: var(--ts-info);
+}
+.st-err {
+  color: var(--ts-error);
+}
+.starship-cmd {
+  display: flex;
+  gap: 8px;
+}
+.st-ok {
+  color: var(--ts-accent);
+}
+.st-fail {
+  color: var(--ts-error);
+}
+.starship-out {
+  color: var(--ts-success);
+  margin-bottom: 8px;
+}
+.starship-muted {
+  color: var(--ts-muted);
+  font-size: 10px;
+}
+.mux-panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px;
+  flex: 1;
+}
+.mux-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--ts-border);
+  background: var(--ts-background);
+  color: var(--ts-foreground);
+  font: inherit;
+}
+.mux-pane.active {
+  border-color: var(--ts-accent);
+  box-shadow: inset 0 0 0 1px var(--ts-accent);
+}
+.mux-pane-title {
+  font-size: 10px;
+  color: var(--ts-muted);
+}
+.mux-sel {
+  background: var(--ts-selection);
+  color: var(--ts-selection-foreground);
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+.mux-ok {
+  color: var(--ts-success);
+}
+.mux-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: var(--ts-surface);
+  color: var(--ts-foreground);
+  border-top: 1px solid var(--ts-border);
+  font-size: 10px;
+}
+.mux-session {
+  background: var(--ts-accent-fill);
+  color: var(--ts-accent-foreground);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+.mux-tabs {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+.mux-tabs span {
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--ts-muted);
+  cursor: pointer;
+}
+.mux-tabs span.active {
+  background: var(--ts-accent-fill);
+  color: var(--ts-accent-foreground);
+  font-weight: 600;
+}
+.mux-right {
+  color: var(--ts-muted);
+}
 @container appPreview (max-width: 640px) {
   .integration-renderer .native-editor .native-filetree {
     width: 115px;

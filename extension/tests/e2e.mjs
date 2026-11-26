@@ -564,6 +564,28 @@ try {
       );
       await ui.getByText("Night", { exact: true }).first().waitFor();
       assert.equal(await ui.locator("#state").textContent(), "Night");
+      // Holding Peek temporarily shows original colors and releasing re-applies the theme.
+      await ui.locator("#peek").dispatchEvent("pointerdown");
+      await page.waitForFunction(
+        () =>
+          getComputedStyle(document.documentElement).backgroundColor !==
+          "rgb(16, 19, 26)",
+      );
+      await ui.locator("#peek").dispatchEvent("pointerup");
+      await page.waitForFunction(
+        () =>
+          getComputedStyle(document.documentElement).backgroundColor ===
+          "rgb(16, 19, 26)",
+      );
+      // Backup restore merges picked themes and pinned sites cleanly.
+      const backupRes = await call({
+        type: "import-backup",
+        picked: [{ ...dark, id: "restored-backup-theme", name: "Restored Night" }],
+        sites: {},
+      });
+      assert.equal(backupRes.pickedCount, 1);
+      const afterBackup = await call({ type: "library" });
+      assert.ok(afterBackup.picked.some((t) => t.id === "restored-backup-theme"));
       // Reopening the popup during an unpinned preview restores the active theme and enables pinning.
       await ui.reload();
       assert.equal(await ui.locator("#state").textContent(), "Night");

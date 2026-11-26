@@ -23,6 +23,7 @@ import {
   Globe2,
   ImagePlus,
   Layers3,
+  Link2,
   LoaderCircle,
   Moon,
   Paintbrush,
@@ -32,16 +33,17 @@ import {
   Search,
   Shuffle,
   SlidersHorizontal,
+  Sparkles,
   Sun,
   Undo2,
   Upload,
+  Wand2,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   baseRoles,
-  contrast,
   extraRoles,
   fontOptions,
   hexPattern,
@@ -75,6 +77,16 @@ import { readPreferences, GUEST_DRAFT_KEY } from "@/lib/preferences";
 import { ThemedSelect } from "./ui/select";
 import { ImagePalettePicker } from "./image-palette-picker";
 import { applyPalettes, randomPalettes } from "@/lib/palette-tools";
+import {
+  autoFixContrast,
+  contrastAudit,
+  decodeThemeShare,
+  deriveCounterpartMode,
+  encodeThemeShare,
+  transformPalette,
+  type PaletteTransform,
+} from "@/lib/color-tools";
+import { importNativeTheme } from "@/lib/importers";
 import type { PublishedTheme } from "@/lib/store";
 
 type View =
@@ -693,6 +705,37 @@ export function ThemeSpace({
     };
     if (companionImport.current) acceptImport.current(companionImport.current);
   });
+  // Load a theme shared via #share=<base64url> once the workspace is ready.
+  const shareHandled = useRef(false);
+  useEffect(() => {
+    if (!loaded || draftChoice || shareHandled.current) return;
+    const hash = window.location.hash;
+    if (!hash.startsWith("#share=")) return;
+    shareHandled.current = true;
+    const payload = hash.slice("#share=".length);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      window.location.pathname,
+    );
+    queueMicrotask(() => {
+      try {
+        const shared = decodeThemeShare(payload);
+        shared.id = `${slugify(shared.name).slice(0, 48)}-${crypto.randomUUID().slice(0, 8)}`;
+        shared.targets = shared.targets.filter((id) =>
+          exportTargets.some((t) => t.id === id),
+        );
+        dispatch({ type: "edit", theme: shared });
+        notify(`Loaded shared theme "${shared.name}". Undo to go back.`);
+      } catch (error) {
+        notify(
+          error instanceof Error
+            ? error.message
+            : "Could not load shared theme link.",
+        );
+      }
+    });
+  }, [loaded, draftChoice, notify]);
   function startRemix(entry: Entry) {
     if (!loaded) {
       notify("Your workspace is still opening. Please try again in a moment.");
@@ -747,9 +790,12 @@ export function ThemeSpace({
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      if (file.size > 65_536)
-        throw new Error("Choose a theme JSON file smaller than 64 KB.");
-      const next = parseTheme(JSON.parse(await file.text()));
+      if (file.size > 262_144)
+        throw new Error("Choose a theme file smaller than 256 KB.");
+      const { theme: next, format } = importNativeTheme(
+        await file.text(),
+        file.name,
+      );
       const removed = next.targets.filter(
         (id) => !exportTargets.some((t) => t.id === id),
       );
@@ -759,8 +805,8 @@ export function ThemeSpace({
       dispatch({ type: "edit", theme: next });
       notify(
         removed.length
-          ? "Theme imported; unavailable targets were removed."
-          : "Theme imported. Make yourself at home.",
+          ? `Imported from ${format}; unavailable targets were removed.`
+          : `Imported "${next.name}" from ${format}.`,
       );
     } catch (error) {
       notify(
@@ -768,6 +814,16 @@ export function ThemeSpace({
       );
     } finally {
       event.target.value = "";
+    }
+  }
+  async function shareThemeLink() {
+    try {
+      const encoded = encodeThemeShare(theme);
+      const url = `${window.location.origin}/#share=${encoded}`;
+      await navigator.clipboard.writeText(url);
+      notify("Shareable theme link copied to clipboard.");
+    } catch {
+      notify("Clipboard unavailable. Download Source JSON instead.");
     }
   }
   async function publish() {
@@ -1011,17 +1067,26 @@ export function ThemeSpace({
                   <span className="meta-divider" />
                   <input
                     type="file"
-                    accept="application/json,.json"
+                    accept=".json,.conf,.toml,.css,.Xresources,.colorscheme,.txt,application/json,text/plain"
                     hidden
                     ref={importRef}
                     onChange={importTheme}
                   />
                   <button
                     className="text-button"
+                    title="Import ThemeSpace, VS Code, T3 Code, Ghostty, kitty, Alacritty, WezTerm, Windows Terminal, Konsole, Xresources, or CSS"
                     onClick={() => importRef.current?.click()}
                   >
                     <Upload size={13} />
                     Import
+                  </button>
+                  <button
+                    className="text-button"
+                    title="Copy a direct link to this draft"
+                    onClick={shareThemeLink}
+                  >
+                    <Link2 size={13} />
+                    Share
                   </button>
                   <button
                     className="text-button"
@@ -1117,6 +1182,48 @@ export function ThemeSpace({
                             From image
                           </button>
                         </div>
+                        <div className="palette-transforms" aria-label="Palette transforms">
+                          <button
+                            type="button"
+                            className="transform-chip"
+                            title={`Derive a coordinated ${appearance === "dark" ? "light" : "dark"} mode from this ${appearance} palette`}
+                            onClick={() => {
+                              const other: Appearance =
+                                appearance === "dark" ? "light" : "dark";
+                              change({
+                                ...deriveCounterpartMode(theme, appearance),
+                                defaultAppearance: other,
+                              });
+                              notify(
+                                `Derived ${other} palette from ${appearance}. Undo to revert.`,
+                              );
+                            }}
+                          >
+                            <Sparkles size={11} />
+                            Derive {appearance === "dark" ? "light" : "dark"}
+                          </button>
+                          {(
+                            [
+                              ["warmer", "Warmer"],
+                              ["cooler", "Cooler"],
+                              ["vivid", "Vivid"],
+                              ["muted", "Muted"],
+                              ["hue-minus", "Hue −"],
+                              ["hue-plus", "Hue +"],
+                            ] as Array<[PaletteTransform, string]>
+                          ).map(([kind, label]) => (
+                            <button
+                              key={kind}
+                              type="button"
+                              className="transform-chip"
+                              onClick={() =>
+                                change(transformPalette(theme, appearance, kind))
+                              }
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
                         {baseRoles.map((role) => (
                           <ColorField
                             key={`${appearance}-${role}`}
@@ -1186,23 +1293,70 @@ export function ThemeSpace({
                               ))}
                           </div>
                         )}
-                        <div className="contrast-summary">
-                          <span>Text on background</span>
-                          <b
-                            className={
-                              contrast(c.foreground, c.background) >= 4.5
-                                ? "contrast-good"
-                                : "contrast-warn"
-                            }
-                          >
-                            {contrast(c.foreground, c.background).toFixed(2)}:1
-                          </b>
-                          <small>
-                            {contrast(c.foreground, c.background) >= 4.5
-                              ? "Meets 4.5:1 for this pair"
-                              : "Below 4.5:1 for normal text"}
-                          </small>
-                        </div>
+                        {(() => {
+                          const checks = contrastAudit(theme, appearance);
+                          const failing = checks.filter((item) => !item.pass);
+                          return (
+                            <div className="contrast-summary">
+                              <div className="contrast-head">
+                                <span>
+                                  WCAG Contrast ·{" "}
+                                  <b>
+                                    {checks.length - failing.length}/
+                                    {checks.length}
+                                  </b>{" "}
+                                  pass
+                                </span>
+                                {failing.length > 0 && (
+                                  <button
+                                    type="button"
+                                    className="contrast-fix-btn"
+                                    onClick={() => {
+                                      change(autoFixContrast(theme, appearance));
+                                      notify(
+                                        `Adjusted ${appearance} palette to meet WCAG AA contrast.`,
+                                      );
+                                    }}
+                                  >
+                                    <Wand2 size={11} />
+                                    Fix contrast
+                                  </button>
+                                )}
+                              </div>
+                              <div className="contrast-grid">
+                                {checks.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className="contrast-pair"
+                                    title={`${item.label}: ${item.ratio.toFixed(2)}:1 (target ${item.target}:1)`}
+                                  >
+                                    <span
+                                      className="contrast-sample"
+                                      style={{
+                                        background: item.bg,
+                                        color: item.fg,
+                                      }}
+                                    >
+                                      Aa
+                                    </span>
+                                    <span className="contrast-pair-label">
+                                      {item.label.split(" / ")[0]}
+                                    </span>
+                                    <b
+                                      className={
+                                        item.pass
+                                          ? "contrast-good"
+                                          : "contrast-warn"
+                                      }
+                                    >
+                                      {item.ratio.toFixed(1)}
+                                    </b>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
                         <div className="control-footer">
                           <span className="small muted">
                             A starting point for every mood

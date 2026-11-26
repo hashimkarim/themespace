@@ -3246,6 +3246,10 @@ body {
 .companion-install p {
   margin: 8px 0 0;
 }
+.companion-install a {
+  color: var(--app-primary);
+  text-decoration: underline;
+}
 .companion-install code {
   font-family: var(--font-mono);
   font-size: 11px;

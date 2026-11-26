@@ -1769,15 +1769,27 @@ export function ThemeSpace({
                     publish in ThemeSpace.
                   </p>
                   <details className="companion-install">
-                    <summary>How to install</summary>
+                    <summary>Manual install (ZIP downloads)</summary>
                     <p className="small muted">
                       <strong>Chromium (Chrome, Brave, Edge, Arc):</strong>{" "}
-                      Unzip the download, open <code>chrome://extensions</code>,
-                      enable Developer mode, and choose{" "}
-                      <strong>Load unpacked</strong>.
+                      <a
+                        href="/downloads/themespace-companion-chrome.zip"
+                        download="themespace-companion-chrome.zip"
+                      >
+                        Download Chromium ZIP
+                      </a>
+                      , unzip it, open <code>chrome://extensions</code>, enable
+                      Developer mode, and choose <strong>Load unpacked</strong>.
                     </p>
                     <p className="small muted">
-                      <strong>Firefox:</strong> Unzip the download, open{" "}
+                      <strong>Firefox:</strong>{" "}
+                      <a
+                        href="/downloads/themespace-companion-firefox.zip"
+                        download="themespace-companion-firefox.zip"
+                      >
+                        Download Firefox ZIP
+                      </a>
+                      , unzip it, open{" "}
                       <code>about:debugging#/runtime/this-firefox</code>, choose{" "}
                       <strong>Load Temporary Add-on</strong> on{" "}
                       <code>manifest.json</code>, then click{" "}
@@ -1788,19 +1800,21 @@ export function ThemeSpace({
                 <div className="companion-banner-actions">
                   <a
                     className="primary-button"
-                    href="/downloads/themespace-companion-chrome.zip"
-                    download="themespace-companion-chrome.zip"
+                    href="https://chromewebstore.google.com/detail/bkhigolhjhhjfohjplegkgiaeplnigbk"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    <Download size={14} />
-                    Download for Chromium
+                    <ExternalLink size={14} />
+                    Chrome Web Store
                   </a>
                   <a
                     className="secondary-button"
-                    href="/downloads/themespace-companion-firefox.zip"
-                    download="themespace-companion-firefox.zip"
+                    href="https://addons.mozilla.org/en-US/firefox/addon/themespace-companion/"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    <Download size={14} />
-                    Download for Firefox
+                    <ExternalLink size={14} />
+                    Firefox Add-ons
                   </a>
                 </div>
               </section>

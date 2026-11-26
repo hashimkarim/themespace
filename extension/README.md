@@ -3,6 +3,9 @@
 A browser extension that shows websites in your ThemeSpace themes, picks up a
 website's colors as a theme, and syncs with [themespace.app](https://themespace.app).
 
+- **Chrome Web Store:** https://chromewebstore.google.com/detail/bkhigolhjhhjfohjplegkgiaeplnigbk
+- **Firefox Add-ons:** https://addons.mozilla.org/en-US/firefox/addon/themespace-companion/
+
 - **Preview** any theme on the current tab: community themes, themes you picked
   up, or your **studio draft**, which follows the ThemeSpace editor live as you
   edit.
